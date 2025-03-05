@@ -1,0 +1,113 @@
+    {% extends "layout.html" %}
+    {% block content %}
+        <div class="row">
+            <div class="col-7">
+                <div class="content-menu">
+                    <small>Articles non postés</small>
+                    <a class="btn btn-sm mb-1 {% if selectedfeed == 'qdm' %}btn-warning{% else %}btn-outline-warning{% endif %}" role="button" href="{{ url_for('home', selectedfeed='qdm') }}">TOUS</a>
+                    <a class="btn btn-sm mb-1 {% if selectedfeed == 'X' %}btn-dark{% else %}btn-outline-dark{% endif %}" role="button" href="{{ url_for('home', selectedfeed='X') }}"><i class="bi bi-twitter-x"></i></a>
+                    <a class="btn btn-sm mb-1 {% if selectedfeed == 'LinkedIn' %}btn-primary{% else %}btn-outline-primary{% endif %}" role="button" href="{{ url_for('home', selectedfeed='LinkedIn') }}"><i class="bi bi-linkedin"></i></a>
+                </div>
+                {% for article in articles.items %}
+                    <article class="content-section">
+                        <div class="article-metadata d-flex justify-content-between align-items-center">
+                            <small class="text-muted">Date de publication QDM : {{ article.pubdate }}</small>
+                            <a class="btn btn-sm btn-outline-danger ms-auto disabled" role="button" href="#"><i class="bi bi-trash"></i></a>
+                            <a class="btn btn-sm btn-outline-success ms-2" role="button" data-bs-toggle="modal" data-bs-target="#newpost{{ article.id }}"><i class="bi bi-share"></i></a>
+                            <!-- Formulaire d'édition -->
+                            <div class="modal fade" id="newpost{{ article.id }}" tabindex="-1">
+                                <div class="modal-dialog modal-xl">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h1 class="modal-title fs-5" id="newpostLabel{{ article.id }}">Éditer le post</h1>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form action="{{ url_for('new_post', selectedfeed=selectedfeed) }}" method='post'>
+                                                <input type="hidden" name="article_id" value="{{ article.id }}">
+                                                <div class="mb-3">
+                                                    <label for="content{{ article.id }}" class="form-label">Texte du post</label>
+                                                    <textarea class="form-control" id="content{{ article.id }}" name="content" aria-describedby="contentHelp{{ article.id }}" rows="3" required>{{ article.title }}</textarea>
+                                                    <small id="contentHelp{{ article.id }}" class="form-text text-muted">0 caractère</small>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="image_url{{ article.id }}" class="form-label">URL de l'image</label>
+                                                    <input type="text" class="form-control" id="image_url{{ article.id }}" name="image_url" value="{{ article.image_url }}">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="date{{ article.id }}" class="form-label">Date et heure</label>
+                                                    <div class="input-group">
+                                                        <div class="d-flex">
+                                                            <input type="datetime-local" class="form-control" id="datetime{{ article.id }}" name="datetime" min="{{ current_datetime() }}" required>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="network{{ article.id }}" class="form-label">Réseau</label>
+                                                    <div class="form-check form-check-inline">
+                                                        <label class="form-check-label" for="x_checkbox{{ article.id }}">X</label>
+                                                        <input class="form-check-input" type="checkbox" id="x_checkbox{{ article.id }}" name="network" value="X" checked>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <label class="form-check-label" for="linkedin_checkbox{{ article.id }}">LinkedIn</label>
+                                                        <input class="form-check-input" type="checkbox" id="linkedin_checkbox{{ article.id }}" name="network" value="LinkedIn">
+                                                    </div>
+                                                </div>
+                                                <button type="submit" class="btn btn-primary">Enregistrer</button>
+                                            </form>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                             <!-- Fin formulaire-->
+                        </div>
+                        <a class="article-title" href="{{ article.link }}" target="_blank">{{ article.title }}</a>
+                        <p class="article-content">{{ article.summary[:100] }}...</p>
+                    </article>
+                {% endfor %}
+                <div class="d-flex justify-content-left flex-wrap">
+                    {% for page_num in articles.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=1) %}
+                        {% if page_num %}
+                            <a class="btn {% if articles.page == page_num %}btn-info{% else %}btn-outline-info{% endif %} me-2 mb-4" href="{{ url_for('home', page=page_num, selectedfeed=selectedfeed) }}">{{ page_num }}</a>
+                        {% else %}
+                            <span class='me-2'>...</span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            <!-- Fils de droite : posts planifiés etposts publiés -->
+            <div class="col-5">
+                <div class="content-section">
+                    <div class="border-bottom border-bottom-5 mb-2">Posts planifiés</div>
+                    {% for post in posts_planned %}
+                        <div class="post-metadata d-flex">
+                            <div class="bg-warning text-dark me-2 px-1"> {{ post.date_pub }}</div> 
+                            <div> {{ post.name }} </div>
+                        </div>
+                        <a class="post-content" href="{{ post.link }}" target="_blank">{{ post.content }}</a>
+                        <div class="d-flex border-bottom pb-1 my-2">
+                            <a class="btn btn-outline-secondary me-2" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="{{ url_for('delete_post', post_id=post.id, selectedfeed=selectedfeed) }}">Supprimer</a>
+                            <a class="btn btn-outline-secondary disabled" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="#">Repartager</a>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="content-section">
+                    <div class="border-bottom border-bottom-5 mb-2">Derniers posts</div>
+                    {% for post in posts_pub %}
+                        <div class="post-metadata d-flex">
+                            <div class="bg-secondary-subtle text-secondary-emphasis me-2 px-1"> {{ post.date_pub }}</div> 
+                            <div> {{ post.name }} </div>
+                        </div>
+                        <a class="post-content" href="{{ post.link }}" target="_blank">{{ post.content }}</a>
+                        <div class="d-flex border-bottom pb-1 my-2">
+                            <a class="btn btn-outline-secondary disabled" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="#">Repartager</a>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <script src="{{ url_for('static', filename='js/character-counter.js') }}"></script>
+    {% endblock content %}

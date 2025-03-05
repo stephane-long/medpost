@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+{% block content %}
+<form method="POST" action="{{ url_for('login') }}">
+    <div class="mb-3">
+        <label for="username" class="form-label">Nom d'utilisateur</label>
+        <input type="text" class="form-control w-25" id="username" name="username" required>
+    </div>
+    <div class="mb-3">
+        <label for="password" class="form-label">Mot de passe</label>
+        <input type="password" class="form-control w-25" id="password" name="password" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Se connecter</button>
+</form>
+{% endblock content %}
