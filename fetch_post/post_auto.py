@@ -163,13 +163,7 @@ def main():
                         format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M'
                         )
     Base.metadata.create_all(engine)
-    """# Get the folder where this script is located
-    script_dir = os.path.dirname(__file__)
-    # Get the path of the static folder
-    static_folder = os.path.join(script_dir, 'static')
-    # Create the images folder path
-    FILE_PATH = os.path.join(static_folder, 'images') # new line
-    """
+
     FILE_PATH = "/Users/stephanelong/Documents/DEV/postX/flask/static/images"
     
     networks = fetch_networks()
