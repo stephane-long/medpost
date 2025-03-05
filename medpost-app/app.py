@@ -9,23 +9,27 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from requests import Session
 
+
 app = Flask(__name__, template_folder='templates', static_folder='static', static_url_path='/')
 
-db_path = os.path.join(os.path.dirname(__file__), 'rss_qdm.db')
 load_dotenv()
+db_path = os.getenv('DATABASE_PATH')
 app.config['SECRET_KEY'] = 'APP_SECRET_KEY'
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-logging.basicConfig(filename='/Users/stephanelong/Documents/DEV/postX/flask/postx.log',
+log_path = os.getenv('LOG_PATH')
+print(log_path)
+logging.basicConfig(filename=log_path,
                     encoding='utf-8',
                     level=logging.INFO,
                     format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M'
                     )
 
 ########### DATABASE #################
+
 class Articles_rss(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.Text, nullable=False, index=True)

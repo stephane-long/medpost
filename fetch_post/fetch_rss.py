@@ -1,11 +1,14 @@
 import feedparser
+import os
 import logging
+from dotenv import load_dotenv
 from datetime import datetime
 from sqlalchemy import create_engine, select, exists, Column, Integer, String, DateTime, Boolean, ForeignKey
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Session
 
-URL_DB = '/Users/stephanelong/Documents/DEV/postX/flask/rss_qdm.db'
+load_dotenv()
+URL_DB = os.getenv('DATABASE_PATH')
 engine = create_engine(f'sqlite:///{URL_DB}') #, echo=True
 class Base(DeclarativeBase):
     pass
@@ -83,7 +86,8 @@ def insert_networks(Session, networks):
         session.commit()
 
 def main():
-    logging.basicConfig(filename='/Users/stephanelong/Documents/DEV/postX/flask/postx.log',
+    log_path = os.getenv('LOG_PATH')
+    logging.basicConfig(filename=log_path,
                         encoding='utf-8',
                         level=logging.INFO,
                         format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M'
@@ -116,3 +120,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
