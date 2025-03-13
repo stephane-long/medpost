@@ -150,7 +150,6 @@ def check_itemrss(item):
 def itemrss_ispresent(session, title):
     stmt = select(exists().where(Articles_rss.title == title))
     result = session.execute(stmt).scalar()
-    print(f"Résultat du test d'existence : {result}")
     return result
 
 def convert_date(date_str):

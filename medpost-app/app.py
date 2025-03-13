@@ -201,13 +201,13 @@ def update_post(post_id, content, post_datetime, network):
     post_to_modify.date_pub = date_plan
     post_to_modify.network = db.session.query(Networks.id).filter(Networks.name==network)
     db.session.commit()
-    logging.info(f"Post mis à jour : {content}")
+    logging.info(f"Post MAJ sur {network} : {content}")
 
 @app.route('/')
 @app.route('/index')
 @login_required
 def home():
-    perpage=5
+    perpage=7
     page = request.args.get('page', 1, type=int)
     selectedfeed = request.args.get('selectedfeed', 'qdm', type=str)
     articles = fetch_articles(selectedfeed)
