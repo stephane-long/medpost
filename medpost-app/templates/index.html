@@ -11,7 +11,7 @@
                 {% for article in articles.items %}
                     <article class="content-section">
                         <div class="article-metadata d-flex justify-content-between align-items-center">
-                            <small class="text-muted">Date de publication QDM : {{ article.pubdate }}</small>
+                            <small class="text-muted">Date QDM : {{ article.pubdate }}</small>
                             <a class="btn btn-sm btn-outline-danger ms-auto disabled" role="button" href="#"><i class="bi bi-trash"></i></a>
                             <a class="btn btn-sm btn-outline-success ms-2" role="button" data-bs-toggle="modal" data-bs-target="#newpost{{ article.id }}"><i class="bi bi-share"></i></a>
                             <!-- Formulaire d'édition -->
@@ -30,9 +30,14 @@
                                                     <textarea class="form-control" id="content{{ article.id }}" name="content" aria-describedby="contentHelp{{ article.id }}" rows="3" required>{{ article.title }}</textarea>
                                                     <small id="contentHelp{{ article.id }}" class="form-text text-muted">0 caractère</small>
                                                 </div>
-                                                <div class="mb-3">
-                                                    <label for="image_url{{ article.id }}" class="form-label">URL de l'image</label>
-                                                    <input type="text" class="form-control" id="image_url{{ article.id }}" name="image_url" value="{{ article.image_url }}">
+                                                <div class="mb-3 row">
+                                                    <label for="link{{ article.id }}" class="form-label col-sm-1">URL</label>
+                                                    <div class="col-sm-7">
+                                                        <input type="text" class="form-control" id="link{{ article.id }}" name="link" value="{{ article.link }}" disabled>
+                                                    </div>
+                                                    <div class="col-sm-4">
+                                                        <input type="text" class="form-control" value="Tag réseau social" disabled>
+                                                    </div>                                                
                                                 </div>
                                                 <div class="mb-3">
                                                     <label for="date{{ article.id }}" class="form-label">Date et heure</label>
@@ -53,7 +58,9 @@
                                                         <input class="form-check-input" type="checkbox" id="linkedin_checkbox{{ article.id }}" name="network" value="LinkedIn">
                                                     </div>
                                                 </div>
-                                                <button type="submit" class="btn btn-primary">Enregistrer</button>
+                                                <div class="d-flex justify-content-end">
+                                                    <button type="submit" class="btn btn-primary btn-right">Enregistrer</button>
+                                                </div>
                                             </form>
                                         </div>
                                         <div class="modal-footer">
@@ -69,7 +76,7 @@
                     </article>
                 {% endfor %}
                 <div class="d-flex justify-content-left flex-wrap">
-                    {% for page_num in articles.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=1) %}
+                    {% for page_num in articles.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
                         {% if page_num %}
                             <a class="btn {% if articles.page == page_num %}btn-info{% else %}btn-outline-info{% endif %} me-2 mb-4" href="{{ url_for('home', page=page_num, selectedfeed=selectedfeed) }}">{{ page_num }}</a>
                         {% else %}
@@ -87,9 +94,10 @@
                             <div class="bg-warning text-dark me-2 px-1"> {{ post.date_pub }}</div> 
                             <div> {{ post.name }} </div>
                         </div>
-                        <a class="post-content" href="{{ post.link }}" target="_blank">{{ post.content }}</a>
+                        <div class="post-content">{{ post.content }}</div>
                         <div class="d-flex border-bottom pb-1 my-2">
                             <a class="btn btn-outline-secondary me-2" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="{{ url_for('delete_post', post_id=post.id, selectedfeed=selectedfeed) }}">Supprimer</a>
+                            <a class="btn btn-outline-secondary me-2 disabled" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="#">Éditer</a>
                             <a class="btn btn-outline-secondary disabled" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="#">Repartager</a>
                         </div>
                     {% endfor %}

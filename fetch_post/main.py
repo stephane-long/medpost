@@ -4,52 +4,11 @@ from dotenv import load_dotenv
 import requests
 import tweepy
 from datetime import datetime
-from sqlalchemy import create_engine, select, and_, Column, Integer, String, DateTime, ForeignKey, update, exists
-from sqlalchemy.orm import DeclarativeBase, Session
+from sqlalchemy import select, and_, update, exists
+from sqlalchemy.orm import Session
 import feedparser
-
-###### DATABASE
-#load_dotenv(dotenv_path='.env.prod')
-URL_DB = os.getenv('DATABASE_PATH')
-print(f"database_path : {URL_DB} - Images : {os.getenv('IMAGES_PATH')} - Logs : {os.getenv('LOG_PATH')}")
-engine = create_engine(f'sqlite:///{URL_DB}')
-
-class Base(DeclarativeBase):
-    pass
-
-class Articles_rss(Base):
-    __tablename__ = 'articles_rss'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    title = Column(String, nullable=False)
-    link = Column(String, nullable=False)
-    summary = Column(String)
-    image_url = Column(String)
-    pubdate = Column(DateTime, nullable=False)
-
-    def __repr__(self):
-        return f"Article {self.title} - {self.pubdate}"
-
-class Posts(Base):
-    __tablename__ = 'Posts'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    content = Column(String, nullable=False)
-    image_url = Column(String)
-    date_pub = Column(DateTime, nullable=False)
-    status = Column(String, nullable=False)
-    id_article = Column(ForeignKey('articles_rss.id'))
-    network = Column(ForeignKey('networks.id'))
-
-    def __repr__(self):
-        return f"Post sur {self.network} - {self.content} - {self.date_pub}"
-
-class Networks(Base):
-    __tablename__ = 'networks'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String, nullable=False)
-
-    def __repr__(self):
-        return f"Network {self.id} : {self.name}"
-###### FIN DATABASE
+# Database module
+from database import Base, Articles_rss, Posts, Networks, create_db_and_tables, get_session
 
 ###### Fonctions de post_auto
 def build_posts_dic(posts):
@@ -64,8 +23,8 @@ def build_posts_dic(posts):
         for post in posts
     ]
 
-def fetch_posts(selectedfeed):
-    with Session(engine) as session:
+def fetch_posts(selectedfeed, engine):
+    with get_session(engine) as session:
         statement = (select(Posts.content,
                             Posts.image_url,
                             Articles_rss.id,
@@ -73,7 +32,7 @@ def fetch_posts(selectedfeed):
                             Networks.name,
                             Posts.id)
                     .join(Articles_rss, Articles_rss.id == Posts.id_article)
-                    .join(Networks, Networks.id == Posts.network)
+                    .join(Networks, Networks.id == Posts.network_id)
                     .filter(and_(Networks.name == selectedfeed,
                                  Posts.status == 'plan',
                                  Posts.date_pub < datetime.today()))
@@ -111,10 +70,10 @@ def download_images(posts, file_path):
         except requests.exceptions.HTTPError as err:
             logging.error(f"Erreur HTTP : {err}")
 
-def fetch_networks():
-    with Session(engine) as session:
+def fetch_networks(engine):
+    with get_session(engine) as session:
         statement = (select(Networks.name)
-                    .join(Posts, Networks.id == Posts.network)
+                    .join(Posts, Networks.id == Posts.network_id)
                     .filter(and_(Posts.status == 'plan',
                                  Posts.date_pub < datetime.today()))
                     .distinct())
@@ -134,9 +93,9 @@ def post_to_x(api, post):
         logging.error(f"Échec du post: {e}\n{post_content}")
         return False
 
-def modify_status(post):
+def modify_status(post, engine):
     statement = update(Posts).where(Posts.id == post['post_id']).values(status='pub')
-    with Session(engine) as session:
+    with get_session(engine) as session:
         try:
             session.execute(statement)
             session.commit()
@@ -144,7 +103,7 @@ def modify_status(post):
         except Exception as e:
             logging.error(f"Erreur {e} lors de modification du status post {post['link']} ")
 
-def post_all_x(posts):
+def post_all_x(posts, engine):
 #    load_dotenv()
     X_API_SECRET = os.getenv('API_KEY_SECRET')
     X_API_KEY = os.getenv('API_KEY')
@@ -160,7 +119,7 @@ def post_all_x(posts):
     for post in posts:
         success = post_to_x(x_apiv2, post)
         if success:
-            modify_status(post)
+            modify_status(post, engine)
         else:
             logging.error("Changement de statut annulé")
 
@@ -197,14 +156,7 @@ def itemrss_ispresent(session, title):
 def convert_date(date_str):
     return datetime.strptime(date_str, '%a, %d %b %Y %H:%M:%S %z')
 
-def insert_networks(Session, networks):
-    """ Insertion des réseaux si création de la table"""
-    new_networks = [Networks(name=network) for network in networks]
-    with Session(engine) as session:
-        session.add_all(new_networks)
-        session.commit()
-
-def fetch_rss_function():
+def fetch_rss_function(engine):
     url_rss = 'https://www.lequotidiendumedecin.fr/rss.xml'
     feed_qdm = fetch_rss(url_rss)
     if feed_qdm:
@@ -215,7 +167,7 @@ def fetch_rss_function():
             if item_valid:
                 try:
                     pubdate = convert_date(itemrss.published)
-                    with Session(engine) as session:
+                    with get_session(engine) as session:
                         present = itemrss_ispresent(session, itemrss.title)
                         if not present:
                             new_article = Articles_rss(title=itemrss.title, link=itemrss.link, summary=itemrss.summary , image_url=image_url , pubdate=pubdate)
@@ -226,36 +178,39 @@ def fetch_rss_function():
                     logging.error(f'Erreur lors de la lecture d\'un item RSS: {inst}')
         logging.info(f'{nb_itemrss} nouveaux articles insérés')
         print(f"{nb_itemrss} nouveaux articles insérés")
-        networks = ['X', 'LinkedIn', 'Bluesky', 'Facebook', 'Instagram', 'Thread']
-        insert_networks(Session, networks)
 
-def post_auto_function():
+def post_auto_function(engine):
     image_path = os.getenv('IMAGES_PATH') 
-    networks = fetch_networks()
+    networks = fetch_networks(engine)
     print(f"réseaux référencés : {networks}")
 
     for network in networks:
-        posts = fetch_posts(network)
+        posts = fetch_posts(network, engine)
         # download_images(posts, image_path)
         if network == 'X':
-            post_all_x(posts)
+            post_all_x(posts, engine)
     logging.info("Fin publication des posts")
 
+###### MAIN
 def main():
+    #load_dotenv(dotenv_path='/Users/stephanelong/Documents/DEV/Medpost/fetch_post/.env')
     log_path = os.getenv('LOG_PATH')
+    database_path = os.getenv('DATABASE_PATH')
     logging.basicConfig(filename=log_path,
                         encoding='utf-8',
                         level=logging.INFO,
                         format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M'
                         )
-    
-    Base.metadata.create_all(engine)
+    print(f"database_path : {database_path} - Images : {os.getenv('IMAGES_PATH')} - Logs : {log_path}")
+
+    # Create the db engine and tables
+    engine = create_db_and_tables(database_path)
 
     # Fetch RSS
-    fetch_rss_function()
+    fetch_rss_function(engine)
 
     # Post auto
-    #post_auto_function()
+    #post_auto_function(engine)
 
 if __name__ == '__main__':
     main()

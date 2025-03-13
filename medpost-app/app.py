@@ -12,16 +12,19 @@ from requests import Session
 
 app = Flask(__name__, template_folder='templates', static_folder='static', static_url_path='/')
 
-load_dotenv()
+#load_dotenv(dotenv_path='.env.dev')
 db_path = os.getenv('DATABASE_PATH')
+log_path = os.getenv('LOG_PATH')
+print(db_path, log_path, sep=' - ')
+
 app.config['SECRET_KEY'] = 'APP_SECRET_KEY'
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-log_path = os.getenv('LOG_PATH')
-print(log_path)
+
+
 logging.basicConfig(filename=log_path,
                     encoding='utf-8',
                     level=logging.INFO,
@@ -174,7 +177,7 @@ def fetch_planned_posts(selectedfeed):
                    .filter(Posts.status == 'plan'))
     return articles
 
-def record_new_post(article_id, content, image_url, post_datetime, networks):
+def record_new_post(article_id, content, post_datetime, networks):
     date_pub = datetime.strptime(post_datetime, '%Y-%m-%dT%H:%M')
     # Création d'un post par réseau sélectionné 
     for network_txt in networks: 
@@ -182,7 +185,6 @@ def record_new_post(article_id, content, image_url, post_datetime, networks):
                .filter(Networks.name==network_txt).first())   
         new_post = Posts(
             content=content,
-            image_url=image_url,
             date_pub=date_pub,
             status='plan',
             id_article=article_id,
@@ -215,10 +217,10 @@ def new_post():
     article_id = request.form.get('article_id', type=int)
     selectedfeed = request.args.get('selectedfeed', type=str)
     content = request.form.get('content')
-    image_url = request.form.get('image_url')
+    link = request.form.get('link')
     post_datetime = request.form.get('datetime')
     networks = request.form.getlist('network')
-    record_new_post(article_id, content, image_url, post_datetime, networks)
+    record_new_post(article_id, content, post_datetime, networks)
     print(f"Retour vers Home {selectedfeed}")
     return redirect(url_for('home', selectedfeed=selectedfeed))
 
@@ -253,4 +255,5 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    app.run(port=8000, debug=True)
+    #app.run(port=8000, debug=True)
+    app.run(port=8000)
