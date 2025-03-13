@@ -194,6 +194,15 @@ def record_new_post(article_id, content, post_datetime, networks):
         db.session.commit()
         logging.info(f"Nouveau post sur {network_txt} : {new_post.content}")
 
+def update_post(post_id, content, post_datetime, network):
+    date_plan = datetime.strptime(post_datetime, '%Y-%m-%dT%H:%M')
+    post_to_modify = db.session.execute(db.select(Posts).filter_by(id=post_id)).scalar_one()
+    post_to_modify.content = content
+    post_to_modify.date_pub = date_plan
+    post_to_modify.network = db.session.query(Networks.id).filter(Networks.name==network)
+    db.session.commit()
+    logging.info(f"Post mis à jour : {content}")
+
 @app.route('/')
 @app.route('/index')
 @login_required
@@ -222,6 +231,18 @@ def new_post():
     networks = request.form.getlist('network')
     record_new_post(article_id, content, post_datetime, networks)
     print(f"Retour vers Home {selectedfeed}")
+    return redirect(url_for('home', selectedfeed=selectedfeed))
+
+@app.route('/edit_post', methods=['POST'])
+@login_required
+def edit_post():
+    post_id = request.form.get('post_id', type=int)
+    selectedfeed = request.args.get('selectedfeed', type=str)
+    content = request.form.get('post_content')
+    link = request.form.get('post_link')
+    post_datetime = request.form.get('post_datetime')
+    network = request.form.get('post_network')
+    update_post(post_id, content, post_datetime, network)
     return redirect(url_for('home', selectedfeed=selectedfeed))
 
 @app.route('/delete_post')

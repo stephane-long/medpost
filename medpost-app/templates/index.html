@@ -43,7 +43,7 @@
                                                     <label for="date{{ article.id }}" class="form-label">Date et heure</label>
                                                     <div class="input-group">
                                                         <div class="d-flex">
-                                                            <input type="datetime-local" class="form-control" id="datetime{{ article.id }}" name="datetime" min="{{ current_datetime() }}" required>
+                                                            <input type="datetime-local" class="form-control" id="date{{ article.id }}" name="datetime" min="{{ current_datetime() }}" required>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -85,7 +85,7 @@
                     {% endfor %}
                 </div>
             </div>
-            <!-- Fils de droite : posts planifiés etposts publiés -->
+            <!-- Fils de droite : posts planifiés et posts publiés -->
             <div class="col-5">
                 <div class="content-section">
                     <div class="border-bottom border-bottom-5 mb-2">Posts planifiés</div>
@@ -97,7 +97,64 @@
                         <div class="post-content">{{ post.content }}</div>
                         <div class="d-flex border-bottom pb-1 my-2">
                             <a class="btn btn-outline-secondary me-2" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="{{ url_for('delete_post', post_id=post.id, selectedfeed=selectedfeed) }}">Supprimer</a>
-                            <a class="btn btn-outline-secondary me-2 disabled" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="#">Éditer</a>
+                            <a class="btn btn-outline-secondary me-2" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" data-bs-toggle="modal" data-bs-target="#editpost{{ post.id }}">Éditer</a>
+                            <!-- Formulaire édition de post planifié -->
+                            <div class="modal fade" id="editpost{{ post.id }}" tabindex="-1">
+                                <div class="modal-dialog modal-xl">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h1 class="modal-title fs-5" id="editpostLabel{{ post.id }}">Modifier le post planifié</h1>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form action="{{ url_for('edit_post', selectedfeed=selectedfeed) }}" method='post'>
+                                                <input type="hidden" name="post_id" value="{{ post.id }}">
+                                                <div class="mb-3">
+                                                    <label for="content_post{{ post.id }}" class="form-label">Texte du post</label>
+                                                    <textarea class="form-control" id="content_post{{ post.id }}" name="post_content" aria-describedby="contentHelp{{ post.id }}" rows="3" required>{{ post.content }}</textarea>
+                                                </div>
+                                                <div class="mb-3 row">
+                                                    <label for="link_post{{ post.id }}" class="form-label col-sm-1">URL</label>
+                                                    <div class="col-sm-7">
+                                                        <input type="text" class="form-control" id="link_post{{ post.id }}" name="post_link" value="{{ post.link }}" disabled>
+                                                    </div>
+                                                    <div class="col-sm-4">
+                                                        <input type="text" class="form-control" value="Tag réseau social" disabled>
+                                                    </div>                                                
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="date_post{{ post.id }}" class="form-label">Date et heure</label>
+                                                    <div class="input-group">
+                                                        <div class="d-flex">
+                                                            <input type="datetime-local" class="form-control" id="date_post{{ post.id }}" name="post_datetime" value = "{{ post.date_pub }}" min = "{{ current_datetime() }}" required>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Réseau</label>
+                                                    <div class="form-check form-check-inline">
+                                                        <label class="form-check-label" for="x_checkbox{{ post.id }}">X</label>
+                                                        <input class="form-check-input" type="radio" id="x_checkbox{{ post.id }}" name="post_network" value="X" {% if post.name=='X' %}checked{% endif %} >
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <label class="form-check-label" for="linkedin_checkbox{{ post.id }}">LinkedIn</label>
+                                                        <input class="form-check-input" type="radio" id="linkedin_checkbox{{ post.id }}" name="post_network" value="LinkedIn" {% if post.name=='LinkedIn' %}checked{% endif %}>
+                                                    </div>
+                                                </div>
+
+                                                <div class="d-flex justify-content-end">
+                                                    <button type="submit" class="btn btn-primary btn-right">Enregistrer</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Fin formulaire édition de post planifié -->
                             <a class="btn btn-outline-secondary disabled" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="#">Repartager</a>
                         </div>
                     {% endfor %}
