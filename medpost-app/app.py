@@ -229,8 +229,11 @@ def new_post():
     link = request.form.get('link')
     post_datetime = request.form.get('datetime')
     networks = request.form.getlist('network')
-    record_new_post(article_id, content, post_datetime, networks)
-    print(f"Retour vers Home {selectedfeed}")
+    logging.info(f"Networks {networks}")
+    if networks:
+        record_new_post(article_id, content, post_datetime, networks)
+    else:
+        logging.info('Aucun post créé car aucun réseau')
     return redirect(url_for('home', selectedfeed=selectedfeed))
 
 @app.route('/edit_post', methods=['POST'])
