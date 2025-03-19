@@ -25,6 +25,7 @@
                                         <div class="modal-body">
                                             <form action="{{ url_for('new_post', selectedfeed=selectedfeed) }}" method='post'>
                                                 <input type="hidden" name="article_id" value="{{ article.id }}">
+                                                <input type="hidden" name="image_url" value="{{ article.image_url }}">
                                                 <div class="mb-3">
                                                     <label for="content{{ article.id }}" class="form-label">Texte du post</label>
                                                     <textarea class="form-control" id="content{{ article.id }}" name="content" aria-describedby="contentHelp{{ article.id }}" rows="3" required>{{ article.title }}</textarea>
@@ -78,7 +79,7 @@
                 <div class="d-flex justify-content-left flex-wrap">
                     {% for page_num in articles.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
                         {% if page_num %}
-                            <a class="btn {% if articles.page == page_num %}btn-info{% else %}btn-outline-info{% endif %} me-2 mb-4" href="{{ url_for('home', page=page_num, selectedfeed=selectedfeed) }}">{{ page_num }}</a>
+                            <a class="btn {% if articles.page == page_num %}btn-warning{% else %}btn-outline-warning{% endif %} me-2 mb-4" href="{{ url_for('home', page=page_num, selectedfeed=selectedfeed) }}">{{ page_num }}</a>
                         {% else %}
                             <span class='me-2'>...</span>
                         {% endif %}

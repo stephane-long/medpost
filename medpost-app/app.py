@@ -19,6 +19,7 @@ print(db_path, log_path, sep=' - ')
 
 app.config['SECRET_KEY'] = 'APP_SECRET_KEY'
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -40,6 +41,8 @@ class Articles_rss(db.Model):
     summary = db.Column(db.Text, nullable=False)
     image_url = db.Column(db.Text, nullable=False)
     pubdate = db.Column(db.DateTime, nullable=False)
+    statut = db.Column(db.Integer, nullable=False)
+
 
     def __repr__(self):
         return f"Article {self.title} - {self.pubdate}"
@@ -54,11 +57,12 @@ class Posts(db.Model):
     network = db.Column(db.ForeignKey('networks.id'))
 
     def __repr__(self):
-        return f"Post X {self.content} - {self.date_pub}"
+        return f"Post {self.content} - {self.date_pub}"
 
 class Networks(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String, nullable=False)
+    tag = db.Column(db.String, nullable=True)
 
     def __repr__(self):
         return f"Network {self.id} - {self.name}"
@@ -137,6 +141,8 @@ def fetch_pub_posts(selectedfeed):
                                    Networks.name
                                    )
                     .order_by(Posts.date_pub.desc())
+                    .limit(5)
+                    
                     )
     else:
                 articles = (db.session.query(Posts)
@@ -152,6 +158,7 @@ def fetch_pub_posts(selectedfeed):
                                    Networks.name
                                    )
                     .order_by(Posts.date_pub.desc())
+                    .limit(5)
                                   )
     return articles
 
@@ -177,14 +184,15 @@ def fetch_planned_posts(selectedfeed):
                    .filter(Posts.status == 'plan'))
     return articles
 
-def record_new_post(article_id, content, post_datetime, networks):
+def record_new_post(article_id, image_url, content, post_datetime, networks):
     date_pub = datetime.strptime(post_datetime, '%Y-%m-%dT%H:%M')
     # Création d'un post par réseau sélectionné 
     for network_txt in networks: 
         network = (db.session.query(Networks.id)
-               .filter(Networks.name==network_txt).first())   
+               .filter(Networks.name==network_txt).first())
         new_post = Posts(
             content=content,
+            image_url=image_url,
             date_pub=date_pub,
             status='plan',
             id_article=article_id,
@@ -224,6 +232,7 @@ def home():
 @login_required
 def new_post():
     article_id = request.form.get('article_id', type=int)
+    image_url = request.form.get('image_url', type=str)
     selectedfeed = request.args.get('selectedfeed', type=str)
     content = request.form.get('content')
     link = request.form.get('link')
@@ -231,7 +240,7 @@ def new_post():
     networks = request.form.getlist('network')
     logging.info(f"Networks {networks}")
     if networks:
-        record_new_post(article_id, content, post_datetime, networks)
+        record_new_post(article_id, image_url, content, post_datetime, networks)
     else:
         logging.info('Aucun post créé car aucun réseau')
     return redirect(url_for('home', selectedfeed=selectedfeed))
@@ -267,6 +276,7 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
             login_user(user)
+            logging.info(f"Connexion de {username}")
             return redirect(url_for('home'))
         else:
             return 'Invalid username or password'
@@ -275,6 +285,7 @@ def login():
 @app.route('/logout')
 @login_required
 def logout():
+    logging.info(f"Déconnexion de {current_user.username}")
     logout_user()
     return redirect(url_for('login'))
 

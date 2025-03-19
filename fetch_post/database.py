@@ -15,27 +15,29 @@ class Articles_rss(Base):
     summary = Column(String)
     image_url = Column(String)
     pubdate = Column(DateTime, nullable=False)
+    statut = Column(Integer, nullable=False)
 
     def __repr__(self):
         return f"Article {self.title} - {self.pubdate}"
 
 class Posts(Base):
-    __tablename__ = 'Posts'
+    __tablename__ = 'posts'
     id = Column(Integer, primary_key=True, autoincrement=True)
     content = Column(String, nullable=False)
     image_url = Column(String)
     date_pub = Column(DateTime, nullable=False)
     status = Column(String, nullable=False)
     id_article = Column(ForeignKey('articles_rss.id'))
-    network_id = Column(ForeignKey('networks.id'))
+    network = Column(ForeignKey('networks.id'))
 
     def __repr__(self):
-        return f"Post sur {self.network_id} - {self.content} - {self.date_pub}"
+        return f"Post sur {self.network} - {self.content} - {self.date_pub}"
 
 class Networks(Base):
     __tablename__ = 'networks'
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=False)
+    tag = Column(String, nullable=True)
 
     def __repr__(self):
         return f"Network {self.id} : {self.name}"

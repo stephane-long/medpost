@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 import requests
 import tweepy
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import select, and_, update, exists
 from sqlalchemy.orm import Session
 import feedparser
@@ -32,7 +32,7 @@ def fetch_posts(selectedfeed, engine):
                             Networks.name,
                             Posts.id)
                     .join(Articles_rss, Articles_rss.id == Posts.id_article)
-                    .join(Networks, Networks.id == Posts.network_id)
+                    .join(Networks, Networks.id == Posts.network)
                     .filter(and_(Networks.name == selectedfeed,
                                  Posts.status == 'plan',
                                  Posts.date_pub < datetime.today()))
@@ -73,15 +73,19 @@ def download_images(posts, file_path):
 def fetch_networks(engine):
     with get_session(engine) as session:
         statement = (select(Networks.name)
-                    .join(Posts, Networks.id == Posts.network_id)
+                    .join(Posts, Networks.id == Posts.network)
                     .filter(and_(Posts.status == 'plan',
-                                 Posts.date_pub < datetime.today()))
+                                 Posts.date_pub < datetime.now()))
                     .distinct())
+        print(f"DATE {datetime.today()} - {datetime.now()}")
         try:
             networks = session.scalars(statement).all()
         except Exception as e:
             logging.error('Erreur dans la collecte des réseaux')
-    return networks
+            networks = []
+        return networks
+
+    
 
 def post_to_x(api, post):
     post_content = f"{post['content']} {post['link']}"
@@ -121,7 +125,7 @@ def post_all_x(posts, engine):
         if success:
             modify_status(post, engine)
         else:
-            logging.error("Changement de statut annulé")
+            logging.error(f"Changement de statut impossible {post.content}")
 
 
 ###### Fonctions de fetch_rss
@@ -169,7 +173,7 @@ def fetch_rss_function(engine):
                     with get_session(engine) as session:
                         present = itemrss_ispresent(session, itemrss.title)
                         if not present:
-                            new_article = Articles_rss(title=itemrss.title, link=itemrss.link, summary=itemrss.summary , image_url=image_url , pubdate=pubdate)
+                            new_article = Articles_rss(title=itemrss.title, link=itemrss.link, summary=itemrss.summary , image_url=image_url , pubdate=pubdate, statut=1)
                             session.add(new_article)
                             session.commit()
                             nb_itemrss += 1
@@ -187,6 +191,7 @@ def post_auto_function(engine):
         posts = fetch_posts(network, engine)
         # download_images(posts, image_path)
         if network == 'X':
+            pass
             post_all_x(posts, engine)
     logging.info("Fin publication des posts")
 
@@ -200,7 +205,6 @@ def main():
                         level=logging.INFO,
                         format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M'
                         )
-    print(f"database_path : {database_path} - Images : {os.getenv('IMAGES_PATH')} - Logs : {log_path}")
 
     # Create the db engine and tables
     engine = create_db_and_tables(database_path)
@@ -209,7 +213,7 @@ def main():
     fetch_rss_function(engine)
 
     # Post auto
-    #post_auto_function(engine)
+    post_auto_function(engine)
 
 if __name__ == '__main__':
     main()
