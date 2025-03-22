@@ -32,6 +32,16 @@
                                                     <textarea class="form-control" id="title{{ article.id }}" name="title" aria-describedby="titleHelp{{ article.id }}" rows="3" required>{{ article.title }}</textarea>
                                                     <small id="titleHelp{{ article.id }}" class="form-text text-muted">0 caractère</small>
                                                 </div>
+                                                <div class="mb-3">
+                                                    <label for="description{{ article.id }}" class="form-label">Description du post</label>
+                                                    <textarea class="form-control" id="description{{ article.id }}" name="description" aria-describedby="descriptionHelp{{ article.id }}" rows="3" required>{{ article.summary }}</textarea>
+                                                    <!--<small id="descriptionHelp{{ article.id }}" class="form-text text-muted">0 caractère</small>-->
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="tagline{{ article.id }}" class="form-label">Accroche du post</label>
+                                                    <textarea class="form-control" id="tagline{{ article.id }}" name="tagline" aria-describedby="taglineHelp{{ article.id }}" rows="3" required>Accroche pour Bluesky</textarea>
+                                                    <!--<small id="descriptionHelp{{ article.id }}" class="form-text text-muted">0 caractère</small>-->
+                                                </div>
                                                 <div class="mb-3 row">
                                                     <label for="link{{ article.id }}" class="form-label col-sm-1">URL</label>
                                                     <div class="col-sm-12">
@@ -113,6 +123,15 @@
                                                     <label for="title_post{{ post.id }}" class="form-label">Titre du post</label>
                                                     <textarea class="form-control" id="title_post{{ post.id }}" name="post_title" aria-describedby="titleHelp{{ post.id }}" rows="3" required>{{ post.title }}</textarea>
                                                 </div>
+                                                <div class="mb-3">
+                                                    <label for="description_post{{ post.id }}" class="form-label">Description du post</label>
+                                                    <textarea class="form-control" id="description_post{{ post.id }}" name="post_description" aria-describedby="descriptionHelp{{ post.id }}" rows="3" required>{{ post.description }}</textarea>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="tagline_post{{ post.id }}" class="form-label">Accroche du post</label>
+                                                    <textarea class="form-control" id="tagline_post{{ post.id }}" name="post_tagline" aria-describedby="taglineHelp{{ post.id }}" rows="3" required>{{ post.tagline }}</textarea>
+                                                </div>
+
                                                 <div class="mb-3 row">
                                                     <label for="link_post{{ post.id }}" class="form-label col-sm-1">URL</label>
                                                     <div class="col-sm-7">

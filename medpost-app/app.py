@@ -138,6 +138,8 @@ def fetch_pub_posts(selectedfeed):
                     .filter(Posts.status == 'pub')
                     .with_entities(Posts.id,
                                    Posts.title,
+                                   Posts.description,
+                                   Posts.tagline,
                                    Posts.image_url,
                                    Posts.date_pub,
                                    Articles_rss.link,
@@ -155,6 +157,8 @@ def fetch_pub_posts(selectedfeed):
                     .filter(Posts.status == 'pub')
                     .with_entities(Posts.id,
                                    Posts.title,
+                                   Posts.description,
+                                   Posts.tagline,
                                    Posts.image_url,
                                    Posts.date_pub,
                                    Articles_rss.link,
@@ -171,6 +175,8 @@ def fetch_planned_posts(selectedfeed):
                 .outerjoin(Networks, Posts.network == Networks.id)
                 .with_entities(Posts.id,
                             Posts.title,
+                            Posts.description,
+                            Posts.tagline,
                             Posts.image_url,
                             Posts.date_pub,
                             Articles_rss.link,
@@ -187,7 +193,7 @@ def fetch_planned_posts(selectedfeed):
                    .filter(Posts.status == 'plan'))
     return articles
 
-def record_new_post(article_id, image_url, title, post_datetime, networks):
+def record_new_post(article_id, image_url, title, description, tagline, post_datetime, networks):
     date_pub = datetime.strptime(post_datetime, '%Y-%m-%dT%H:%M')
     # Création d'un post par réseau sélectionné 
     for network_txt in networks: 
@@ -195,6 +201,8 @@ def record_new_post(article_id, image_url, title, post_datetime, networks):
                .filter(Networks.name==network_txt).first())
         new_post = Posts(
             title=title,
+            description=description,
+            tagline=tagline,
             image_url=image_url,
             date_pub=date_pub,
             status='plan',
@@ -205,10 +213,12 @@ def record_new_post(article_id, image_url, title, post_datetime, networks):
         db.session.commit()
         logging.info(f"Nouveau post sur {network_txt} : {new_post.title}")
 
-def update_post(post_id, title, post_datetime, network):
+def update_post(post_id, title, description, tagline, post_datetime, network):
     date_plan = datetime.strptime(post_datetime, '%Y-%m-%dT%H:%M')
     post_to_modify = db.session.execute(db.select(Posts).filter_by(id=post_id)).scalar_one()
     post_to_modify.title = title
+    post_to_modify.descripion = description
+    post_to_modify.tagline = tagline
     post_to_modify.date_pub = date_plan
     post_to_modify.network = db.session.query(Networks.id).filter(Networks.name==network)
     db.session.commit()
@@ -238,12 +248,14 @@ def new_post():
     image_url = request.form.get('image_url', type=str)
     selectedfeed = request.args.get('selectedfeed', type=str)
     title = request.form.get('title')
+    description = request.form.get('description')
+    tagline = request.form.get('tagline')
     link = request.form.get('link')
     post_datetime = request.form.get('datetime')
     networks = request.form.getlist('network')
     logging.info(f"Networks {networks}")
     if networks:
-        record_new_post(article_id, image_url, title, post_datetime, networks)
+        record_new_post(article_id, image_url, title, description, tagline, post_datetime, networks)
     else:
         logging.info('Aucun post créé car aucun réseau')
     return redirect(url_for('home', selectedfeed=selectedfeed))
@@ -254,10 +266,12 @@ def edit_post():
     post_id = request.form.get('post_id', type=int)
     selectedfeed = request.args.get('selectedfeed', type=str)
     title = request.form.get('post_title')
+    description = request.form.get('post_description')
+    tagline = request.form.get('post_tagline')
     link = request.form.get('post_link')
     post_datetime = request.form.get('post_datetime')
     network = request.form.get('post_network')
-    update_post(post_id, title, post_datetime, network)
+    update_post(post_id, title, description, tagline, post_datetime, network)
     return redirect(url_for('home', selectedfeed=selectedfeed))
 
 @app.route('/delete_post')
