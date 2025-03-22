@@ -26,6 +26,7 @@ body {
     border: 2px solid #dddddd;
     border-radius: 5px;
     margin-bottom: 5px;
+    box-shadow: 0 .125rem .5rem rgba(0,0,0,.15);
   }
   
   .article-title {
@@ -54,7 +55,7 @@ body {
     text-decoration: none;
   }
   
-  .post-content {
+  .post-title {
     font-size: 0.7rem;
   }
   

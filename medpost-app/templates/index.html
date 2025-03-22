@@ -6,14 +6,15 @@
                     <small>Articles non postés</small>
                     <a class="btn btn-sm mb-1 {% if selectedfeed == 'qdm' %}btn-warning{% else %}btn-outline-warning{% endif %}" role="button" href="{{ url_for('home', selectedfeed='qdm') }}">TOUS</a>
                     <a class="btn btn-sm mb-1 {% if selectedfeed == 'X' %}btn-dark{% else %}btn-outline-dark{% endif %}" role="button" href="{{ url_for('home', selectedfeed='X') }}"><i class="bi bi-twitter-x"></i></a>
+                    <a class="btn btn-sm mb-1 {% if selectedfeed == 'Bluesky' %}btn-primary{% else %}btn-outline-primary{% endif %}" role="button" href="{{ url_for('home', selectedfeed='Bluesky') }}">B</a>
                     <a class="btn btn-sm mb-1 {% if selectedfeed == 'LinkedIn' %}btn-primary{% else %}btn-outline-primary{% endif %}" role="button" href="{{ url_for('home', selectedfeed='LinkedIn') }}"><i class="bi bi-linkedin"></i></a>
                 </div>
                 {% for article in articles.items %}
                     <article class="content-section">
                         <div class="article-metadata d-flex justify-content-between align-items-center">
                             <small class="text-muted">Date QDM : {{ article.pubdate }}</small>
-                            <a class="btn btn-sm btn-outline-danger ms-auto disabled" role="button" href="#"><i class="bi bi-trash"></i></a>
-                            <a class="btn btn-sm btn-outline-success ms-2" role="button" data-bs-toggle="modal" data-bs-target="#newpost{{ article.id }}"><i class="bi bi-share"></i></a>
+                            <a class="btn btn-sm btn-outline-success ms-auto" role="button" data-bs-toggle="modal" data-bs-target="#newpost{{ article.id }}"><i class="bi bi-share"></i></a>
+                            <a class="btn btn-sm btn-outline-danger ms-2 disabled" role="button" href="#"><i class="bi bi-trash"></i></a>
                             <!-- Formulaire d'édition -->
                             <div class="modal fade" id="newpost{{ article.id }}" tabindex="-1">
                                 <div class="modal-dialog modal-xl">
@@ -27,36 +28,35 @@
                                                 <input type="hidden" name="article_id" value="{{ article.id }}">
                                                 <input type="hidden" name="image_url" value="{{ article.image_url }}">
                                                 <div class="mb-3">
-                                                    <label for="content{{ article.id }}" class="form-label">Texte du post</label>
-                                                    <textarea class="form-control" id="content{{ article.id }}" name="content" aria-describedby="contentHelp{{ article.id }}" rows="3" required>{{ article.title }}</textarea>
-                                                    <small id="contentHelp{{ article.id }}" class="form-text text-muted">0 caractère</small>
+                                                    <label for="title{{ article.id }}" class="form-label">Titre du post</label>
+                                                    <textarea class="form-control" id="title{{ article.id }}" name="title" aria-describedby="titleHelp{{ article.id }}" rows="3" required>{{ article.title }}</textarea>
+                                                    <small id="titleHelp{{ article.id }}" class="form-text text-muted">0 caractère</small>
                                                 </div>
                                                 <div class="mb-3 row">
                                                     <label for="link{{ article.id }}" class="form-label col-sm-1">URL</label>
-                                                    <div class="col-sm-7">
-                                                        <input type="text" class="form-control" id="link{{ article.id }}" name="link" value="{{ article.link }}" disabled>
+                                                    <div class="col-sm-12">
+                                                        <input type="text" class="form-control" id="link{{ article.id }}" name="link" value="{{ article.link }}">
                                                     </div>
+                                                </div>
+                                                <div class="mb-3 row">
+                                                    <label for="date{{ article.id }}" class="form-label col-sm-2 fw-bold">Date et heure</label>
                                                     <div class="col-sm-4">
-                                                        <input type="text" class="form-control" value="Tag réseau social" disabled>
-                                                    </div>                                                
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="date{{ article.id }}" class="form-label">Date et heure</label>
-                                                    <div class="input-group">
-                                                        <div class="d-flex">
-                                                            <input type="datetime-local" class="form-control" id="date{{ article.id }}" name="datetime" min="{{ current_datetime() }}" required>
+                                                        <input type="datetime-local" class="form-control" id="date{{ article.id }}" name="datetime" min="{{ current_datetime() }}" required>
+                                                    </div>
+                                                    <label for="network{{ article.id }}" class="form-label col-sm-1 fw-bold">Réseaux</label>
+                                                    <div class="col-sm-5">
+                                                        <div class="form-check form-check-inline">
+                                                            <label class="form-check-label" for="x_checkbox{{ article.id }}">X</label>
+                                                            <input class="form-check-input" type="checkbox" id="x_checkbox{{ article.id }}" name="network" value="X" {% if selectedfeed == 'X' %}checked{% endif %}>
                                                         </div>
-                                                    </div>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="network{{ article.id }}" class="form-label">Réseau</label>
-                                                    <div class="form-check form-check-inline">
-                                                        <label class="form-check-label" for="x_checkbox{{ article.id }}">X</label>
-                                                        <input class="form-check-input" type="checkbox" id="x_checkbox{{ article.id }}" name="network" value="X" {% if selectedfeed == 'X' %}checked{% endif %}>
-                                                    </div>
-                                                    <div class="form-check form-check-inline">
-                                                        <label class="form-check-label" for="linkedin_checkbox{{ article.id }}">LinkedIn</label>
-                                                        <input class="form-check-input" type="checkbox" id="linkedin_checkbox{{ article.id }}" name="network" value="LinkedIn" {% if selectedfeed == 'LinkedIn' %}checked{% endif %}>
+                                                        <div class="form-check form-check-inline">
+                                                            <label class="form-check-label" for="bluesky_checkbox{{ article.id }}">Bluesky</label>
+                                                            <input class="form-check-input" type="checkbox" id="bluesky_checkbox{{ article.id }}" name="network" value="Bluesky" {% if selectedfeed == 'Bluesky' %}checked{% endif %}>
+                                                        </div>
+                                                        <div class="form-check form-check-inline">
+                                                            <label class="form-check-label" for="linkedin_checkbox{{ article.id }}">LinkedIn</label>
+                                                            <input class="form-check-input" type="checkbox" id="linkedin_checkbox{{ article.id }}" name="network" value="LinkedIn" {% if selectedfeed == 'LinkedIn' %}checked{% endif %}>
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div class="d-flex justify-content-end">
@@ -65,7 +65,7 @@
                                             </form>
                                         </div>
                                         <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
                                         </div>
                                     </div>
                                 </div>
@@ -95,10 +95,9 @@
                             <div class="bg-warning text-dark me-2 px-1"> {{ post.date_pub }}</div> 
                             <div> {{ post.name }} </div>
                         </div>
-                        <div class="post-content">{{ post.content }}</div>
+                        <div class="post-content">{{ post.title }}</div>
                         <div class="d-flex border-bottom pb-1 my-2">
-                            <a class="btn btn-outline-secondary me-2" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="{{ url_for('delete_post', post_id=post.id, selectedfeed=selectedfeed) }}">Supprimer</a>
-                            <a class="btn btn-outline-secondary me-2" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" data-bs-toggle="modal" data-bs-target="#editpost{{ post.id }}">Éditer</a>
+                            <a class="btn btn-outline-success me-2" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" data-bs-toggle="modal" data-bs-target="#editpost{{ post.id }}">Éditer</a>
                             <!-- Formulaire édition de post planifié -->
                             <div class="modal fade" id="editpost{{ post.id }}" tabindex="-1">
                                 <div class="modal-dialog modal-xl">
@@ -111,8 +110,8 @@
                                             <form action="{{ url_for('edit_post', selectedfeed=selectedfeed) }}" method='post'>
                                                 <input type="hidden" name="post_id" value="{{ post.id }}">
                                                 <div class="mb-3">
-                                                    <label for="content_post{{ post.id }}" class="form-label">Texte du post</label>
-                                                    <textarea class="form-control" id="content_post{{ post.id }}" name="post_content" aria-describedby="contentHelp{{ post.id }}" rows="3" required>{{ post.content }}</textarea>
+                                                    <label for="title_post{{ post.id }}" class="form-label">Titre du post</label>
+                                                    <textarea class="form-control" id="title_post{{ post.id }}" name="post_title" aria-describedby="titleHelp{{ post.id }}" rows="3" required>{{ post.title }}</textarea>
                                                 </div>
                                                 <div class="mb-3 row">
                                                     <label for="link_post{{ post.id }}" class="form-label col-sm-1">URL</label>
@@ -138,6 +137,11 @@
                                                         <input class="form-check-input" type="radio" id="x_checkbox{{ post.id }}" name="post_network" value="X" {% if post.name=='X' %}checked{% endif %} >
                                                     </div>
                                                     <div class="form-check form-check-inline">
+                                                        <label class="form-check-label" for="bluesky_checkbox{{ post.id }}">Bluesky</label>
+                                                        <input class="form-check-input" type="radio" id="bluesky_checkbox{{ post.id }}" name="post_network" value="Bluesky" {% if post.name=='Bluesky' %}checked{% endif %}>
+                                                    </div>
+
+                                                    <div class="form-check form-check-inline">
                                                         <label class="form-check-label" for="linkedin_checkbox{{ post.id }}">LinkedIn</label>
                                                         <input class="form-check-input" type="radio" id="linkedin_checkbox{{ post.id }}" name="post_network" value="LinkedIn" {% if post.name=='LinkedIn' %}checked{% endif %}>
                                                     </div>
@@ -154,9 +158,9 @@
                                     </div>
                                 </div>
                             </div>
-
                             <!-- Fin formulaire édition de post planifié -->
-                            <a class="btn btn-outline-secondary disabled" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="#">Repartager</a>
+                            <a class="btn btn-outline-secondary me-5 disabled" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="#">Repartager</a>
+                            <a class="btn btn-outline-danger" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="{{ url_for('delete_post', post_id=post.id, selectedfeed=selectedfeed) }}">Supprimer</a>
                         </div>
                     {% endfor %}
                 </div>
@@ -167,7 +171,7 @@
                             <div class="bg-secondary-subtle text-secondary-emphasis me-2 px-1"> {{ post.date_pub }}</div> 
                             <div> {{ post.name }} </div>
                         </div>
-                        <a class="post-content" href="{{ post.link }}" target="_blank">{{ post.content }}</a>
+                        <a class="post-title" href="{{ post.link }}" target="_blank">{{ post.title }}</a>
                         <div class="d-flex border-bottom pb-1 my-2">
                             <a class="btn btn-outline-secondary disabled" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="#">Repartager</a>
                         </div>

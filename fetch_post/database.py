@@ -23,12 +23,16 @@ class Articles_rss(Base):
 class Posts(Base):
     __tablename__ = 'posts'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    content = Column(String, nullable=False)
+    title = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    tagline = Column(String, nullable=False)
     image_url = Column(String)
     date_pub = Column(DateTime, nullable=False)
     status = Column(String, nullable=False)
+    network_post_id = Column(Integer, nullable=True)
     id_article = Column(ForeignKey('articles_rss.id'))
     network = Column(ForeignKey('networks.id'))
+
 
     def __repr__(self):
         return f"Post sur {self.network} - {self.content} - {self.date_pub}"
