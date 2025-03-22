@@ -142,7 +142,7 @@ def fetch_pub_posts(selectedfeed):
                                    Posts.tagline,
                                    Posts.image_url,
                                    Posts.date_pub,
-                                   Articles_rss.link,
+                                   Posts.network_post_id,
                                    Networks.name
                                    )
                     .order_by(Posts.date_pub.desc())
@@ -161,7 +161,7 @@ def fetch_pub_posts(selectedfeed):
                                    Posts.tagline,
                                    Posts.image_url,
                                    Posts.date_pub,
-                                   Articles_rss.link,
+                                   Posts.network_post_id,
                                    Networks.name
                                    )
                     .order_by(Posts.date_pub.desc())

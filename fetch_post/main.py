@@ -8,42 +8,15 @@ from sqlalchemy import select, and_, update, exists
 from sqlalchemy.orm import Session
 import feedparser
 from database import Base, Articles_rss, Posts, Networks, create_db_and_tables, get_session
+from atproto import models, Client
 
 ###### Fonctions de post_auto
 
 def fetch_posts(selectedfeed, engine):
-    """
-    Retrieves planned posts for a specific social network from the database.
-
-    This function queries the database to find posts that are:
-    1. Associated with the specified social network (`selectedfeed`).
-    2. Marked as 'plan' in their status.
-    3. Scheduled for publication on a date in the past (i.e., `date_pub` is before today).
-
-    The function joins the `Posts`, `Articles_rss`, and `Networks` tables to gather
-    the necessary information about each post. It then returns the results as a list
-    of dictionaries, where each dictionary represents a single post and its associated data.
-
-    Args:
-        selectedfeed (str): The name of the social network to fetch posts for (e.g., 'X', 'Bluesky').
-        engine: The SQLAlchemy engine connected to the database.
-
-    Returns:
-        list[dict]: A list of dictionaries, where each dictionary represents a post and contains the following keys:
-            - 'title' (str): The title of the post.
-            - 'image_url' (str): The URL of the post's image.
-            - 'article_id' (int): The ID of the related article in the `Articles_rss` table.
-            - 'link' (str): The link to the related article.
-            - 'network_name' (str): The name of the social network.
-            - 'post_id' (int): The ID of the post in the `Posts` table.
-            
-        Returns an empty list if no post is found or if an error occurs.
-
-    Raises:
-        sqlalchemy.exc.SQLAlchemyError: If there is an error during the database query.
-    """
     with get_session(engine) as session:
         statement = (select(Posts.title,
+                            Posts.description,
+                            Posts.tagline,
                             Posts.image_url,
                             Articles_rss.id.label('article_id'),
                             Articles_rss.link,
@@ -110,10 +83,10 @@ def update_network_post_id(engine, post_id, network_post_id):
             )
             session.execute(statement)
             session.commit()
-            logging.info(f"Mise à jour de l'id X {network_post_id} pour le post {post_id} to")
+            logging.info(f"Mise à jour du network_post_id {network_post_id} pour le post {post_id}")
         except Exception as e:
             session.rollback()
-            logging.error(f"Erreur lors de la mise à jour de l'id X pour le post {post_id}: {e}")
+            logging.error(f"Erreur lors de la mise à jour du network_post_id pour le post {post_id}: {e}")
 
 def modify_status(engine, post_id, post_title):
     logging.info(f"Réception modify_stats : {post_id}")
@@ -147,6 +120,7 @@ def post_all_x(posts, engine):
     X_API_KEY = os.getenv('API_KEY')
     X_ACCESS_TOKEN = os.getenv('ACCESS_TOKEN')
     X_ACCESS_TOKEN_SECRET= os.getenv('ACCESS_TOKEN_SECRET')
+    X_URL_QDM = os.getenv('X_URL_QDM')
     # Connexion à X API V2
     try:
         x_apiv2 = connect_x_apiv2(X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET)
@@ -158,13 +132,58 @@ def post_all_x(posts, engine):
         success, network_post_id = post_to_x(x_apiv2, post)
         if success:
             modify_status(engine, post['post_id'], post['title'])
-            update_network_post_id(engine, post['post_id'], network_post_id)
+            network_post_link = X_URL_QDM + network_post_id
+            update_network_post_id(engine, post['post_id'], network_post_link)
         else:
             logging.error(f"Changement de statut impossible {post['title']}")
 
-def post_all_bluesky(posts, engine):
-    pass
+def post_to_bluesky(post, client_bluesky):
+    # Download image from image_url
+    try:
+        image_url = post['image_url']
+        response = requests.get(image_url)
+        response.raise_for_status()
+        content_type = response.headers.get('Content-Type')
+        if content_type not in ['image/jpeg', 'image/png']:
+            logging.error(f"Erreur : Le type de contenu attendu est 'image/jpeg' ou 'image/png', mais reçu '{content_type}'")
+            return
+    except requests.exceptions.HTTPError as err:
+        logging.error(f"HTTP error while reading image_url : {err}")
+        return
+    # upload image to Bluesky
+    img_data=response.content
+    thumb = client_bluesky.upload_blob(img_data)
+    # Creating the web card and uploading
+    embed = models.AppBskyEmbedExternal.Main( 
+        external=models.AppBskyEmbedExternal.External(
+            title=post['title'],
+            description=post['description'],
+            uri=post['link'],
+            thumb=thumb.blob
+        )
+    )
+    web_card = client_bluesky.send_post(post['tagline'], embed=embed)
+    network_post_id = web_card.uri.rsplit('/', 1)[1]
+    return network_post_id
 
+def post_all_bluesky(posts, engine):
+    BLUESKY_LOGIN = os.getenv('BLUESKY_LOGIN')
+    BLUESKY_PASSWORD = os.getenv('BLUESKY_PASSWORD')
+    BLUESKY_URL_QDM = os.getenv('BLUESKY_URL_QDM')
+    client_bluesky = Client()
+    logging.info(f"Paramètres Bluesky {BLUESKY_LOGIN} {BLUESKY_PASSWORD}")
+    try:
+        client_bluesky.login(BLUESKY_LOGIN, BLUESKY_PASSWORD)
+        logging.info("Connexion réussie à Bluesky")
+    except Exception as err:
+        logging.info(f"Échec de connexion à Bluesky {err}")
+        return
+    for post in posts:
+        network_post_id = post_to_bluesky(post, client_bluesky)
+        network_post_link = BLUESKY_URL_QDM+str(network_post_id)
+        update_network_post_id(engine, post['post_id'], network_post_link)
+        logging.info(f"Post {post['title']} posté sur Bluesky --- URI = {network_post_id}")
+        modify_status(engine, post['post_id'], post['title'])
 
 ###### Fonctions de fetch_rss
 def fetch_rss(url):
@@ -229,11 +248,10 @@ def post_auto_function(engine):
         posts = fetch_posts(network, engine)
         # download_images(posts, image_path)
         if network == 'X':
- #           pass
+            pass
             post_all_x(posts, engine)
         elif network == 'Bluesky':
             post_all_bluesky(posts, engine)
-
     logging.info("Fin publication des posts")
 
 ###### MAIN

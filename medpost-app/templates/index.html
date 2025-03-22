@@ -20,7 +20,7 @@
                                 <div class="modal-dialog modal-xl">
                                     <div class="modal-content">
                                         <div class="modal-header">
-                                            <h1 class="modal-title fs-5" id="newpostLabel{{ article.id }}">Éditer le post</h1>
+                                            <h1 class="modal-title fs-5 fw-bold" id="newpostLabel{{ article.id }}">Éditer le post</h1>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
                                         <div class="modal-body">
@@ -28,22 +28,22 @@
                                                 <input type="hidden" name="article_id" value="{{ article.id }}">
                                                 <input type="hidden" name="image_url" value="{{ article.image_url }}">
                                                 <div class="mb-3">
-                                                    <label for="title{{ article.id }}" class="form-label">Titre du post</label>
+                                                    <label for="title{{ article.id }}" class="form-label fw-bold">Titre du post</label>
                                                     <textarea class="form-control" id="title{{ article.id }}" name="title" aria-describedby="titleHelp{{ article.id }}" rows="3" required>{{ article.title }}</textarea>
                                                     <small id="titleHelp{{ article.id }}" class="form-text text-muted">0 caractère</small>
                                                 </div>
                                                 <div class="mb-3">
-                                                    <label for="description{{ article.id }}" class="form-label">Description du post</label>
+                                                    <label for="description{{ article.id }}" class="form-label fw-bold">Description du post</label>
                                                     <textarea class="form-control" id="description{{ article.id }}" name="description" aria-describedby="descriptionHelp{{ article.id }}" rows="3" required>{{ article.summary }}</textarea>
                                                     <!--<small id="descriptionHelp{{ article.id }}" class="form-text text-muted">0 caractère</small>-->
                                                 </div>
                                                 <div class="mb-3">
-                                                    <label for="tagline{{ article.id }}" class="form-label">Accroche du post</label>
+                                                    <label for="tagline{{ article.id }}" class="form-label fw-bold">Accroche du post</label>
                                                     <textarea class="form-control" id="tagline{{ article.id }}" name="tagline" aria-describedby="taglineHelp{{ article.id }}" rows="3" required>Accroche pour Bluesky</textarea>
                                                     <!--<small id="descriptionHelp{{ article.id }}" class="form-text text-muted">0 caractère</small>-->
                                                 </div>
                                                 <div class="mb-3 row">
-                                                    <label for="link{{ article.id }}" class="form-label col-sm-1">URL</label>
+                                                    <label for="link{{ article.id }}" class="form-label col-sm-1 fw-bold">URL</label>
                                                     <div class="col-sm-12">
                                                         <input type="text" class="form-control" id="link{{ article.id }}" name="link" value="{{ article.link }}">
                                                     </div>
@@ -70,7 +70,7 @@
                                                     </div>
                                                 </div>
                                                 <div class="d-flex justify-content-end">
-                                                    <button type="submit" class="btn btn-primary btn-right">Enregistrer</button>
+                                                    <button type="submit" class="btn btn-primary btn-right">Programmer</button>
                                                 </div>
                                             </form>
                                         </div>
@@ -183,6 +183,7 @@
                         </div>
                     {% endfor %}
                 </div>
+                <!-- Derniers posts publiés -->
                 <div class="content-section">
                     <div class="border-bottom border-bottom-5 mb-2">Derniers posts</div>
                     {% for post in posts_pub %}
@@ -190,7 +191,7 @@
                             <div class="bg-secondary-subtle text-secondary-emphasis me-2 px-1"> {{ post.date_pub }}</div> 
                             <div> {{ post.name }} </div>
                         </div>
-                        <a class="post-title" href="{{ post.link }}" target="_blank">{{ post.title }}</a>
+                        <a class="post-title" href="{{ post.network_post_id }}" target="_blank">{{ post.title }}</a>
                         <div class="d-flex border-bottom pb-1 my-2">
                             <a class="btn btn-outline-secondary disabled" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="#">Repartager</a>
                         </div>
