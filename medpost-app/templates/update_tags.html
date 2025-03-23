@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="text-center text-secondary border-bottom border-3 pb-2">Tags des réseaux</h2>
+        </div>
+    </div>
+    {% for network in networks %}
+    <div class="row align-items-start mb-3">
+        <div class="col-2 text-end">
+            <span class="fw-bold text-secondary fs-5">{{ network.name }}</span>
+        </div>
+        <div class="col-8">
+            <div class="network-tag p-2 border border-2">
+                {{ network.tag }}
+            </div>
+        </div>
+        <div class="col-2 d-flex flex-column">
+            <button type="button" class="btn btn-warning w-100 mb-2">Modifier</button>
+        </div>
+    </div>
+    {% endfor %}
+    <div class="row">
+        <div class="col-2 offset-10">
+            <a class="btn btn-success w-100" role="button" href="{{ url_for('home') }}">Home</a>
+        </div>
+    </div>
+</div>
+{% endblock content %}

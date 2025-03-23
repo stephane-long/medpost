@@ -69,4 +69,11 @@ body {
     padding-bottom: 0px;
     margin-bottom: 0px;
    }
-  
+
+  .network-tag {
+    border: 2px solid #ced4da; /* Light grey border */
+    min-height: 48px; /* Adjust this value as needed */
+    display: flex;
+    align-items: center;
+    word-break: break-word;
+  }

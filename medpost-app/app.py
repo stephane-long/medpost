@@ -224,6 +224,16 @@ def update_post(post_id, title, description, tagline, post_datetime, network):
     db.session.commit()
     logging.info(f"Post MAJ sur {network} : {title}")
 
+def get_networks_tags():
+    networks = (db.session
+                .query(Networks)
+                .with_entities(Networks.name,
+                               Networks.tag
+                               )
+                .all()
+                )
+    return networks
+
 @app.route('/')
 @app.route('/index')
 @login_required
@@ -305,6 +315,13 @@ def logout():
     logging.info(f"Déconnexion de {current_user.username}")
     logout_user()
     return redirect(url_for('login'))
+
+@app.route('/tags')
+@login_required
+def update_tags():
+    networks = get_networks_tags()
+    return render_template('update_tags.html', networks=networks)
+
 
 if __name__ == '__main__':
     #app.run(port=8000, debug=True)

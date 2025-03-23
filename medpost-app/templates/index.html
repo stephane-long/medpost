@@ -34,12 +34,12 @@
                                                 </div>
                                                 <div class="mb-3">
                                                     <label for="description{{ article.id }}" class="form-label fw-bold">Description du post</label>
-                                                    <textarea class="form-control" id="description{{ article.id }}" name="description" aria-describedby="descriptionHelp{{ article.id }}" rows="3" required>{{ article.summary }}</textarea>
+                                                    <textarea class="form-control" id="description{{ article.id }}" name="description" aria-describedby="descriptionHelp{{ article.id }}" rows="3" required>{{ article.summary | truncate(250) }}</textarea>
                                                     <!--<small id="descriptionHelp{{ article.id }}" class="form-text text-muted">0 caractère</small>-->
                                                 </div>
                                                 <div class="mb-3">
                                                     <label for="tagline{{ article.id }}" class="form-label fw-bold">Accroche du post</label>
-                                                    <textarea class="form-control" id="tagline{{ article.id }}" name="tagline" aria-describedby="taglineHelp{{ article.id }}" rows="3" required>Accroche pour Bluesky</textarea>
+                                                    <textarea class="form-control text-danger" id="tagline{{ article.id }}" name="tagline" aria-describedby="taglineHelp{{ article.id }}" rows="3" required>Accroche pour Bluesky</textarea>
                                                     <!--<small id="descriptionHelp{{ article.id }}" class="form-text text-muted">0 caractère</small>-->
                                                 </div>
                                                 <div class="mb-3 row">

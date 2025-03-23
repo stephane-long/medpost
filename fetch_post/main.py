@@ -60,18 +60,18 @@ def download_images(posts, file_path):
             logging.error(f"Erreur HTTP : {err}")
 
 def fetch_networks(engine):
-    with get_session(engine) as session:
-        statement = (select(Networks.name)
-                    .join(Posts, Networks.id == Posts.network)
-                    .filter(and_(Posts.status == 'plan',
-                                 Posts.date_pub < datetime.now()))
-                    .distinct())
-        try:
+    try:
+        with get_session(engine) as session:
+            statement = (select(Networks.name)
+                        .join(Posts, Networks.id == Posts.network)
+                        .filter(and_(Posts.status == 'plan',
+                                    Posts.date_pub < datetime.now()))
+                        .distinct())
             networks = session.scalars(statement).all()
-        except Exception as e:
-            logging.error('Erreur dans la collecte des réseaux')
-            networks = []
-        return networks
+    except Exception as err:
+        logging.error(f"Erreur dans la collecte des réseaux : {err}")
+        networks = []
+    return networks
 
 def update_network_post_id(engine, post_id, network_post_id):
     with get_session(engine) as session:
@@ -89,7 +89,6 @@ def update_network_post_id(engine, post_id, network_post_id):
             logging.error(f"Erreur lors de la mise à jour du network_post_id pour le post {post_id}: {e}")
 
 def modify_status(engine, post_id, post_title):
-    logging.info(f"Réception modify_stats : {post_id}")
     with get_session(engine) as session:
         try:
             statement = (update(Posts).
@@ -102,12 +101,22 @@ def modify_status(engine, post_id, post_title):
         except Exception as e:
             logging.error(f"Erreur {e} lors de modification du status post {post_title} ")
 
-def post_to_x(api, post):
-    post_content = f"{post['title']} {post['link']}"
+def get_network_tag(network, engine):
+    try:
+        with get_session(engine) as session:
+            tag = session.scalar(select(Networks.name).where(Networks.name == network))
+            return tag
+    except Exception as err:
+        logging.error(f"Impossible d'accéder au tag de {network} : Erreur {err}")
+        return None
+
+def post_to_x(api, post, tag):
+    url_to_post = post['link'] + tag
+    post_content = f"{post['title']} {url_to_post}"
     try:
         response = api.create_tweet(text=post_content)
         network_post_id = response.data['id']
-        logging.info(f"Tweet publié avec l'ID : {network_post_id} - Link = {post['link']}")
+        logging.info(f"Tweet publié avec l'ID : {network_post_id} - Link = {url_to_post}")
         return True, network_post_id
     except Exception as e:
         logging.error(f"Échec du post: {e}\n{post_content}")
@@ -128,8 +137,9 @@ def post_all_x(posts, engine):
     except Exception as e:
         logging.error(f"Erreur de connexion à l'API V2 de X: {e}")
         return
+    tag = get_network_tag('X', engine)
     for post in posts:
-        success, network_post_id = post_to_x(x_apiv2, post)
+        success, network_post_id = post_to_x(x_apiv2, post, tag)
         if success:
             modify_status(engine, post['post_id'], post['title'])
             network_post_link = X_URL_QDM + network_post_id
@@ -137,7 +147,7 @@ def post_all_x(posts, engine):
         else:
             logging.error(f"Changement de statut impossible {post['title']}")
 
-def post_to_bluesky(post, client_bluesky):
+def post_to_bluesky(post, client_bluesky, tag):
     # Download image from image_url
     try:
         image_url = post['image_url']
@@ -154,22 +164,29 @@ def post_to_bluesky(post, client_bluesky):
     img_data=response.content
     thumb = client_bluesky.upload_blob(img_data)
     # Creating the web card and uploading
+    url_to_post = post['link'] + tag
     embed = models.AppBskyEmbedExternal.Main( 
         external=models.AppBskyEmbedExternal.External(
             title=post['title'],
             description=post['description'],
-            uri=post['link'],
+            uri=url_to_post,
             thumb=thumb.blob
         )
     )
-    web_card = client_bluesky.send_post(post['tagline'], embed=embed)
-    network_post_id = web_card.uri.rsplit('/', 1)[1]
-    return network_post_id
+    try:
+        web_card = client_bluesky.send_post(post['tagline'], embed=embed)
+        network_post_id = web_card.uri.rsplit('/', 1)[1] # get the post id to build the post URL
+        logging.info(f"Post {post['title']} posté sur Bluesky --- URI = {network_post_id}")
+        return network_post_id
+    except Exception as err:
+        logging.info(f"Impossible de publier le post {post['title']} sur Bluesky")
+        return None
 
 def post_all_bluesky(posts, engine):
     BLUESKY_LOGIN = os.getenv('BLUESKY_LOGIN')
     BLUESKY_PASSWORD = os.getenv('BLUESKY_PASSWORD')
     BLUESKY_URL_QDM = os.getenv('BLUESKY_URL_QDM')
+    tag = get_network_tag('Bluesky', engine)
     client_bluesky = Client()
     logging.info(f"Paramètres Bluesky {BLUESKY_LOGIN} {BLUESKY_PASSWORD}")
     try:
@@ -178,11 +195,11 @@ def post_all_bluesky(posts, engine):
     except Exception as err:
         logging.info(f"Échec de connexion à Bluesky {err}")
         return
+    tag = get_network_tag('Bluesky', engine)
     for post in posts:
-        network_post_id = post_to_bluesky(post, client_bluesky)
+        network_post_id = post_to_bluesky(post, client_bluesky, tag) # need the network_post_id to build the post URL
         network_post_link = BLUESKY_URL_QDM+str(network_post_id)
         update_network_post_id(engine, post['post_id'], network_post_link)
-        logging.info(f"Post {post['title']} posté sur Bluesky --- URI = {network_post_id}")
         modify_status(engine, post['post_id'], post['title'])
 
 ###### Fonctions de fetch_rss
@@ -217,8 +234,8 @@ def convert_date(date_str):
     return datetime.strptime(date_str, '%a, %d %b %Y %H:%M:%S %z')
 
 def fetch_rss_function(engine):
-    url_rss = 'https://www.lequotidiendumedecin.fr/rss.xml'
-    feed_qdm = fetch_rss(url_rss)
+    QDM_URL_RSS = os.getenv('QDM_URL_RSS')
+    feed_qdm = fetch_rss(QDM_URL_RSS)
     if feed_qdm:
         logging.info('Lecture des articles RSS')
         nb_itemrss = 0
@@ -230,7 +247,7 @@ def fetch_rss_function(engine):
                     with get_session(engine) as session:
                         present = itemrss_ispresent(session, itemrss.title)
                         if not present:
-                            new_article = Articles_rss(title=itemrss.title, link=itemrss.link, summary=itemrss.summary , image_url=image_url , pubdate=pubdate, statut=1)
+                            new_article = Articles_rss(title=itemrss.title+'.', link=itemrss.link, summary=itemrss.summary , image_url=image_url , pubdate=pubdate, statut=1)
                             session.add(new_article)
                             session.commit()
                             nb_itemrss += 1
