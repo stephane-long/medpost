@@ -104,7 +104,7 @@ def modify_status(engine, post_id, post_title):
 def get_network_tag(network, engine):
     try:
         with get_session(engine) as session:
-            tag = session.scalar(select(Networks.name).where(Networks.name == network))
+            tag = session.scalar(select(Networks.tag).where(Networks.name == network))
             return tag
     except Exception as err:
         logging.error(f"Impossible d'accéder au tag de {network} : Erreur {err}")
@@ -204,6 +204,7 @@ def post_all_bluesky(posts, engine):
 
 ###### Fonctions de fetch_rss
 def fetch_rss(url):
+    logging.info(f"Début d'import RSS {url}")
     try:
         feed = feedparser.parse(url)
         if feed.bozo:
@@ -234,8 +235,8 @@ def convert_date(date_str):
     return datetime.strptime(date_str, '%a, %d %b %Y %H:%M:%S %z')
 
 def fetch_rss_function(engine):
-    QDM_URL_RSS = os.getenv('QDM_URL_RSS')
-    feed_qdm = fetch_rss(QDM_URL_RSS)
+    URL_RSS = os.getenv('QDM_URL_RSS')
+    feed_qdm = fetch_rss(URL_RSS)
     if feed_qdm:
         logging.info('Lecture des articles RSS')
         nb_itemrss = 0

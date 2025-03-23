@@ -224,16 +224,6 @@ def update_post(post_id, title, description, tagline, post_datetime, network):
     db.session.commit()
     logging.info(f"Post MAJ sur {network} : {title}")
 
-def get_networks_tags():
-    networks = (db.session
-                .query(Networks)
-                .with_entities(Networks.name,
-                               Networks.tag
-                               )
-                .all()
-                )
-    return networks
-
 @app.route('/')
 @app.route('/index')
 @login_required
@@ -316,10 +306,26 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+@app.route('/update_tag/<int:network_id>', methods=['POST'])
+def update_tag(network_id):
+    new_tag = request.form.get('new_tag')
+    network = db.session.get(Networks, network_id)
+    if network:
+        network.tag = new_tag
+        db.session.commit()
+    return redirect(url_for('update_tags'))
+
 @app.route('/tags')
 @login_required
 def update_tags():
-    networks = get_networks_tags()
+    networks = (db.session
+                .query(Networks)
+                .with_entities(Networks.id,
+                               Networks.name,
+                               Networks.tag
+                               )
+                .all()
+                )
     return render_template('update_tags.html', networks=networks)
 
 

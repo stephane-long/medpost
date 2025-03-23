@@ -17,13 +17,37 @@
             </div>
         </div>
         <div class="col-2 d-flex flex-column">
-            <button type="button" class="btn btn-warning w-100 mb-2">Modifier</button>
+            <button type="button" class="btn btn-warning w-100 mb-2" data-bs-toggle="modal" data-bs-target="#editTagModal{{ network.id }}">Modifier</button>
         </div>
     </div>
+    <!-- formulaire d'édition du tag -->
+    <div class="modal fade" id="editTagModal{{ network.id }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editTagModalLabel{{ network.id }}">Modifier le tag pour {{ network.name }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="{{ url_for('update_tag', network_id=network.id) }}" method="POST">
+                        <div class="mb-3">
+                            <label for="tag{{ network.id }}" class="form-label">Nouveau tag</label>
+                            <textarea class="form-control" id="tag{{ network.id }}" name="new_tag" rows="3">{{ network.tag }}</textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn btn-primary">Enregistrer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Fin formulaire d'édition du tag -->
     {% endfor %}
     <div class="row">
         <div class="col-2 offset-10">
-            <a class="btn btn-success w-100" role="button" href="{{ url_for('home') }}">Home</a>
+            <a class="btn btn-success w-100" role="button" href="{{ url_for('home') }}">Quitter</a>
         </div>
     </div>
 </div>
