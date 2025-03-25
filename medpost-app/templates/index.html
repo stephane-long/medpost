@@ -1,4 +1,4 @@
-    {% extends "layout.html" %}
+{% extends "layout.html" %}
     {% block content %}
         <div class="row">
             <div class="col-7">
@@ -16,7 +16,13 @@
                             <a class="btn btn-sm btn-outline-success ms-auto" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" data-bs-toggle="modal" data-bs-target="#newpost{{ article.id }}">Partager</a>
                             <a class="btn btn-sm btn-outline-danger ms-2 disabled" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="#">Supprimer</a>
                             <!-- Formulaire d'édition -->
-                            <div class="modal fade" id="newpost{{ article.id }}" tabindex="-1">
+                            <div class="modal fade" id="newpost{{ article.id }}" tabindex="-1" 
+                                 data-title="{{ article.title }}" 
+                                 data-description="{{ article.summary | truncate(250) }}" 
+                                 data-tagline="Accroche pour Bluesky" 
+                                 data-link="{{ article.link }}" 
+                                 data-datetime="{{ current_datetime() }}" 
+                                 data-min-datetime="{{ current_datetime() }}">
                                 <div class="modal-dialog modal-xl">
                                     <div class="modal-content">
                                         <div class="modal-header">
@@ -24,57 +30,27 @@
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
                                         <div class="modal-body">
-                                            <form action="{{ url_for('new_post', selectedfeed=selectedfeed) }}" method='post'>
-                                                <input type="hidden" name="article_id" value="{{ article.id }}">
-                                                <input type="hidden" name="image_url" value="{{ article.image_url }}">
-                                                <div class="mb-3">
-                                                    <label for="title{{ article.id }}" class="form-label fw-bold">Titre du post</label>
-                                                    <textarea class="form-control" id="title{{ article.id }}" name="title" aria-describedby="titleHelp{{ article.id }}" rows="3" required>{{ article.title }}</textarea>
-                                                    <small id="titleHelp{{ article.id }}" class="form-text text-muted">0 caractère</small>
+                                            <!-- Network Selection -->
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Sélectionnez les réseaux</label>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input network-checkbox" type="checkbox" id="x_checkbox_modal{{ article.id }}" value="X">
+                                                    <label class="form-check-label" for="x_checkbox_modal{{ article.id }}">X</label>
                                                 </div>
-                                                <div class="mb-3">
-                                                    <label for="description{{ article.id }}" class="form-label fw-bold">Description du post</label>
-                                                    <textarea class="form-control" id="description{{ article.id }}" name="description" aria-describedby="descriptionHelp{{ article.id }}" rows="3" required>{{ article.summary | truncate(250) }}</textarea>
-                                                    <!--<small id="descriptionHelp{{ article.id }}" class="form-text text-muted">0 caractère</small>-->
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input network-checkbox" type="checkbox" id="bluesky_checkbox_modal{{ article.id }}" value="Bluesky">
+                                                    <label class="form-check-label" for="bluesky_checkbox_modal{{ article.id }}">Bluesky</label>
                                                 </div>
-                                                <div class="mb-3">
-                                                    <label for="tagline{{ article.id }}" class="form-label fw-bold">Accroche du post</label>
-                                                    <textarea class="form-control text-danger" id="tagline{{ article.id }}" name="tagline" aria-describedby="taglineHelp{{ article.id }}" rows="3" required>Accroche pour Bluesky</textarea>
-                                                    <!--<small id="descriptionHelp{{ article.id }}" class="form-text text-muted">0 caractère</small>-->
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input network-checkbox" type="checkbox" id="linkedin_checkbox_modal{{ article.id }}" value="LinkedIn">
+                                                    <label class="form-check-label" for="linkedin_checkbox_modal{{ article.id }}">LinkedIn</label>
                                                 </div>
-                                                <div class="mb-3 row">
-                                                    <label for="link{{ article.id }}" class="form-label col-sm-1 fw-bold">URL</label>
-                                                    <div class="col-sm-12">
-                                                        <input type="text" class="form-control" id="link{{ article.id }}" name="link" value="{{ article.link }}">
-                                                    </div>
-                                                </div>
-                                                <div class="mb-3 row">
-                                                    <label for="date{{ article.id }}" class="form-label col-sm-2 fw-bold">Date et heure</label>
-                                                    <div class="col-sm-4">
-                                                        <input type="datetime-local" class="form-control" id="date{{ article.id }}" name="datetime" min="{{ current_datetime() }}" required>
-                                                    </div>
-                                                    <label for="network{{ article.id }}" class="form-label col-sm-1 fw-bold">Réseaux</label>
-                                                    <div class="col-sm-5">
-                                                        <div class="form-check form-check-inline">
-                                                            <label class="form-check-label" for="x_checkbox{{ article.id }}">X</label>
-                                                            <input class="form-check-input" type="checkbox" id="x_checkbox{{ article.id }}" name="network" value="X" {% if selectedfeed == 'X' %}checked{% endif %}>
-                                                        </div>
-                                                        <div class="form-check form-check-inline">
-                                                            <label class="form-check-label" for="bluesky_checkbox{{ article.id }}">Bluesky</label>
-                                                            <input class="form-check-input" type="checkbox" id="bluesky_checkbox{{ article.id }}" name="network" value="Bluesky" {% if selectedfeed == 'Bluesky' %}checked{% endif %}>
-                                                        </div>
-                                                        <div class="form-check form-check-inline">
-                                                            <label class="form-check-label" for="linkedin_checkbox{{ article.id }}">LinkedIn</label>
-                                                            <input class="form-check-input" type="checkbox" id="linkedin_checkbox{{ article.id }}" name="network" value="LinkedIn" {% if selectedfeed == 'LinkedIn' %}checked{% endif %}>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="d-flex justify-content-end">
-                                                    <button type="submit" class="btn btn-primary btn-right">Programmer</button>
-                                                </div>
-                                            </form>
+                                            </div>
+                                            <!-- Dynamic Forms Container -->
+                                            <div id="dynamic-forms-container{{ article.id }}"></div>
                                         </div>
                                         <div class="modal-footer">
+                                            <button type="button" class="btn btn-primary" id="programmer-btn-{{ article.id }}">Programmer</button>
                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
                                         </div>
                                     </div>
@@ -199,5 +175,6 @@
                 </div>
             </div>
         </div>
+        <script src="{{ url_for('static', filename='js/modal-handler.js') }}"></script>
         <script src="{{ url_for('static', filename='js/character-counter.js') }}"></script>
     {% endblock content %}
