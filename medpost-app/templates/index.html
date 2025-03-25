@@ -4,17 +4,17 @@
             <div class="col-7">
                 <div class="content-menu">
                     <small>Articles non postés</small>
-                    <a class="btn btn-sm mb-1 {% if selectedfeed == 'qdm' %}btn-warning{% else %}btn-outline-warning{% endif %}" role="button" href="{{ url_for('home', selectedfeed='qdm') }}">TOUS</a>
-                    <a class="btn btn-sm mb-1 {% if selectedfeed == 'X' %}btn-dark{% else %}btn-outline-dark{% endif %}" role="button" href="{{ url_for('home', selectedfeed='X') }}"><i class="bi bi-twitter-x"></i></a>
-                    <a class="btn btn-sm mb-1 {% if selectedfeed == 'Bluesky' %}btn-primary{% else %}btn-outline-primary{% endif %}" role="button" href="{{ url_for('home', selectedfeed='Bluesky') }}">B</a>
-                    <a class="btn btn-sm mb-1 {% if selectedfeed == 'LinkedIn' %}btn-primary{% else %}btn-outline-primary{% endif %}" role="button" href="{{ url_for('home', selectedfeed='LinkedIn') }}"><i class="bi bi-linkedin"></i></a>
+                    <a class="btn btn-sm mb-1 {% if selectedfeed == 'qdm' %}btn-warning{% else %}btn-outline-warning{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='qdm') }}">TOUS</a>
+                    <a class="btn btn-sm mb-1 {% if selectedfeed == 'X' %}btn-dark{% else %}btn-outline-dark{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='X') }}">X</a>
+                    <a class="btn btn-sm mb-1 {% if selectedfeed == 'Bluesky' %}btn-primary{% else %}btn-outline-primary{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='Bluesky') }}">Bluesky</a>
+                    <a class="btn btn-sm mb-1 {% if selectedfeed == 'LinkedIn' %}btn-primary{% else %}btn-outline-primary{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='LinkedIn') }}">LinkedIn</a>
                 </div>
                 {% for article in articles.items %}
                     <article class="content-section">
                         <div class="article-metadata d-flex justify-content-between align-items-center">
                             <small class="text-muted">Date QDM : {{ article.pubdate }}</small>
-                            <a class="btn btn-sm btn-outline-success ms-auto" role="button" data-bs-toggle="modal" data-bs-target="#newpost{{ article.id }}"><i class="bi bi-share"></i></a>
-                            <a class="btn btn-sm btn-outline-danger ms-2 disabled" role="button" href="#"><i class="bi bi-trash"></i></a>
+                            <a class="btn btn-sm btn-outline-success ms-auto" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" data-bs-toggle="modal" data-bs-target="#newpost{{ article.id }}">Partager</a>
+                            <a class="btn btn-sm btn-outline-danger ms-2 disabled" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="#">Supprimer</a>
                             <!-- Formulaire d'édition -->
                             <div class="modal fade" id="newpost{{ article.id }}" tabindex="-1">
                                 <div class="modal-dialog modal-xl">
