@@ -1,5 +1,8 @@
 .DS_Store
 .venv
-data/
-logs/
+/data
+/logs
 .env
+/merdier
+/.vscode
+.env.*

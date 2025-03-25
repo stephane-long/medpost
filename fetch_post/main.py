@@ -227,7 +227,8 @@ def check_itemrss(item):
     return True, image_url
 
 def itemrss_ispresent(session, title):
-    stmt = select(exists().where(Articles_rss.title == title))
+    title_db = Articles_rss.title
+    stmt = select(exists().where(title_db == title))
     result = session.execute(stmt).scalar()
     return result
 
@@ -248,7 +249,7 @@ def fetch_rss_function(engine):
                     with get_session(engine) as session:
                         present = itemrss_ispresent(session, itemrss.title)
                         if not present:
-                            new_article = Articles_rss(title=itemrss.title+'.', link=itemrss.link, summary=itemrss.summary , image_url=image_url , pubdate=pubdate, statut=1)
+                            new_article = Articles_rss(title=itemrss.title, link=itemrss.link, summary=itemrss.summary , image_url=image_url , pubdate=pubdate, statut=1)
                             session.add(new_article)
                             session.commit()
                             nb_itemrss += 1

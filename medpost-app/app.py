@@ -307,17 +307,18 @@ def logout():
     return redirect(url_for('login'))
 
 @app.route('/update_tag/<int:network_id>', methods=['POST'])
+@login_required
 def update_tag(network_id):
     new_tag = request.form.get('new_tag')
     network = db.session.get(Networks, network_id)
     if network:
         network.tag = new_tag
         db.session.commit()
-    return redirect(url_for('update_tags'))
+    return redirect(url_for('tags_list'))
 
 @app.route('/tags')
 @login_required
-def update_tags():
+def tags_list():
     networks = (db.session
                 .query(Networks)
                 .with_entities(Networks.id,
@@ -326,7 +327,7 @@ def update_tags():
                                )
                 .all()
                 )
-    return render_template('update_tags.html', networks=networks)
+    return render_template('tags_list.html', networks=networks)
 
 
 if __name__ == '__main__':
