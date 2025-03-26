@@ -8,9 +8,13 @@ from sqlalchemy import select
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from requests import Session
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 
 app = Flask(__name__, template_folder='templates', static_folder='static', static_url_path='/')
+
+# https reverse proxy 
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 #load_dotenv(dotenv_path='.env.dev')
 db_path = os.getenv('DATABASE_PATH')
