@@ -1,6 +1,6 @@
 {% extends "layout.html" %}
     {% block content %}
-        <div class="row">
+        <div class="row" data-selectedfeed="{{ selectedfeed }}">
             <div class="col-7">
                 <div class="content-menu">
                     <small>Articles non postés</small>
@@ -19,25 +19,24 @@
                             <div class="modal fade" id="newpost{{ article.id }}" tabindex="-1" 
                                  data-title="{{ article.title }}" 
                                  data-description="{{ article.summary | truncate(250) }}" 
-                                 data-tagline="Accroche pour Bluesky" 
                                  data-link="{{ article.link }}" 
                                  data-datetime="{{ current_datetime() }}" 
                                  data-min-datetime="{{ current_datetime() }}">
                                 <div class="modal-dialog modal-xl">
                                     <div class="modal-content">
                                         <div class="modal-header">
-                                            <h1 class="modal-title fs-5 fw-bold" id="newpostLabel{{ article.id }}">Éditer le post</h1>
+                                            <h1 class="modal-title fs-5 fw-bold" id="newpostLabel{{ article.id }}">Nouveau post</h1>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
                                         <div class="modal-body">
-                                            <!-- Network Selection -->
-                                            <div class="mb-3">
-                                                <label class="form-label fw-bold">Sélectionnez les réseaux</label>
-                                                <div class="form-check form-check-inline">
+                                            <!-- Séléction des réseaux à éditer -->
+                                            <div class="mb-3 d-flex align-items-center flex-wrap">
+                                                <label class="form-label me-3 fw-bold">Sélectionnez les réseaux</label>
+                                                <div class="form-check form-check-inline me-2">
                                                     <input class="form-check-input network-checkbox" type="checkbox" id="x_checkbox_modal{{ article.id }}" value="X">
                                                     <label class="form-check-label" for="x_checkbox_modal{{ article.id }}">X</label>
                                                 </div>
-                                                <div class="form-check form-check-inline">
+                                                <div class="form-check form-check-inline me-2">
                                                     <input class="form-check-input network-checkbox" type="checkbox" id="bluesky_checkbox_modal{{ article.id }}" value="Bluesky">
                                                     <label class="form-check-label" for="bluesky_checkbox_modal{{ article.id }}">Bluesky</label>
                                                 </div>
@@ -46,7 +45,7 @@
                                                     <label class="form-check-label" for="linkedin_checkbox_modal{{ article.id }}">LinkedIn</label>
                                                 </div>
                                             </div>
-                                            <!-- Dynamic Forms Container -->
+                                            <!-- Formulaire dynamique -->
                                             <div id="dynamic-forms-container{{ article.id }}"></div>
                                         </div>
                                         <div class="modal-footer">
@@ -62,7 +61,7 @@
 <!--                        <p class="article-content">{{ article.summary[:100] }}...</p> -->
                     </article>
                 {% endfor %}
-                <div class="d-flex justify-content-left flex-wrap">
+                <div class="d-flex mt-2 justify-content-left flex-wrap">
                     {% for page_num in articles.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
                         {% if page_num %}
                             <a class="btn {% if articles.page == page_num %}btn-warning{% else %}btn-outline-warning{% endif %} me-2 mb-4" href="{{ url_for('home', page=page_num, selectedfeed=selectedfeed) }}">{{ page_num }}</a>
@@ -96,52 +95,34 @@
                                             <form action="{{ url_for('edit_post', selectedfeed=selectedfeed) }}" method='post'>
                                                 <input type="hidden" name="post_id" value="{{ post.id }}">
                                                 <div class="mb-3">
-                                                    <label for="title_post{{ post.id }}" class="form-label">Titre du post</label>
+                                                    <label for="title_post{{ post.id }}" class="form-label fw-bold">Titre du post</label>
                                                     <textarea class="form-control" id="title_post{{ post.id }}" name="post_title" aria-describedby="titleHelp{{ post.id }}" rows="3" required>{{ post.title }}</textarea>
                                                 </div>
                                                 <div class="mb-3">
-                                                    <label for="description_post{{ post.id }}" class="form-label">Description du post</label>
+                                                    <label for="description_post{{ post.id }}" class="form-label fw-bold">Description du post</label>
                                                     <textarea class="form-control" id="description_post{{ post.id }}" name="post_description" aria-describedby="descriptionHelp{{ post.id }}" rows="3" required>{{ post.description }}</textarea>
                                                 </div>
                                                 <div class="mb-3">
-                                                    <label for="tagline_post{{ post.id }}" class="form-label">Accroche du post</label>
+                                                    <label for="tagline_post{{ post.id }}" class="form-label fw-bold">Accroche du post</label>
                                                     <textarea class="form-control" id="tagline_post{{ post.id }}" name="post_tagline" aria-describedby="taglineHelp{{ post.id }}" rows="3" required>{{ post.tagline }}</textarea>
                                                 </div>
-
-                                                <div class="mb-3 row">
-                                                    <label for="link_post{{ post.id }}" class="form-label col-sm-1">URL</label>
-                                                    <div class="col-sm-7">
-                                                        <input type="text" class="form-control" id="link_post{{ post.id }}" name="post_link" value="{{ post.link }}" disabled>
-                                                    </div>
-                                                    <div class="col-sm-4">
-                                                        <input type="text" class="form-control" value="Tag réseau social" disabled>
-                                                    </div>                                                
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="date_post{{ post.id }}" class="form-label">Date et heure</label>
-                                                    <div class="input-group">
-                                                        <div class="d-flex">
-                                                            <input type="datetime-local" class="form-control" id="date_post{{ post.id }}" name="post_datetime" value = "{{ post.date_pub }}" min = "{{ current_datetime() }}" required>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Réseau</label>
-                                                    <div class="form-check form-check-inline">
+                                                <div class="mb-3 d-flex align-items-center flex-wrap">
+                                                    <label for="date_post{{ post.id }}" class="form-label me-2 mb-0 fw-bold">Date et heure</label>
+                                                    <input type="datetime-local" class="form-control me-3 w-auto" id="date_post{{ post.id }}" name="post_datetime" value="{{ post.date_pub }}" min="{{ current_datetime() }}" required>
+                                                    <label class="form-label me-3 ms-2 mb-0 fw-bold">Réseau</label>
+                                                    <div class="form-check form-check-inline me-2">
+                                                        <input class="form-check-input" type="radio" id="x_checkbox{{ post.id }}" name="post_network" value="X" {% if post.name == 'X' %}checked{% endif %}>
                                                         <label class="form-check-label" for="x_checkbox{{ post.id }}">X</label>
-                                                        <input class="form-check-input" type="radio" id="x_checkbox{{ post.id }}" name="post_network" value="X" {% if post.name=='X' %}checked{% endif %} >
                                                     </div>
-                                                    <div class="form-check form-check-inline">
+                                                    <div class="form-check form-check-inline me-2">
+                                                        <input class="form-check-input" type="radio" id="bluesky_checkbox{{ post.id }}" name="post_network" value="Bluesky" {% if post.name == 'Bluesky' %}checked{% endif %}>
                                                         <label class="form-check-label" for="bluesky_checkbox{{ post.id }}">Bluesky</label>
-                                                        <input class="form-check-input" type="radio" id="bluesky_checkbox{{ post.id }}" name="post_network" value="Bluesky" {% if post.name=='Bluesky' %}checked{% endif %}>
                                                     </div>
-
-                                                    <div class="form-check form-check-inline">
+                                                    <div class="form-check form-check-inline me-2">
+                                                        <input class="form-check-input" type="radio" id="linkedin_checkbox{{ post.id }}" name="post_network" value="LinkedIn" {% if post.name == 'LinkedIn' %}checked{% endif %}>
                                                         <label class="form-check-label" for="linkedin_checkbox{{ post.id }}">LinkedIn</label>
-                                                        <input class="form-check-input" type="radio" id="linkedin_checkbox{{ post.id }}" name="post_network" value="LinkedIn" {% if post.name=='LinkedIn' %}checked{% endif %}>
                                                     </div>
                                                 </div>
-
                                                 <div class="d-flex justify-content-end">
                                                     <button type="submit" class="btn btn-primary btn-right">Enregistrer</button>
                                                 </div>

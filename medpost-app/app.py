@@ -89,7 +89,7 @@ def inject_datetime_utils():
 
 def fetch_articles(selectedfeed):
     if selectedfeed == 'qdm':
-         articles = (db.session.query(Articles_rss)
+        articles = (db.session.query(Articles_rss)
                     .outerjoin(Posts, Articles_rss.id == Posts.id_article)
                     .filter(Posts.id_article == None)
                     .with_entities(Articles_rss.id,
@@ -102,32 +102,24 @@ def fetch_articles(selectedfeed):
                     .order_by(Articles_rss.pubdate.desc())
                     )
     else:
-         subquery = (db.session.query(Articles_rss.id) # Articles postés sur selectedfeed
-                     .join(Posts, Articles_rss.id == Posts.id_article)
+        subquery = (db.session.query(Posts.id_article) # Articles postés sur selectedfeed
                      .join(Networks, Posts.network == Networks.id)
                      .filter(Networks.name == selectedfeed)
+                     .distinct()
                      .subquery())
-         subquery_select = select(subquery)
 
-         articles = (db.session.query(Articles_rss) 
-                    .outerjoin(Posts, Articles_rss.id == Posts.id_article)
-                    .outerjoin(Networks, Posts.network == Networks.id)
-                    .filter(~Articles_rss.id.in_(subquery_select)) # On ne garde que les articles non postés sur selectdfeed
+        articles = (db.session.query(Articles_rss)
+                    .filter(~Articles_rss.id.in_(subquery)) # On ne garde que les articles non postés sur selectedfeed
                     .with_entities(Articles_rss.id,
                                     Articles_rss.title,
                                     Articles_rss.summary,
                                     Articles_rss.link,
                                     Articles_rss.image_url,                                       
                                     Articles_rss.pubdate,
-                                    Networks.name
                                    )
+                    .distinct()
                     .order_by(Articles_rss.pubdate.desc())
                     )
-         nb = (db.session.query(Posts)
-               .outerjoin(Networks, Posts.network==Networks.id)
-               .filter(Networks.name==selectedfeed)
-               .count()
-               )
     return articles
 
 def fetch_pub_posts(selectedfeed):
