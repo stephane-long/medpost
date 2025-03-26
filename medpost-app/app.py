@@ -191,7 +191,7 @@ def fetch_planned_posts(selectedfeed):
 
 def record_new_post(article_id, image_url, title, description, tagline, post_datetime, networks):
     date_pub = datetime.strptime(post_datetime, '%Y-%m-%dT%H:%M')
-    # Création d'un post par réseau sélectionné 
+    # Création d'un post par réseau sélectionné
     for network_txt in networks: 
         network = (db.session.query(Networks.id)
                .filter(Networks.name==network_txt).first())
@@ -242,6 +242,7 @@ def home():
 def new_post():
     article_id = request.form.get('article_id', type=int)
     image_url = request.form.get('image_url', type=str)
+    logging.info(f"récupération URL image : {image_url}")
     selectedfeed = request.args.get('selectedfeed', type=str)
     title = request.form.get('title')
     description = request.form.get('description')
@@ -249,7 +250,6 @@ def new_post():
     link = request.form.get('link')
     post_datetime = request.form.get('datetime')
     networks = request.form.getlist('network')
-    logging.info(f"Networks {networks}")
     if networks:
         record_new_post(article_id, image_url, title, description, tagline, post_datetime, networks)
     else:

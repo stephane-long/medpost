@@ -157,6 +157,7 @@ def post_to_bluesky(post, client_bluesky, tag):
         if content_type not in ['image/jpeg', 'image/png']:
             logging.error(f"Erreur : Le type de contenu attendu est 'image/jpeg' ou 'image/png', mais reçu '{content_type}'")
             return
+        logging.info(f"Upload image Bluesky OK {post['title']}")
     except requests.exceptions.HTTPError as err:
         logging.error(f"HTTP error while reading image_url : {err}")
         return
@@ -165,6 +166,7 @@ def post_to_bluesky(post, client_bluesky, tag):
     thumb = client_bluesky.upload_blob(img_data)
     # Creating the web card and uploading
     url_to_post = post['link'] + tag
+    logging.info(f"URL Bluesky : {url_to_post}")
     embed = models.AppBskyEmbedExternal.Main( 
         external=models.AppBskyEmbedExternal.External(
             title=post['title'],
@@ -188,7 +190,6 @@ def post_all_bluesky(posts, engine):
     BLUESKY_URL_QDM = os.getenv('BLUESKY_URL_QDM')
     tag = get_network_tag('Bluesky', engine)
     client_bluesky = Client()
-    logging.info(f"Paramètres Bluesky {BLUESKY_LOGIN} {BLUESKY_PASSWORD}")
     try:
         client_bluesky.login(BLUESKY_LOGIN, BLUESKY_PASSWORD)
         logging.info("Connexion réussie à Bluesky")
@@ -197,7 +198,11 @@ def post_all_bluesky(posts, engine):
         return
     tag = get_network_tag('Bluesky', engine)
     for post in posts:
-        network_post_id = post_to_bluesky(post, client_bluesky, tag) # need the network_post_id to build the post URL
+        try:
+            network_post_id = post_to_bluesky(post, client_bluesky, tag) # need the network_post_id to build the post URL
+        except Exception as err:
+            logging.info(f"Echec de passage à post Bluesky : {err}")
+            break
         network_post_link = BLUESKY_URL_QDM+str(network_post_id)
         update_network_post_id(engine, post['post_id'], network_post_link)
         modify_status(engine, post['post_id'], post['title'])

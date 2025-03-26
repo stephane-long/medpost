@@ -12,7 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const articleDescription = modalElement.getAttribute('data-description');
         const articleLink = modalElement.getAttribute('data-link');
         const articleDatetime = modalElement.getAttribute('data-datetime');
-        const minDatetime = modalElement.getAttribute('data-min-datetime'); // Retrieve minimum datetime
+        const minDatetime = modalElement.getAttribute('data-min-datetime');
+        const articleImageUrl = modalElement.getAttribute('data-image-url');
 
         const regenerateForms = () => {
             container.innerHTML = ''; // Clear existing forms
@@ -31,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <form action="/new_post" method="post">
                                 <input type="hidden" name="article_id" value="${modalId}">
                                 <input type="hidden" name="network" value="${network}">
+                                <input type="hidden" name="image_url" value="${articleImageUrl}">
                                 <div class="mb-3">
                                     <label for="title_${network}_${modalId}" class="form-label fw-bold">Titre du post</label>
                                     <textarea class="form-control" id="title_${network}_${modalId}" name="title" rows="3" required>${articleTitle}</textarea>
