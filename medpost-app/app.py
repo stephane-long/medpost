@@ -209,10 +209,10 @@ def update_post(post_id, title, description, tagline, post_datetime, network):
     date_plan = datetime.strptime(post_datetime, '%Y-%m-%dT%H:%M')
     post_to_modify = db.session.execute(db.select(Posts).filter_by(id=post_id)).scalar_one()
     post_to_modify.title = title
-    post_to_modify.descripion = description
+    post_to_modify.description = description
     post_to_modify.tagline = tagline
     post_to_modify.date_pub = date_plan
-    post_to_modify.network = db.session.query(Networks.id).filter(Networks.name==network)
+    post_to_modify.network = db.session.query(Networks.id).filter(Networks.name==network).scalar()
     db.session.commit()
     logging.info(f"Post MAJ sur {network} : {title}")
 
