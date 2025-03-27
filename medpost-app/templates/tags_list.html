@@ -17,7 +17,7 @@
             </div>
         </div>
         <div class="col-12 col-md-2 d-flex justify-content-center justify-content-md-start">
-            <button type="button" class="btn btn-warning w-100" data-bs-toggle="modal" data-bs-target="#editTagModal{{ network.id }}">Modifier</button>
+            <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#editTagModal{{ network.id }}">Modifier</button>
         </div>
     </div>
     <!-- formulaire d'édition du tag -->
@@ -46,8 +46,8 @@
     <!-- Fin formulaire d'édition du tag -->
     {% endfor %}
     <div class="row mt-4">
-        <div class="col-12 col-md-2 offset-md-10">
-            <a class="btn btn-success w-100" role="button" href="{{ url_for('home') }}">Quitter</a>
+        <div class="col text-center">
+            <a href="{{ url_for('home') }}" class="btn btn-secondary">Quitter</a>
         </div>
     </div>
 </div>
