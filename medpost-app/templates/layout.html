@@ -34,6 +34,11 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
                             </li>
+                            {% if current_user.is_admin %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ url_for('admin') }}">Admin</a>
+                                </li>
+                            {% endif %}
                         {% endif %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('tags_list') }}">Tags</a>
@@ -42,7 +47,7 @@
                             <a class="nav-link disabled" href="{{ url_for('home') }}">Configuration</a>
                         </li>
                         <li class="nav-item">
-                        <a class="nav-link disabled" href="{{ url_for('home') }}">À propos</a>
+                            <a class="nav-link disabled" href="{{ url_for('home') }}">À propos</a>
                         </li>
                     </ul>
                 </div>

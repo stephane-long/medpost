@@ -3,7 +3,7 @@ import os
 from flask import Flask, render_template, url_for, request, redirect
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 from sqlalchemy import select
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
@@ -19,9 +19,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 #load_dotenv(dotenv_path='.env.dev')
 db_path = os.getenv('DATABASE_PATH')
 log_path = os.getenv('LOG_PATH')
-print(db_path, log_path, sep=' - ')
-
-app.config['SECRET_KEY'] = 'APP_SECRET_KEY'
+app.config['SECRET_KEY'] = os.getenv('APP_SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
@@ -32,7 +30,7 @@ login_manager.login_view = 'login'
 
 logging.basicConfig(filename=log_path,
                     encoding='utf-8',
-                    level=logging.INFO,
+                    level=logging.DEBUG,
                     format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M'
                     )
 
@@ -73,12 +71,16 @@ class Networks(db.Model):
 
     def __repr__(self):
         return f"Network {self.id} - {self.name}"
-
+    
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), unique=True, nullable=False)
     password = db.Column(db.String(20), nullable=False)
+    is_admin = db.Column(db.Boolean, nullable=False)
 
+    def __repr__(self):
+        return f"User {self.username} - {self.is_admin}"
+    
 ########### FIN DATABASE #################
 
 @login_manager.user_loader
@@ -143,7 +145,6 @@ def fetch_pub_posts(selectedfeed):
                                    )
                     .order_by(Posts.date_pub.desc())
                     .limit(5)
-                    
                     )
     else:
                 articles = (db.session.query(Posts)
@@ -218,7 +219,7 @@ def update_post(post_id, title, description, tagline, post_datetime, network):
     post_to_modify.date_pub = date_plan
     post_to_modify.network = db.session.query(Networks.id).filter(Networks.name==network).scalar()
     db.session.commit()
-    logging.info(f"Post MAJ sur {network} : {title}")
+    logging.info(f"Post mis à jour sur {network} : {title}")
 
 @app.route('/')
 @app.route('/index')
@@ -242,7 +243,6 @@ def home():
 def new_post():
     article_id = request.form.get('article_id', type=int)
     image_url = request.form.get('image_url', type=str)
-    logging.info(f"récupération URL image : {image_url}")
     selectedfeed = request.args.get('selectedfeed', type=str)
     title = request.form.get('title')
     description = request.form.get('description')
@@ -253,7 +253,7 @@ def new_post():
     if networks:
         record_new_post(article_id, image_url, title, description, tagline, post_datetime, networks)
     else:
-        logging.info('Aucun post créé car aucun réseau')
+        logging.info('Aucun post créé')
     return redirect(url_for('home', selectedfeed=selectedfeed))
 
 @app.route('/edit_post', methods=['POST'])
@@ -289,10 +289,10 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
             login_user(user)
-            logging.info(f"Connexion de {username}")
+            logging.info(f"Connexion de {username} - Admin : {user.is_admin}")
             return redirect(url_for('home'))
         else:
-            return 'Invalid username or password'
+            return render_template('login.html')
     return render_template('login.html')
 
 @app.route('/logout')
@@ -325,6 +325,29 @@ def tags_list():
                 )
     return render_template('tags_list.html', networks=networks)
 
+@app.route('/update_user/<int:user_id>', methods=['POST'])
+@login_required
+def update_user(user_id):
+    if not current_user.is_admin:
+        return redirect(url_for('home'))
+    user = db.session.get(User, user_id)
+    if user:
+        user.username = request.form.get('username')
+        password = request.form.get('password')
+        if password:
+            user.password = generate_password_hash(password)
+        user.is_admin = request.form.get('is_admin') == 'true'
+        db.session.commit()
+        logging.info(f"Utilisateur mis à jour : {user.username}")
+    return redirect(url_for('admin'))
+
+@app.route('/admin')
+@login_required
+def admin():
+    if not current_user.is_admin:
+        return redirect(url_for('home'))
+    users = db.session.query(User).all()
+    return render_template('admin.html', users=users)    
 
 if __name__ == '__main__':
     #app.run(port=8000, debug=True)
