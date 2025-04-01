@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 }
                                 <div class="mb-3">
                                     <label for="link_${network}_${modalId}" class="form-label fw-bold">URL</label>
-                                    <input type="text" class="form-control" id="link_${network}_${modalId}" name="link" value="${articleLink}">
+                                    <input type="text" class="form-control" id="link_${network}_${modalId}" name="link" value="${articleLink}" required>
                                 </div>
                                 <div class="mb-3">
                                     <label for="date_${network}_${modalId}" class="form-label fw-bold">Date et heure</label>
@@ -76,31 +76,52 @@ document.addEventListener('DOMContentLoaded', () => {
         if (programmerButton) { // Add null check for programmerButton
             programmerButton.addEventListener('click', () => {
                 const forms = container.querySelectorAll('form');
-                const promises = []; // Collect promises for all form submissions
+                let allValid = true; // Flag to check if all forms are valid
 
                 forms.forEach(form => {
-                    const formData = new FormData(form);
-                    const promise = fetch(form.action, {
-                        method: form.method,
-                        body: formData,
-                    });
-                    promises.push(promise);
+                    // Check if the form is valid
+                    if (!form.checkValidity()) {
+                        allValid = false;
+
+                        // Highlight invalid fields
+                        form.querySelectorAll(':invalid').forEach(field => {
+                            field.classList.add('is-invalid');
+
+                            // Remove highlight when the user starts typing
+                            field.addEventListener('input', () => {
+                                field.classList.remove('is-invalid');
+                            });
+                        });
+                    }
                 });
 
-                // Wait for all form submissions to complete
-                Promise.all(promises)
-                    .then(responses => {
-                        const allSuccessful = responses.every(response => response.ok);
-                        if (allSuccessful) {
-                            // Redirect to the home route with the selectedfeed parameter
-                            window.location.href = `/?selectedfeed=${selectedFeed}`;
-                        } else {
-                            console.error("One or more form submissions failed.");
-                        }
-                    })
-                    .catch(error => {
-                        console.error("Error during form submissions:", error);
+                if (allValid) {
+                    // Submit all valid forms
+                    const promises = [];
+                    forms.forEach(form => {
+                        const formData = new FormData(form);
+                        const promise = fetch(form.action, {
+                            method: form.method,
+                            body: formData,
+                        });
+                        promises.push(promise);
                     });
+
+                    // Wait for all form submissions to complete
+                    Promise.all(promises)
+                        .then(responses => {
+                            const allSuccessful = responses.every(response => response.ok);
+                            if (allSuccessful) {
+                                // Redirect to the home route with the selectedfeed parameter
+                                window.location.href = `/?selectedfeed=${selectedFeed}`;
+                            } else {
+                                console.error("One or more form submissions failed.");
+                            }
+                        })
+                        .catch(error => {
+                            console.error("Error during form submissions:", error);
+                        });
+                }
             });
         }
 
