@@ -1,6 +1,6 @@
 import logging
 import os
-from flask import Flask, render_template, url_for, request, redirect
+from flask import Flask, render_template, url_for, request, redirect, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -26,6 +26,8 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+login_manager.login_message = "Veuillez vous connecter SVP"
+login_manager.login_message_category = "error"
 
 
 logging.basicConfig(filename=log_path,
@@ -290,8 +292,10 @@ def login():
         if user and check_password_hash(user.password, password):
             login_user(user)
             logging.info(f"Connexion de {username} - Admin : {user.is_admin}")
+            flash(f"Connexion de {username} {'(admin)' if user.is_admin else '(utilisateur)'}")
             return redirect(url_for('home'))
         else:
+            flash('Erreur de saisie', 'error')
             return render_template('login.html')
     return render_template('login.html')
 
@@ -299,6 +303,7 @@ def login():
 @login_required
 def logout():
     logging.info(f"Déconnexion de {current_user.username}")
+    flash(f"Déconnexion de {current_user.username}")
     logout_user()
     return redirect(url_for('login'))
 
@@ -339,6 +344,7 @@ def update_user(user_id):
         user.is_admin = request.form.get('is_admin') == 'true'
         db.session.commit()
         logging.info(f"Utilisateur mis à jour : {user.username}")
+        flash(f"Mise à jour de {user.username}")
     return redirect(url_for('admin'))
 
 @app.route('/admin')

@@ -3,7 +3,7 @@
         <div class="row" data-selectedfeed="{{ selectedfeed }}">
             <div class="col-7">
                 <div class="content-menu">
-                    <small>Articles non postés</small>
+                    <div class="fw-bold">Articles non postés</div>
                     <a class="btn btn-sm mb-1 {% if selectedfeed == 'qdm' %}btn-warning{% else %}btn-outline-warning{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='qdm') }}">TOUS</a>
                     <a class="btn btn-sm mb-1 {% if selectedfeed == 'X' %}btn-dark{% else %}btn-outline-dark{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='X') }}">X</a>
                     <a class="btn btn-sm mb-1 {% if selectedfeed == 'Bluesky' %}btn-primary{% else %}btn-outline-primary{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='Bluesky') }}">Bluesky</a>
@@ -75,7 +75,7 @@
             <!-- Fils de droite : posts planifiés et posts publiés -->
             <div class="col-5">
                 <div class="content-section">
-                    <div class="border-bottom border-bottom-5 mb-2">Posts planifiés</div>
+                    <div class="border-bottom border-bottom-5 mb-2 fw-bold">Posts planifiés</div>
                     {% for post in posts_planned %}
                         <div class="post-metadata d-flex">
                             <div class="bg-warning text-dark me-2 px-1"> {{ post.date_pub }}</div> 
@@ -143,7 +143,7 @@
                 </div>
                 <!-- Derniers posts publiés -->
                 <div class="content-section">
-                    <div class="border-bottom border-bottom-5 mb-2">Derniers posts</div>
+                    <div class="border-bottom border-bottom-5 mb-2 fw-bold">Derniers posts</div>
                     {% for post in posts_pub %}
                         <div class="post-metadata d-flex">
                             <div class="bg-secondary-subtle text-secondary-emphasis me-2 px-1"> {{ post.date_pub }}</div> 
