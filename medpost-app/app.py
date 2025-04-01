@@ -197,7 +197,13 @@ def record_new_post(article_id, image_url, title, description, tagline, post_dat
     # Création d'un post par réseau sélectionné
     for network_txt in networks: 
         network = (db.session.query(Networks.id)
-               .filter(Networks.name==network_txt).first())
+               .filter(Networks.name==network_txt).first()) # récupération de l'id du network     
+        if network_txt == 'X':
+            if (title[-1] not in ['.', '!', '?']):
+                title += '.'
+        elif network_txt == 'Bluesky':
+            if (tagline[-1] not in ['.', '!', '?']):
+                tagline += '.'
         new_post = Posts(
             title=title,
             description=description,

@@ -231,9 +231,13 @@ def check_itemrss(item):
         image_url = None
     return True, image_url
 
+def normalize_spaces(text):
+    return ' '.join(text.split())
+
 def itemrss_ispresent(session, title):
+    normalized_title = normalize_spaces(title)
     title_db = Articles_rss.title
-    stmt = select(exists().where(title_db == title))
+    stmt = select(exists().where(title_db == normalized_title))
     result = session.execute(stmt).scalar()
     return result
 
@@ -254,7 +258,7 @@ def fetch_rss_function(engine):
                     with get_session(engine) as session:
                         present = itemrss_ispresent(session, itemrss.title)
                         if not present:
-                            new_article = Articles_rss(title=itemrss.title, link=itemrss.link, summary=itemrss.summary , image_url=image_url , pubdate=pubdate, statut=1)
+                            new_article = Articles_rss(title=normalize_spaces(itemrss.title), link=itemrss.link, summary=itemrss.summary , image_url=image_url , pubdate=pubdate, statut=1)
                             session.add(new_article)
                             session.commit()
                             nb_itemrss += 1
