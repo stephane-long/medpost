@@ -99,7 +99,7 @@ def fetch_articles(selectedfeed):
     if selectedfeed == 'qdm':
         articles = (db.session.query(Articles_rss)
                     .outerjoin(Posts, Articles_rss.id == Posts.id_article)
-                    .filter(Posts.id_article == None)
+                    .filter(Posts.id_article.is_(None))
                     .with_entities(Articles_rss.id,
                                     Articles_rss.title,
                                     Articles_rss.summary,
@@ -117,7 +117,7 @@ def fetch_articles(selectedfeed):
                      .subquery())
 
         articles = (db.session.query(Articles_rss)
-                    .filter(~Articles_rss.id.in_(subquery)) # On ne garde que les articles non postés sur selectedfeed
+                    .filter(~Articles_rss.id.in_(db.select(subquery))) # On ne garde que les articles non postés sur selectedfeed
                     .with_entities(Articles_rss.id,
                                     Articles_rss.title,
                                     Articles_rss.summary,
