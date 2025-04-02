@@ -1,14 +1,16 @@
 import logging
 import os
+from datetime import datetime, timedelta
 from flask import Flask, render_template, url_for, request, redirect, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
-from sqlalchemy import select
-from dotenv import load_dotenv
-from datetime import datetime, timedelta
-from requests import Session
+from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.middleware.proxy_fix import ProxyFix
+
+# from sqlalchemy import select
+# from dotenv import load_dotenv
+# from requests import Session
 
 
 app = Flask(__name__, template_folder='templates', static_folder='static', static_url_path='/')
@@ -73,7 +75,7 @@ class Networks(db.Model):
 
     def __repr__(self):
         return f"Network {self.id} - {self.name}"
-    
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), unique=True, nullable=False)
@@ -82,8 +84,8 @@ class User(UserMixin, db.Model):
 
     def __repr__(self):
         return f"User {self.username} - {self.is_admin}"
-    
-########### FIN DATABASE #################
+
+########### FIN DATABASE ##############
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -105,7 +107,7 @@ def fetch_articles(selectedfeed):
                                     Articles_rss.title,
                                     Articles_rss.summary,
                                     Articles_rss.link,
-                                    Articles_rss.image_url,                                       
+                                    Articles_rss.image_url,
                                     Articles_rss.pubdate
                                     )
                     .order_by(Articles_rss.pubdate.desc())
@@ -118,13 +120,13 @@ def fetch_articles(selectedfeed):
                      .subquery())
 
         articles = (db.session.query(Articles_rss)
-                    .filter(~Articles_rss.id.in_(db.select(subquery))) # On ne garde que les articles non postés sur selectedfeed
+                    .filter(~Articles_rss.id.in_(db.select(subquery))) # articles postés
                     .filter(Articles_rss.statut == 1)
                     .with_entities(Articles_rss.id,
                                     Articles_rss.title,
                                     Articles_rss.summary,
                                     Articles_rss.link,
-                                    Articles_rss.image_url,                                       
+                                    Articles_rss.image_url,
                                     Articles_rss.pubdate,
                                    )
                     .distinct()
@@ -151,23 +153,23 @@ def fetch_pub_posts(selectedfeed):
                     .limit(5)
                     )
     else:
-                articles = (db.session.query(Posts)
-                    .outerjoin(Articles_rss, Posts.id_article==Articles_rss.id)
-                    .outerjoin(Networks, Posts.network==Networks.id)
-                    .filter(Networks.name==selectedfeed)
-                    .filter(Posts.status == 'pub')
-                    .with_entities(Posts.id,
-                                   Posts.title,
-                                   Posts.description,
-                                   Posts.tagline,
-                                   Posts.image_url,
-                                   Posts.date_pub,
-                                   Posts.network_post_id,
-                                   Networks.name
-                                   )
-                    .order_by(Posts.date_pub.desc())
-                    .limit(5)
-                                  )
+        articles = (db.session.query(Posts)
+            .outerjoin(Articles_rss, Posts.id_article==Articles_rss.id)
+            .outerjoin(Networks, Posts.network==Networks.id)
+            .filter(Networks.name==selectedfeed)
+            .filter(Posts.status == 'pub')
+            .with_entities(Posts.id,
+                            Posts.title,
+                            Posts.description,
+                            Posts.tagline,
+                            Posts.image_url,
+                            Posts.date_pub,
+                            Posts.network_post_id,
+                            Networks.name
+                            )
+            .order_by(Posts.date_pub.desc())
+            .limit(5)
+                            )
     return articles
 
 def fetch_planned_posts(selectedfeed):
@@ -197,16 +199,16 @@ def fetch_planned_posts(selectedfeed):
 def record_new_post(article_id, image_url, title, description, tagline, post_datetime, networks):
     date_pub = datetime.strptime(post_datetime, '%Y-%m-%dT%H:%M')
     # Création d'un post par réseau sélectionné
-    for network_txt in networks: 
+    for network_txt in networks:
         network = (db.session.query(Networks.id)
-               .filter(Networks.name==network_txt).first()) # récupération de l'id du network     
+               .filter(Networks.name==network_txt).first()) # récupération de l'id du network
         if network_txt == 'X':
             if (title[-1] not in ['.', '!', '?']):
                 title += '.'
         elif network_txt == 'Bluesky':
             if (tagline[-1] not in ['.', '!', '?']):
                 tagline += '.'
-        new_post = Posts(
+        post = Posts(
             title=title,
             description=description,
             tagline=tagline,
@@ -216,9 +218,9 @@ def record_new_post(article_id, image_url, title, description, tagline, post_dat
             id_article=article_id,
             network=network.id
             )
-        db.session.add(new_post)
+        db.session.add(post)
         db.session.commit()
-        logging.info(f"Nouveau post sur {network_txt} : {new_post.title}")
+        logging.info("Nouveau post sur %s : %s", network_txt, post.title)
 
 def update_post(post_id, title, description, tagline, post_datetime, network):
     date_plan = datetime.strptime(post_datetime, '%Y-%m-%dT%H:%M')
@@ -229,7 +231,7 @@ def update_post(post_id, title, description, tagline, post_datetime, network):
     post_to_modify.date_pub = date_plan
     post_to_modify.network = db.session.query(Networks.id).filter(Networks.name==network).scalar()
     db.session.commit()
-    logging.info(f"Post mis à jour sur {network} : {title}")
+    logging.info("Post mis à jour sur %s: %s", network, title)
 
 @app.route('/')
 @app.route('/index')
@@ -255,9 +257,12 @@ def delete_article(article_id, selectedfeed):
     article.statut = 0
     try:
         db.session.commit()
-    except Exception as err:
-        logging.error(f"Erreur lors de la suppression de l'article {article.title} : {err}")
-    logging.info(f"Suppression de l'article {article.id} - {article.title}")
+        logging.info("Suppression de l'article %s - %s", article.id, article.title)
+    except SQLAlchemyError as err:
+        logging.error("Erreur lors de la suppression de %s : %s", article.title, err)
+        db.session.rollback()
+    except AttributeError as err:
+        logging.error("Erreur inattendue lors de la suppression de l'article : %s", err)
     return redirect(url_for('home', selectedfeed=selectedfeed))
 
 @app.route('/new_post', methods=['POST'])
@@ -300,7 +305,7 @@ def delete_post():
     post = db.session.get(Posts, post_id)
     db.session.delete(post)
     db.session.commit()
-    logging.info(f"Post supprimé : {post}")
+    logging.info("Post supprimé : %s", post.title)
     return redirect(url_for('home', selectedfeed=selectedfeed))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -311,7 +316,7 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
             login_user(user)
-            logging.info(f"Connexion de {username} - Admin : {user.is_admin}")
+            logging.info("Connexion de %s (admin %s)", username, user.is_admin)
             flash(f"Connexion de {username} {'(admin)' if user.is_admin else '(utilisateur)'}")
             return redirect(url_for('home'))
         else:
@@ -322,7 +327,7 @@ def login():
 @app.route('/logout')
 @login_required
 def logout():
-    logging.info(f"Déconnexion de {current_user.username}")
+    logging.info("Déconnexion de %s", current_user.username)
     flash(f"Déconnexion de {current_user.username}")
     logout_user()
     return redirect(url_for('login'))
@@ -363,7 +368,7 @@ def update_user(user_id):
             user.password = generate_password_hash(password)
         user.is_admin = request.form.get('is_admin') == 'true'
         db.session.commit()
-        logging.info(f"Utilisateur mis à jour : {user.username}")
+        logging.info("Utilisateur mis à jour : %s", user.username)
         flash(f"Mise à jour de {user.username}")
     return redirect(url_for('admin'))
 
@@ -373,7 +378,7 @@ def admin():
     if not current_user.is_admin:
         return redirect(url_for('home'))
     users = db.session.query(User).all()
-    return render_template('admin.html', users=users)    
+    return render_template('admin.html', users=users)
 
 if __name__ == '__main__':
     #app.run(port=8000, debug=True)
