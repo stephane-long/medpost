@@ -14,7 +14,7 @@
                         <div class="article-metadata d-flex justify-content-between align-items-center">
                             <small class="text-muted">Date QDM : {{ article.pubdate }}</small>
                             <a class="btn btn-sm btn-outline-success ms-auto" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" data-bs-toggle="modal" data-bs-target="#newpost{{ article.id }}">Partager</a>
-                            <a class="btn btn-sm btn-outline-danger ms-2 disabled" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="#">Supprimer</a>
+                            <a class="btn btn-sm btn-outline-danger ms-2" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="{{ url_for('delete_article', article_id=article.id, selectedfeed=selectedfeed) }}">Supprimer</a>
                             <!-- Formulaire d'édition -->
                             <div class="modal fade" id="newpost{{ article.id }}" tabindex="-1" 
                                  data-title="{{ article.title }}" 

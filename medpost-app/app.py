@@ -100,6 +100,7 @@ def fetch_articles(selectedfeed):
         articles = (db.session.query(Articles_rss)
                     .outerjoin(Posts, Articles_rss.id == Posts.id_article)
                     .filter(Posts.id_article.is_(None))
+                    .filter(Articles_rss.statut == 1)
                     .with_entities(Articles_rss.id,
                                     Articles_rss.title,
                                     Articles_rss.summary,
@@ -118,6 +119,7 @@ def fetch_articles(selectedfeed):
 
         articles = (db.session.query(Articles_rss)
                     .filter(~Articles_rss.id.in_(db.select(subquery))) # On ne garde que les articles non postés sur selectedfeed
+                    .filter(Articles_rss.statut == 1)
                     .with_entities(Articles_rss.id,
                                     Articles_rss.title,
                                     Articles_rss.summary,
@@ -245,6 +247,18 @@ def home():
                             posts_pub=posts_pub,
                             posts_planned=posts_planned,
                             selectedfeed=selectedfeed)
+
+@app.route('/delete_article/<int:article_id>/<string:selectedfeed>')
+@login_required
+def delete_article(article_id, selectedfeed):
+    article = db.session.get(Articles_rss, article_id)
+    article.statut = 0
+    try:
+        db.session.commit()
+    except Exception as err:
+        logging.error(f"Erreur lors de la suppression de l'article {article.title} : {err}")
+    logging.info(f"Suppression de l'article {article.id} - {article.title}")
+    return redirect(url_for('home', selectedfeed=selectedfeed))
 
 @app.route('/new_post', methods=['POST'])
 @login_required
