@@ -4,12 +4,15 @@ Medpost est une application basée sur Flask conçue pour gérer et automatiser 
 
 ## Fonctionnalités
 
-- **Authentification utilisateur** : Connexion et déconnexion sécurisées.
-- **Gestion des publications** : Créer, modifier, supprimer et programmer des publications pour différents réseaux.
+- **Authentification utilisateur** : Connexion et déconnexion sécurisées avec gestion des utilisateurs et des administrateurs.
+- **Gestion des publications** : Créer, modifier, supprimer et programmer des publications pour différents réseaux sociaux.
 - **Intégration des flux RSS** : Récupérer des articles à partir de flux RSS et les gérer dans l'application.
-- **Tags des réseaux** : Gérer les tags pour les réseaux sociaux.
+- **Tags des réseaux** : Gérer les tags spécifiques pour chaque réseau social.
 - **Support multi-réseaux** : Supporte des plateformes comme X (anciennement Twitter), Bluesky et LinkedIn.
 - **Interface dynamique** : Interface réactive et interactive utilisant Bootstrap.
+- **Automatisation des publications** : Publier automatiquement les articles planifiés sur les réseaux sociaux.
+- **Gestion des logs** : Centralisation des logs pour le suivi des activités et des erreurs.
+- **Base de données SQLite** : Gestion des articles, publications et réseaux via SQLAlchemy.
 
 ## Structure du projet
 
@@ -17,19 +20,26 @@ Medpost est une application basée sur Flask conçue pour gérer et automatiser 
   - **`app.py`** : Logique principale de l'application et routes.
   - **`templates/`** : Modèles HTML pour l'interface utilisateur.
   - **`static/`** : Fichiers statiques comme CSS et JavaScript.
+  - **`docker-compose.yml`** : Configuration Docker Compose pour orchestrer les services.
+  - **`Dockerfile`** : Dockerfile pour construire l'image de l'application Flask.
 - **`fetch_post/`** : Contient les scripts pour récupérer les flux RSS et automatiser les publications.
   - **`main.py`** : Script principal pour récupérer et publier du contenu.
-- **`database/`** : Modèles de base de données et utilitaires.
+  - **`database.py`** : Modèles de base de données et utilitaires pour la gestion des articles et des publications.
+  - **`Dockerfile`** : Dockerfile pour construire l'image du service de récupération des flux RSS.
+- **`data/`** : Contient les fichiers de base de données SQLite.
+- **`logs/`** : Contient les fichiers de logs générés par l'application.
+- **`merdier/`** : Répertoire contenant des fichiers temporaires ou de sauvegarde.
 
 ## Prérequis
 
-- Python 3.8 ou supérieur
+- Python 3.9 ou supérieur
 - Flask
 - SQLAlchemy
 - Tweepy (pour l'API X)
 - Requests
 - Feedparser
 - Dotenv
+- Docker et Docker Compose
 
 ## Instructions d'installation
 
@@ -45,18 +55,18 @@ Medpost est une application basée sur Flask conçue pour gérer et automatiser 
    ```
 
 3. **Configurer les variables d'environnement** :
-   Créez un fichier `.env.prod` dans le répertoire medpost-app avec les variables suivantes :
+   Créez un fichier `.env.prod` dans le répertoire `medpost-app` avec les variables suivantes :
    ```
-   DATABASE_PATH=<chemin_vers_la_base_de_données>
-   LOG_PATH=<chemin_vers_le_fichier_de_logs>
+   DATABASE_PATH=/app/data/rss_qdm.db
+   LOG_PATH=/app/logs/medpost.log
    APP_SECRET_KEY=<secret Flask API key>
    ```
 
-Créez un fichier `.env.prod` dans le répertoire fetch_post avec les variables suivantes :
+   Créez un fichier `.env.prod` dans le répertoire `fetch_post` avec les variables suivantes :
    ```
-   TZ=<useau horaire :Europe/Paris>
-   DATABASE_PATH=<chemin_vers_la_base_de_données>
-   LOG_PATH=<chemin_vers_le_fichier_de_logs>
+   TZ=Europe/Paris
+   DATABASE_PATH=/app/data/rss_qdm.db
+   LOG_PATH=/app/logs/fetch_post.log
    API_KEY=<clé_api_x>
    API_KEY_SECRET=<secret_api_x>
    ACCESS_TOKEN=<jeton_d'accès_x>
@@ -66,23 +76,16 @@ Créez un fichier `.env.prod` dans le répertoire fetch_post avec les variables 
    BLUESKY_URL_QDM=<URL du flux Bluesky>
    X_URL_QDM=<URL du flux X>
    QDM_URL_RSS=<url_du_flux_rss>
-   IMAGES_PATH=<chemin_vers_les_images>
+   IMAGES_PATH=/app/images/
    ```
 
-
-4. **Initialiser la base de données** :
-   Exécutez la commande suivante pour créer la base de données et les tables :
+4. **Lancer les services avec Docker Compose** :
+   Accédez au répertoire `medpost-app` et démarrez les services :
    ```bash
-   python -m fetch_post.main
+   docker-compose up --build
    ```
 
-5. **Lancer l'application** :
-   Accédez au répertoire `medpost-app` et démarrez le serveur Flask :
-   ```bash
-   python app.py
-   ```
-
-6. **Accéder à l'application** :
+5. **Accéder à l'application** :
    Ouvrez votre navigateur et accédez à `http://127.0.0.1:8000`.
 
 ## Utilisation
@@ -92,6 +95,7 @@ Créez un fichier `.env.prod` dans le répertoire fetch_post avec les variables 
 - **Programmer des publications** : Planifiez des publications pour des moments spécifiques et des réseaux donnés.
 - **Gérer les tags** : Mettez à jour les tags pour les réseaux dans la section "Tags".
 - **Récupérer les flux RSS** : Récupérez et affichez automatiquement les articles des flux RSS.
+- **Automatisation** : Les publications planifiées sont automatiquement publiées sur les réseaux sociaux.
 
 ## Licence
 
@@ -104,3 +108,4 @@ Ce projet est sous licence MIT. Consultez le fichier `LICENSE` pour plus de dét
 - [Bootstrap](https://getbootstrap.com/)
 - [Tweepy](https://www.tweepy.org/)
 - [Feedparser](https://pythonhosted.org/feedparser/)
+- [Docker](https://www.docker.com/)
