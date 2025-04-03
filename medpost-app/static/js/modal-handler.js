@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const selectedFeed = document.querySelector('.row').getAttribute('data-selectedfeed') || 'qdm'; // Get selectedfeed from data attribute
+    const selectedFeed = document.querySelector('.row').getAttribute('data-selectedfeed') || 'QDM'; // Get selectedfeed from data attribute
 
     document.querySelectorAll('[id^="newpost"]').forEach(modalElement => {
         const modalId = modalElement.id.replace('newpost', '');
