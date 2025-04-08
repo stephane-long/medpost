@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime, timedelta
-from flask import Flask, render_template, url_for, request, redirect, flash
+from flask import Flask, render_template, url_for, request, redirect, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -318,6 +318,7 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
             login_user(user)
+#            session.permanent = True
             logging.info("Connexion de %s (admin %s)", username, user.is_admin)
             flash(f"Connexion de {username} {'(admin)' if user.is_admin else '(utilisateur)'}")
             return redirect(url_for('home'))

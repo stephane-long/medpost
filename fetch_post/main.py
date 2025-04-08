@@ -268,10 +268,8 @@ def fetch_rss_function(engine):
         print(f"{nb_itemrss} nouveaux articles insérés")
 
 def post_auto_function(engine):
-    image_path = os.getenv('IMAGES_PATH') 
+    image_path = os.getenv('IMAGES_PATH')
     networks = fetch_networks(engine)
-    print(f"réseaux référencés : {networks}")
-
     for network in networks:
         posts = fetch_posts(network, engine)
         # download_images(posts, image_path)
