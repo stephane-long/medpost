@@ -13,11 +13,10 @@ body {
   }
   .content-menu {
     background: #ffffff;
-    padding: 5px 15px 5px 15px;
+    padding: 10px 15px 5px 15px;
     border: 2px solid #dddddd;
     border-radius: 5px;
-    margin: 0px 0px 5px 0px;
-
+    margin: 0px 0px 10px 0px;
   }
 
   .content-section {

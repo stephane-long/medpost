@@ -47,8 +47,8 @@ class Articles_rss(db.Model):
     summary = db.Column(db.Text, nullable=False)
     image_url = db.Column(db.Text, nullable=False)
     pubdate = db.Column(db.DateTime, nullable=False)
-    statut = db.Column(db.Integer, nullable=False)
-
+    online = db.Column(db.Integer, nullable=False)
+    newspaper = db.Column(db.Text, nullable=False)
 
     def __repr__(self):
         return f"Article {self.title} - {self.pubdate}"
@@ -97,12 +97,13 @@ def inject_datetime_utils():
         return datetime.now().isoformat(timespec='minutes')
     return {'current_datetime': now_datetime}
 
-def fetch_articles(selectedfeed):
-    if selectedfeed == 'qdm':
+def fetch_articles(selectedfeed, newspaper):
+    if selectedfeed == 'tous':
         articles = (db.session.query(Articles_rss)
                     .outerjoin(Posts, Articles_rss.id == Posts.id_article)
                     .filter(Posts.id_article.is_(None))
-                    .filter(Articles_rss.statut == 1)
+                    .filter(Articles_rss.online == 1)
+                    .filter(Articles_rss.newspaper==newspaper)
                     .with_entities(Articles_rss.id,
                                     Articles_rss.title,
                                     Articles_rss.summary,
@@ -121,7 +122,8 @@ def fetch_articles(selectedfeed):
 
         articles = (db.session.query(Articles_rss)
                     .filter(~Articles_rss.id.in_(db.select(subquery))) # articles postés
-                    .filter(Articles_rss.statut == 1)
+                    .filter(Articles_rss.online == 1)
+                    .filter(Articles_rss.newspaper == newspaper)
                     .with_entities(Articles_rss.id,
                                     Articles_rss.title,
                                     Articles_rss.summary,
@@ -134,12 +136,13 @@ def fetch_articles(selectedfeed):
                     )
     return articles
 
-def fetch_pub_posts(selectedfeed):
-    if selectedfeed == 'qdm':
+def fetch_pub_posts(selectedfeed, newspaper):
+    if selectedfeed == 'tous':
         articles = (db.session.query(Posts)
                     .outerjoin(Articles_rss, Posts.id_article==Articles_rss.id)
                     .outerjoin(Networks, Posts.network==Networks.id)
                     .filter(Posts.status == 'pub')
+                    .filter(Articles_rss.newspaper == newspaper)
                     .with_entities(Posts.id,
                                    Posts.title,
                                    Posts.description,
@@ -157,6 +160,7 @@ def fetch_pub_posts(selectedfeed):
             .outerjoin(Articles_rss, Posts.id_article==Articles_rss.id)
             .outerjoin(Networks, Posts.network==Networks.id)
             .filter(Networks.name==selectedfeed)
+            .filter(Articles_rss.newspaper == newspaper)
             .filter(Posts.status == 'pub')
             .with_entities(Posts.id,
                             Posts.title,
@@ -172,10 +176,11 @@ def fetch_pub_posts(selectedfeed):
                             )
     return articles
 
-def fetch_planned_posts(selectedfeed):
+def fetch_planned_posts(selectedfeed, newspaper):
     base_query = (db.session.query(Posts)
                 .outerjoin(Articles_rss, Posts.id_article == Articles_rss.id)
                 .outerjoin(Networks, Posts.network == Networks.id)
+                .filter(Articles_rss.newspaper == newspaper)
                 .with_entities(Posts.id,
                             Posts.title,
                             Posts.description,
@@ -187,7 +192,7 @@ def fetch_planned_posts(selectedfeed):
                 .order_by(Posts.date_pub.asc())
                 )
 
-    if selectedfeed == 'qdm':
+    if selectedfeed == 'tous':
         articles = (base_query
                    .filter(Posts.status == 'plan'))
     else:
@@ -241,22 +246,25 @@ def update_post(post_id, title, description, tagline, post_datetime, network):
 def home():
     perpage=7
     page = request.args.get('page', 1, type=int)
-    selectedfeed = request.args.get('selectedfeed', 'qdm', type=str)
-    articles = fetch_articles(selectedfeed)
+    selectedfeed = request.args.get('selectedfeed', 'tous', type=str)
+    newspaper = request.args.get('newspaper', 'qdm', type=str)
+    articles = fetch_articles(selectedfeed, newspaper)
     articles = articles.paginate(per_page=perpage, page=page)
-    posts_pub = fetch_pub_posts(selectedfeed)
-    posts_planned = fetch_planned_posts(selectedfeed)
+    posts_pub = fetch_pub_posts(selectedfeed, newspaper)
+    posts_planned = fetch_planned_posts(selectedfeed, newspaper)
     return render_template('index.html',
                             articles=articles,
                             posts_pub=posts_pub,
                             posts_planned=posts_planned,
-                            selectedfeed=selectedfeed)
+                            selectedfeed=selectedfeed,
+                            newspaper=newspaper
+                            )
 
 @app.route('/delete_article/<int:article_id>/<string:selectedfeed>')
 @login_required
-def delete_article(article_id, selectedfeed):
+def delete_article(article_id, selectedfeed, newspaper):
     article = db.session.get(Articles_rss, article_id)
-    article.statut = 0
+    article.online = 0
     try:
         db.session.commit()
         logging.info("Suppression de l'article %s - %s", article.id, article.title)
@@ -265,7 +273,7 @@ def delete_article(article_id, selectedfeed):
         db.session.rollback()
     except AttributeError as err:
         logging.error("Erreur inattendue lors de la suppression de l'article : %s", err)
-    return redirect(url_for('home', selectedfeed=selectedfeed))
+    return redirect(url_for('home', selectedfeed=selectedfeed, newspaper=newspaper))
 
 @app.route('/new_post', methods=['POST'])
 @login_required
@@ -273,6 +281,7 @@ def new_post():
     article_id = request.form.get('article_id', type=int)
     image_url = request.form.get('image_url', type=str)
     selectedfeed = request.args.get('selectedfeed', type=str)
+    newspaper = request.args.get('newspaper', type=str)
     title = request.form.get('title')
     description = request.form.get('description')
     tagline = request.form.get('tagline')
@@ -283,13 +292,14 @@ def new_post():
         record_new_post(article_id, image_url, title, description, tagline, post_datetime, networks)
     else:
         logging.info('Aucun post créé')
-    return redirect(url_for('home', selectedfeed=selectedfeed))
+    return redirect(url_for('home', selectedfeed=selectedfeed, newspaper=newspaper))
 
 @app.route('/edit_post', methods=['POST'])
 @login_required
 def edit_post():
     post_id = request.form.get('post_id', type=int)
     selectedfeed = request.args.get('selectedfeed', type=str)
+    newspaper = request.args.get('newspaper', type=str)
     title = request.form.get('post_title')
     description = request.form.get('post_description')
     tagline = request.form.get('post_tagline')
@@ -297,18 +307,19 @@ def edit_post():
     post_datetime = request.form.get('post_datetime')
     network = request.form.get('post_network')
     update_post(post_id, title, description, tagline, post_datetime, network)
-    return redirect(url_for('home', selectedfeed=selectedfeed))
+    return redirect(url_for('home', selectedfeed=selectedfeed, newspaper=newspaper))
 
 @app.route('/delete_post')
 @login_required
 def delete_post():
     post_id = request.args.get('post_id', type=int)
     selectedfeed = request.args.get('selectedfeed', type=str)
+    newspaper = request.args.get('newspaper', type=str)
     post = db.session.get(Posts, post_id)
     db.session.delete(post)
     db.session.commit()
     logging.info("Post supprimé : %s", post.title)
-    return redirect(url_for('home', selectedfeed=selectedfeed))
+    return redirect(url_for('home', selectedfeed=selectedfeed, newspaper=newspaper))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():

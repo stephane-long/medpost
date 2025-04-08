@@ -16,7 +16,7 @@ class Articles_rss(Base):
     image_url = Column(String)
     pubdate = Column(DateTime, nullable=False)
     online = Column(Integer, nullable=False)
-    newspaper = Column(String, nullable=Flase)
+    newspaper = Column(String, nullable=False)
 
     def __repr__(self):
         return f"Article {self.title} - {self.pubdate}"
@@ -36,7 +36,7 @@ class Posts(Base):
 
 
     def __repr__(self):
-        return f"Post sur {self.network} - {self.content} - {self.date_pub}"
+        return f"Post sur {self.network} - {self.title} - {self.date_pub}"
 
 class Networks(Base):
     __tablename__ = 'networks'

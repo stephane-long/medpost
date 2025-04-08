@@ -13,7 +13,7 @@
     <header class="header">
         <nav class="navbar navbar-expand-md navbar-dark bg-steel fixed-top">
             <div class="container-fluid">
-                <a class="navbar-brand" href="{{ url_for('home') }}">Medpost</a>
+                <a class="navbar-brand" href="{{ url_for('home', selectedfeed=selectedfeed, newspaper=newspaper) }}">Medpost</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarToggle" aria-controls="navbarToggle" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -24,8 +24,8 @@
                               Site
                             </a>
                             <ul class="dropdown-menu">
-                              <li><a class="dropdown-item" href="{{ url_for('home', selectedfeed='qdm') }}">QDM</a></li>
-                              <li><a class="dropdown-item" href="{{ url_for('home', selectedfeed='qdm') }}">QPH</a></li>
+                              <li><a class="dropdown-item" href="{{ url_for('home', selectedfeed=selectedfeed, newspaper='qdm') }}">QDM</a></li>
+                              <li><a class="dropdown-item" href="{{ url_for('home', selectedfeed=selectedfeed, newspaper='qph') }}">QPH</a></li>
                             </ul>
                         </li>
                     </ul>

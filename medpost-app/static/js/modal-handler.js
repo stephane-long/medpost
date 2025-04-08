@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const selectedFeed = document.querySelector('.row').getAttribute('data-selectedfeed') || 'QDM'; // Get selectedfeed from data attribute
-
+    const newspaper = document.querySelector('.row').getAttribute('data-newspaper') || 'DefaultNewspaper'; // Get newspaper from data attribute
+    
     document.querySelectorAll('[id^="newpost"]').forEach(modalElement => {
         const modalId = modalElement.id.replace('newpost', '');
         const container = document.getElementById(`dynamic-forms-container${modalId}`);
@@ -112,8 +113,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         .then(responses => {
                             const allSuccessful = responses.every(response => response.ok);
                             if (allSuccessful) {
-                                // Redirect to the home route with the selectedfeed parameter
-                                window.location.href = `/?selectedfeed=${selectedFeed}`;
+                                // Redirect to the home route
+                                window.location.href = `/?selectedfeed=${selectedFeed}&newspaper=${newspaper}`;
                             } else {
                                 console.error("One or more form submissions failed.");
                             }

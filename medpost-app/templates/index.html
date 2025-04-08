@@ -1,20 +1,26 @@
 {% extends "layout.html" %}
     {% block content %}
-        <div class="row" data-selectedfeed="{{ selectedfeed }}">
+        <div class="row" data-selectedfeed="{{ selectedfeed }}" data-newspaper="{{ newspaper }}">
             <div class="col-7">
                 <div class="content-menu">
-                    <div class="fw-bold">Articles non postés</div>
-                    <a class="btn btn-sm mb-1 {% if selectedfeed == 'qdm' %}btn-warning{% else %}btn-outline-warning{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='qdm') }}">TOUS</a>
-                    <a class="btn btn-sm mb-1 {% if selectedfeed == 'X' %}btn-dark{% else %}btn-outline-dark{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='X') }}">X</a>
-                    <a class="btn btn-sm mb-1 {% if selectedfeed == 'Bluesky' %}btn-primary{% else %}btn-outline-primary{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='Bluesky') }}">Bluesky</a>
-                    <a class="btn btn-sm mb-1 {% if selectedfeed == 'LinkedIn' %}btn-primary{% else %}btn-outline-primary{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='LinkedIn') }}">LinkedIn</a>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="fw-bold">Articles non postés</div>
+                        <div>
+                            <a class="btn me-2 btn-sm {% if newspaper =='qdm' %}btn-warning{% else %}btn-outline-warning{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='tous', newspaper='qdm') }}">QDM</a>
+                            <a class="btn btn-sm {% if newspaper == 'qph' %}btn-success{% else %}btn-outline-success{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='tous', newspaper='qph') }}">QPH</a>                        
+                        </div>
+                    </div>
+                    <a class="btn btn-sm mb-1 {% if selectedfeed == 'tous' %}btn-warning{% else %}btn-outline-warning{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='tous', newspaper=newspaper) }}">TOUS</a>
+                    <a class="btn btn-sm mb-1 {% if selectedfeed == 'X' %}btn-dark{% else %}btn-outline-dark{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='X', newspaper=newspaper) }}">X</a>
+                    <a class="btn btn-sm mb-1 {% if selectedfeed == 'Bluesky' %}btn-info{% else %}btn-outline-info{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='Bluesky', newspaper=newspaper) }}">Bluesky</a>
+                    <a class="btn btn-sm mb-1 {% if selectedfeed == 'LinkedIn' %}btn-primary{% else %}btn-outline-primary{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='LinkedIn', newspaper=newspaper) }}">LinkedIn</a>
                 </div>
                 {% for article in articles.items %}
                     <article class="content-section">
                         <div class="article-metadata d-flex justify-content-between align-items-center">
-                            <small class="text-muted">Date QDM : {{ article.pubdate }}</small>
+                            <small class="text-muted">Publié le {{ article.pubdate }}</small>
                             <a class="btn btn-sm btn-outline-success ms-auto" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" data-bs-toggle="modal" data-bs-target="#newpost{{ article.id }}">Partager</a>
-                            <a class="btn btn-sm btn-outline-danger ms-2" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="{{ url_for('delete_article', article_id=article.id, selectedfeed=selectedfeed) }}">Supprimer</a>
+                            <a class="btn btn-sm btn-outline-danger ms-2" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="{{ url_for('delete_article', article_id=article.id, selectedfeed=selectedfeed, newspaper=newspaper) }}">Supprimer</a>
                             <!-- Formulaire d'édition -->
                             <div class="modal fade" id="newpost{{ article.id }}" tabindex="-1" 
                                  data-title="{{ article.title }}" 
@@ -65,7 +71,7 @@
                 <div class="d-flex mt-2 justify-content-left flex-wrap">
                     {% for page_num in articles.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
                         {% if page_num %}
-                            <a class="btn {% if articles.page == page_num %}btn-warning{% else %}btn-outline-warning{% endif %} me-2 mb-4" href="{{ url_for('home', page=page_num, selectedfeed=selectedfeed) }}">{{ page_num }}</a>
+                            <a class="btn {% if articles.page == page_num %}btn-warning{% else %}btn-outline-warning{% endif %} me-2 mb-4" href="{{ url_for('home', page=page_num, selectedfeed=selectedfeed, newspaper=newspaper) }}">{{ page_num }}</a>
                         {% else %}
                             <span class='me-2'>...</span>
                         {% endif %}
@@ -93,7 +99,7 @@
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
                                         <div class="modal-body">
-                                            <form action="{{ url_for('edit_post', selectedfeed=selectedfeed) }}" method='post'>
+                                            <form action="{{ url_for('edit_post', selectedfeed=selectedfeed, newspaper=newspaper) }}" method='post'>
                                                 <input type="hidden" name="post_id" value="{{ post.id }}">
                                                 <div class="mb-3">
                                                     <label for="title_post{{ post.id }}" class="form-label fw-bold">Titre du post</label>
@@ -137,7 +143,7 @@
                             </div>
                             <!-- Fin formulaire édition de post planifié -->
                             <a class="btn btn-outline-secondary me-5 disabled" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="#">Repartager</a>
-                            <a class="btn btn-outline-danger" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="{{ url_for('delete_post', post_id=post.id, selectedfeed=selectedfeed) }}">Supprimer</a>
+                            <a class="btn btn-outline-danger" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="{{ url_for('delete_post', post_id=post.id, selectedfeed=selectedfeed, newspaper=newspaper) }}">Supprimer</a>
                         </div>
                     {% endfor %}
                 </div>
