@@ -15,7 +15,8 @@ class Articles_rss(Base):
     summary = Column(String)
     image_url = Column(String)
     pubdate = Column(DateTime, nullable=False)
-    statut = Column(Integer, nullable=False)
+    online = Column(Integer, nullable=False)
+    newspaper = Column(String, nullable=Flase)
 
     def __repr__(self):
         return f"Article {self.title} - {self.pubdate}"
