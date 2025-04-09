@@ -1,21 +1,19 @@
+""" Medpost Version 0.9 """
 import logging
 import os
 from datetime import datetime, timedelta
-from flask import Flask, render_template, url_for, request, redirect, flash, session
+from flask import Flask, render_template, url_for, request, redirect, flash
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_login import (LoginManager, UserMixin, login_user,
+                         login_required, logout_user, current_user
+                        )
 from werkzeug.security import check_password_hash, generate_password_hash
-from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.middleware.proxy_fix import ProxyFix
-
-# from sqlalchemy import select
-# from dotenv import load_dotenv
-# from requests import Session
-
+from sqlalchemy.exc import SQLAlchemyError
 
 app = Flask(__name__, template_folder='templates', static_folder='static', static_url_path='/')
 
-# https reverse proxy 
+# https reverse proxy
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 #load_dotenv(dotenv_path='.env.dev')
@@ -24,7 +22,7 @@ log_path = os.getenv('LOG_PATH')
 app.config['SECRET_KEY'] = os.getenv('APP_SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'

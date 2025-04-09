@@ -1,10 +1,10 @@
 import logging
 import os
 # from dotenv import load_dotenv
+from datetime import datetime
 import requests
 import tweepy
-from datetime import datetime
-from sqlalchemy import select, and_, update, exists
+from sqlalchemy import select, update, exists
 import feedparser
 from database import Articles_rss, Posts, Networks, create_db_and_tables, get_session
 from atproto import models, Client
@@ -13,20 +13,6 @@ from atproto import models, Client
 
 def fetch_posts(engine, selectedfeed, newspaper):
     with get_session(engine) as session:
-        """statement = (select(Posts.title,
-                            Posts.description,
-                            Posts.tagline,
-                            Posts.image_url,
-                            Articles_rss.id.label('article_id'),
-                            Articles_rss.link,
-                            Networks.name.label('network_name'),
-                            Posts.id.label('post_id'))
-                    .join(Articles_rss, Articles_rss.id == Posts.id_article)
-                    .join(Networks, Networks.id == Posts.network)
-                    .filter(and_(Networks.name == selectedfeed,
-                                 Posts.status == 'plan',
-                                 Posts.date_pub < datetime.today()))
-                    )"""
         statement = (select(Posts.title,
                             Posts.description,
                             Posts.tagline,
@@ -50,22 +36,23 @@ def fetch_posts(engine, selectedfeed, newspaper):
             logging.error("Erreur de lecture des posts : %s", e)
     return posts
 
-def connect_x_apiv2(X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET):
-    return tweepy.Client(consumer_key=X_API_KEY,
-                         consumer_secret=X_API_SECRET,
-                         access_token=X_ACCESS_TOKEN,
-                         access_token_secret=X_ACCESS_TOKEN_SECRET)
+def connect_x_apiv2(x_api_key, x_api_secret, x_access_token, x_access_token_secret):
+    return tweepy.Client(consumer_key=x_api_key,
+                         consumer_secret=x_api_secret,
+                         access_token=x_access_token,
+                         access_token_secret=x_access_token_secret)
 
 def download_images(posts, file_path):
     for post in posts:
         image_url = post['image_url']
         image_path = f"{file_path}image{post['article_id']}.jpg"
         try:
-            response = requests.get(image_url)
+            response = requests.get(image_url, timeout=10)
             response.raise_for_status()
             content_type = response.headers.get('Content-Type')
             if content_type not in ['image/jpeg', 'image/png']:
-                logging.error("Erreur : Le type de contenu attendu est 'image/jpeg' ou 'image/png', mais reçu %s", content_type)
+                logging.error("Erreur : Le type de contenu attendu est" \
+                " 'image/jpeg' ou 'image/png', mais reçu %s", content_type)
                 return
             with open(image_path, 'wb') as file:
                 file.write(response.content)
@@ -73,21 +60,6 @@ def download_images(posts, file_path):
             logging.info("Image downloaded to %s", image_path)
         except requests.exceptions.HTTPError as err:
             logging.error("Erreur HTTP : %s", err)
-
-"""def fetch_networks(engine, newspaper):
-    try:
-        with get_session(engine) as session:
-            statement = (select(Networks.name)
-                        .join(Posts, Networks.id == Posts.network)
-                        .filter(and_(Posts.status == 'plan',
-                                    Posts.date_pub < datetime.now()))
-                        .distinct())
-            networks = session.scalars(statement).all()
-    except Exception as err:
-        logging.error("Erreur dans la collecte des réseaux : %s", err)
-        networks = []
-    return networks"""
-
 
 def update_network_post_id(engine, post_id, network_post_id):
     with get_session(engine) as session:
@@ -99,10 +71,12 @@ def update_network_post_id(engine, post_id, network_post_id):
             )
             session.execute(statement)
             session.commit()
-            logging.info("Mise à jour du network_post_id %s pour le post %s", network_post_id, post_id)
+            logging.info("Mise à jour du network_post_id %s pour le post %s",
+                          network_post_id, post_id)
         except Exception as e:
             session.rollback()
-            logging.error("Erreur lors de la mise à jour du network_post_id pour le post %s : %s", post_id, e)
+            logging.error("Erreur lors de la mise à jour" \
+            " du network_post_id pour le post %s : %s", post_id, e)
 
 def modify_status(engine, post_id, post_title):
     with get_session(engine) as session:
@@ -168,15 +142,16 @@ def post_to_bluesky(post, client_bluesky, tag):
     # Download image from image_url
     try:
         image_url = post['image_url']
-        response = requests.get(image_url)
+        response = requests.get(image_url, timeout=10)
         response.raise_for_status()
         content_type = response.headers.get('Content-Type')
         if content_type not in ['image/jpeg', 'image/png']:
-            logging.error("Erreur : Le type de contenu attendu est 'image/jpeg' ou 'image/png', mais reçu %s", content_type)
+            logging.error("Erreur : Le type de contenu attendu est" \
+            " 'image/jpeg' ou 'image/png', mais reçu %s", content_type)
             return
-        logging.info("Upload image Bluesky OK %s", post['title'])
+        logging.info("Upload de l'image Bluesky OK %s", post['title'])
     except requests.exceptions.HTTPError as err:
-        logging.error("HTTP error while reading image_url : %s", err)
+        logging.error("Erreur HTTP  lors de la lecture de image_url : %s", err)
         return
     # upload image to Bluesky
     img_data=response.content
@@ -184,7 +159,7 @@ def post_to_bluesky(post, client_bluesky, tag):
     # Creating the web card and uploading
     url_to_post = post['link'] + tag
     logging.info("URL Bluesky : %s", url_to_post)
-    embed = models.AppBskyEmbedExternal.Main( 
+    embed = models.AppBskyEmbedExternal.Main(
         external=models.AppBskyEmbedExternal.External(
             title=post['title'],
             description=post['description'],
@@ -216,7 +191,8 @@ def post_all_bluesky(posts, engine, newspaper):
     tag = get_network_tag('Bluesky', engine)
     for post in posts:
         try:
-            network_post_id = post_to_bluesky(post, client_bluesky, tag) # need the network_post_id to build the post URL
+            network_post_id = post_to_bluesky(post, client_bluesky,
+                                               tag) # need the network_post_id to build the post URL
         except Exception as err:
             logging.info("Echec de passage à post Bluesky : %s", err)
             break
