@@ -7,7 +7,7 @@
                         <div class="fw-bold">Articles non postés</div>
                         <div>
                             <a class="btn me-2 btn-sm {% if newspaper =='qdm' %}btn-warning{% else %}btn-outline-warning{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='tous', newspaper='qdm') }}">QDM</a>
-                            <a class="btn btn-sm {% if newspaper == 'qph' %}btn-success{% else %}btn-outline-success{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='tous', newspaper='qph') }}">QPH</a>                        
+                            <a class="btn btn-sm {% if newspaper == 'qph' %}btn-success{% else %}btn-outline-success{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='tous', newspaper='qph') }}">QPH</a>
                         </div>
                     </div>
                     <a class="btn btn-sm mb-1 {% if selectedfeed == 'tous' %}btn-warning{% else %}btn-outline-warning{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='tous', newspaper=newspaper) }}">TOUS</a>

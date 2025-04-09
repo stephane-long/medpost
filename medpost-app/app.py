@@ -1,6 +1,7 @@
 """ Medpost Version 0.9 """
 import logging
 import os
+import subprocess
 from datetime import datetime, timedelta
 from flask import Flask, render_template, url_for, request, redirect, flash
 from flask_sqlalchemy import SQLAlchemy
@@ -151,7 +152,7 @@ def fetch_pub_posts(selectedfeed, newspaper):
                                    Networks.name
                                    )
                     .order_by(Posts.date_pub.desc())
-                    .limit(5)
+                    .limit(7)
                     )
     else:
         articles = (db.session.query(Posts)
@@ -170,7 +171,7 @@ def fetch_pub_posts(selectedfeed, newspaper):
                             Networks.name
                             )
             .order_by(Posts.date_pub.desc())
-            .limit(5)
+            .limit(7)
                             )
     return articles
 
