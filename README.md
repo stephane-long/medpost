@@ -28,7 +28,6 @@ Medpost est une application basée sur Flask conçue pour gérer et automatiser 
   - **`Dockerfile`** : Dockerfile pour construire l'image du service de récupération des flux RSS.
 - **`data/`** : Contient les fichiers de base de données SQLite.
 - **`logs/`** : Contient les fichiers de logs générés par l'application.
-- **`merdier/`** : Répertoire contenant des fichiers temporaires ou de sauvegarde.
 
 ## Prérequis
 
