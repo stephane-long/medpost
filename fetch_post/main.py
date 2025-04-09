@@ -11,9 +11,9 @@ from atproto import models, Client
 
 ###### Fonctions de post_auto
 
-def fetch_posts(selectedfeed, engine):
+def fetch_posts(engine, selectedfeed, newspaper):
     with get_session(engine) as session:
-        statement = (select(Posts.title,
+        """statement = (select(Posts.title,
                             Posts.description,
                             Posts.tagline,
                             Posts.image_url,
@@ -26,10 +26,26 @@ def fetch_posts(selectedfeed, engine):
                     .filter(and_(Networks.name == selectedfeed,
                                  Posts.status == 'plan',
                                  Posts.date_pub < datetime.today()))
+                    )"""
+        statement = (select(Posts.title,
+                            Posts.description,
+                            Posts.tagline,
+                            Posts.image_url,
+                            Articles_rss.id.label('article_id'),
+                            Articles_rss.link,
+                            Networks.name.label('network_name'),
+                            Posts.id.label('post_id'))
+                     .join(Articles_rss, Articles_rss.id == Posts.id_article)
+                     .join(Networks, Networks.id == Posts.network)
+                     .where(Networks.name == selectedfeed)
+                     .filter(Posts.status == 'plan')
+                     .filter(Posts.date_pub < datetime.today())
+                     .filter(Articles_rss.newspaper == newspaper)
                     )
         try:
             posts = session.execute(statement).mappings().all()
             logging.info("Lecture de %s posts sur %s", len(posts), selectedfeed)
+            logging.debug("POST LUS : %s", posts)
         except Exception as e:
             logging.error("Erreur de lecture des posts : %s", e)
     return posts
@@ -58,7 +74,7 @@ def download_images(posts, file_path):
         except requests.exceptions.HTTPError as err:
             logging.error("Erreur HTTP : %s", err)
 
-def fetch_networks(engine):
+"""def fetch_networks(engine, newspaper):
     try:
         with get_session(engine) as session:
             statement = (select(Networks.name)
@@ -70,7 +86,8 @@ def fetch_networks(engine):
     except Exception as err:
         logging.error("Erreur dans la collecte des réseaux : %s", err)
         networks = []
-    return networks
+    return networks"""
+
 
 def update_network_post_id(engine, post_id, network_post_id):
     with get_session(engine) as session:
@@ -115,24 +132,25 @@ def post_to_x(api, post, tag):
     try:
         response = api.create_tweet(text=post_content)
         network_post_id = response.data['id']
-        logging.info("Tweet publié avec l'ID : %s - Link = %s", network_post_id, url_to_post)
+        logging.info("Tweet publié - ID : %s Link : %s", network_post_id, url_to_post)
         return True, network_post_id
     except Exception as e:
         logging.error("Échec du post: %s\n%s", e, post_content)
         return False, None
 
 
-def post_all_x(posts, engine):
+def post_all_x(posts, engine, newspaper):
 #    load_dotenv()
-    X_API_SECRET = os.getenv('API_KEY_SECRET')
-    X_API_KEY = os.getenv('API_KEY')
-    X_ACCESS_TOKEN = os.getenv('ACCESS_TOKEN')
-    X_ACCESS_TOKEN_SECRET= os.getenv('ACCESS_TOKEN_SECRET')
-    X_URL_QDM = os.getenv('X_URL_QDM')
+#    image_path = os.getenv('IMAGES_PATH')
+    x_api_secret = os.getenv('API_KEY_SECRET_'+newspaper.upper())
+    x_api_key = os.getenv('API_KEY_'+newspaper.upper())
+    x_access_token = os.getenv('ACCESS_TOKEN_'+newspaper.upper())
+    x_access_token_secret = os.getenv('ACCESS_TOKEN_SECRET_'+newspaper.upper())
+    x_url = os.getenv('X_URL_'+newspaper.upper())
     # Connexion à X API V2
     try:
-        x_apiv2 = connect_x_apiv2(X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET)
-        logging.info("Connexion à l'API V2 de X")
+        x_apiv2 = connect_x_apiv2(x_api_key, x_api_secret, x_access_token, x_access_token_secret)
+        logging.info("Connexion à l'API V2 de X : %s", newspaper)
     except Exception as e:
         logging.error("Erreur de connexion à l'API V2 de X: %s", e)
         return
@@ -141,7 +159,7 @@ def post_all_x(posts, engine):
         success, network_post_id = post_to_x(x_apiv2, post, tag)
         if success:
             modify_status(engine, post['post_id'], post['title'])
-            network_post_link = X_URL_QDM + network_post_id
+            network_post_link = x_url + network_post_id
             update_network_post_id(engine, post['post_id'], network_post_link)
         else:
             logging.error("Changement de statut impossible %s", post['title'])
@@ -183,14 +201,14 @@ def post_to_bluesky(post, client_bluesky, tag):
         logging.info("Échec de publication sur Bluesky de %s - %s", post['title'], err)
         return None
 
-def post_all_bluesky(posts, engine):
-    BLUESKY_LOGIN = os.getenv('BLUESKY_LOGIN')
-    BLUESKY_PASSWORD = os.getenv('BLUESKY_PASSWORD')
-    BLUESKY_URL_QDM = os.getenv('BLUESKY_URL_QDM')
+def post_all_bluesky(posts, engine, newspaper):
+    bluesky_login = os.getenv('BLUESKY_LOGIN_'+newspaper.upper())
+    bluesky_password = os.getenv('BLUESKY_PASSWORD_'+newspaper.upper())
+    bluesky_url = os.getenv('BLUESKY_URL_'+newspaper.upper())
     tag = get_network_tag('Bluesky', engine)
     client_bluesky = Client()
     try:
-        client_bluesky.login(BLUESKY_LOGIN, BLUESKY_PASSWORD)
+        client_bluesky.login(bluesky_login, bluesky_password)
         logging.info("Connexion réussie à Bluesky")
     except Exception as err:
         logging.info("Échec de connexion à Bluesky %s", err)
@@ -202,7 +220,7 @@ def post_all_bluesky(posts, engine):
         except Exception as err:
             logging.info("Echec de passage à post Bluesky : %s", err)
             break
-        network_post_link = BLUESKY_URL_QDM+str(network_post_id)
+        network_post_link = bluesky_url+str(network_post_id)
         update_network_post_id(engine, post['post_id'], network_post_link)
         modify_status(engine, post['post_id'], post['title'])
 
@@ -221,12 +239,12 @@ def fetch_rss(url):
 
 def check_itemrss(item):
     if item.title == 'Votre journal au format numérique': # article à ne pas poster
-        logging.info('Article supprimé : %s', item.title)
+#        logging.info('Article supprimé : %s', item.title)
         return False, None
     try:
-        image_url = item.links[1].href # teste si paramètre vignette présent sinon vignette URL = NULL
+        image_url = item.links[1].href # teste si vignette présente
     except IndexError:
-        logging.info('Pas d\'image')
+#        logging.info('Pas d\'image')
         image_url = None
     return True, image_url
 
@@ -247,11 +265,11 @@ def convert_date(date_str):
 
 def fetch_rss_function(engine, newspaper, url_rss):
 #    URL_RSS = os.getenv('QDM_URL_RSS')
-    feed_qdm = fetch_rss(url_rss)
-    if feed_qdm:
+    feed = fetch_rss(url_rss)
+    if feed:
         logging.info('Lecture des articles RSS %s', newspaper)
         nb_itemrss = 0
-        for itemrss in feed_qdm:
+        for itemrss in feed:
             item_valid, image_url = check_itemrss(itemrss)
             if item_valid:
                 try:
@@ -268,34 +286,37 @@ def fetch_rss_function(engine, newspaper, url_rss):
         logging.info('%s nouveaux articles insérés', nb_itemrss)
         print(f"{nb_itemrss} nouveaux articles insérés")
 
-def post_auto_function(engine):
-    image_path = os.getenv('IMAGES_PATH')
-    networks = fetch_networks(engine)
+def post_auto_function(engine, newspaper):
+#    networks = fetch_networks(engine, newspaper)
+    networks = ['X', 'Bluesky'] # Active networks
+    logging.info("Traitement de posts %s", newspaper)
     for network in networks:
-        posts = fetch_posts(network, engine)
-        # download_images(posts, image_path)
-        if network == 'X':
-            post_all_x(posts, engine)
-        elif network == 'Bluesky':
-            post_all_bluesky(posts, engine)
-    logging.info("Fin publication des posts")
+        posts = fetch_posts(engine, network, newspaper)
+        if posts != []:
+            if network == 'X':
+                post_all_x(posts, engine, newspaper)
+            elif network == 'Bluesky':
+                post_all_bluesky(posts, engine, newspaper)
+        else:
+            logging.info("Aucun post %s sur %s", network, newspaper)
+    logging.info("Fin traitement de posts %s", newspaper)
 
 ###### MAIN
 def main():
     #load_dotenv(dotenv_path='/Users/stephanelong/Documents/DEV/Medpost/fetch_post/.env')
     log_path = os.getenv('LOG_PATH')
     database_path = os.getenv('DATABASE_PATH')
-    url_newspapers = {'QDM': os.getenv('QDM_URL_RSS'), 'QPH':os.getenv('QPH_URL_RSS')}
+    url_newspapers = {'qdm': os.getenv('QDM_URL_RSS'), 'qph':os.getenv('QPH_URL_RSS')}
     logging.basicConfig(filename=log_path,
                         encoding='utf-8',
-                        level=logging.INFO,
+                        level=logging.DEBUG,
                         format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M'
                         )
-
     engine = create_db_and_tables(database_path)
     for newspaper, url_newspaper in url_newspapers.items():
+        logging.info("Journal : %s", newspaper)
         fetch_rss_function(engine, newspaper, url_newspaper)
-#        post_auto_function(engine)
+        post_auto_function(engine, newspaper)
 
 if __name__ == '__main__':
     main()

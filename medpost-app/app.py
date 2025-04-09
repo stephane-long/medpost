@@ -260,7 +260,7 @@ def home():
                             newspaper=newspaper
                             )
 
-@app.route('/delete_article/<int:article_id>/<string:selectedfeed>')
+@app.route('/delete_article/<int:article_id>/<string:selectedfeed>/<string:newspaper>')
 @login_required
 def delete_article(article_id, selectedfeed, newspaper):
     article = db.session.get(Articles_rss, article_id)
