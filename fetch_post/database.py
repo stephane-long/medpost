@@ -42,7 +42,8 @@ class Networks(Base):
     __tablename__ = 'networks'
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=False)
-    tag = Column(String, nullable=True)
+    tag_qdm = Column(String, nullable=True)
+    tag_qph = Column(String, nullable=True)
 
     def __repr__(self):
         return f"Network {self.id} : {self.name}"

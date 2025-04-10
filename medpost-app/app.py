@@ -33,7 +33,7 @@ login_manager.login_message_category = "error"
 
 logging.basicConfig(filename=log_path,
                     encoding='utf-8',
-                    level=logging.DEBUG,
+                    level=logging.INFO,
                     format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M'
                     )
 
@@ -70,7 +70,8 @@ class Posts(db.Model):
 class Networks(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String, nullable=False)
-    tag = db.Column(db.String, nullable=True)
+    tag_qdm = db.Column(db.String, nullable=True)
+    tag_qph = db.Column(db.String, nullable=True)
 
     def __repr__(self):
         return f"Network {self.id} - {self.name}"
@@ -349,24 +350,28 @@ def logout():
 @login_required
 def update_tag(network_id):
     new_tag = request.form.get('new_tag')
+    newspaper = request.form.get('newspaper')
     network = db.session.get(Networks, network_id)
+    tag_name = 'tag_' + newspaper
     if network:
-        network.tag = new_tag
+        setattr(network, tag_name, new_tag)
         db.session.commit()
-    return redirect(url_for('tags_list'))
+    return redirect(url_for('tags_list', newspaper=newspaper))
 
 @app.route('/tags')
 @login_required
 def tags_list():
+    newspaper = request.args.get('newspaper', 'qdm', type=str)
     networks = (db.session
                 .query(Networks)
                 .with_entities(Networks.id,
                                Networks.name,
-                               Networks.tag
+                               Networks.tag_qdm,
+                               Networks.tag_qph
                                )
                 .all()
                 )
-    return render_template('tags_list.html', networks=networks)
+    return render_template('tags_list.html', networks=networks, newspaper=newspaper)
 
 @app.route('/update_user/<int:user_id>', methods=['POST'])
 @login_required

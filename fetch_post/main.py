@@ -91,11 +91,14 @@ def modify_status(engine, post_id, post_title):
         except Exception as e:
             logging.error("Erreur %s lors de modification du status post %s", e, post_title)
 
-def get_network_tag(network, engine):
+def get_network_tag(engine, network, newspaper):
     try:
+        column_map = {'qdm': Networks.tag_qdm, 'qph': Networks.tag_qph}
+        tag_column = column_map.get(newspaper)
+        if not tag_column:
+            raise ValueError(f"Journal inconnu : {newspaper}")
         with get_session(engine) as session:
-            tag = session.scalar(select(Networks.tag).where(Networks.name == network))
-            return tag
+            return session.scalar(select(tag_column).where(Networks.name == network)) or ''
     except Exception as err:
         logging.error("Impossible d'accéder au tag de %s : Erreur %s", network, err)
         return None
@@ -128,7 +131,8 @@ def post_all_x(posts, engine, newspaper):
     except Exception as e:
         logging.error("Erreur de connexion à l'API V2 de X: %s", e)
         return
-    tag = get_network_tag('X', engine)
+    tag = get_network_tag(engine, 'X', newspaper)
+    logging.info("Tag X %s - Journal : %s", tag, newspaper)
     for post in posts:
         success, network_post_id = post_to_x(x_apiv2, post, tag)
         if success:
@@ -180,7 +184,7 @@ def post_all_bluesky(posts, engine, newspaper):
     bluesky_login = os.getenv('BLUESKY_LOGIN_'+newspaper.upper())
     bluesky_password = os.getenv('BLUESKY_PASSWORD_'+newspaper.upper())
     bluesky_url = os.getenv('BLUESKY_URL_'+newspaper.upper())
-    tag = get_network_tag('Bluesky', engine)
+    tag = get_network_tag(engine, 'Bluesky', newspaper)
     client_bluesky = Client()
     try:
         client_bluesky.login(bluesky_login, bluesky_password)
@@ -188,7 +192,8 @@ def post_all_bluesky(posts, engine, newspaper):
     except Exception as err:
         logging.info("Échec de connexion à Bluesky %s", err)
         return
-    tag = get_network_tag('Bluesky', engine)
+    tag = get_network_tag(engine, 'Bluesky', newspaper)
+    logging.info("Tag Bluesky %s - Journal : %s", tag, newspaper)
     for post in posts:
         try:
             network_post_id = post_to_bluesky(post, client_bluesky,
@@ -264,7 +269,6 @@ def fetch_rss_function(engine, newspaper, url_rss):
         print(f"{nb_itemrss} nouveaux articles insérés")
 
 def post_auto_function(engine, newspaper):
-#    networks = fetch_networks(engine, newspaper)
     networks = ['X', 'Bluesky'] # Active networks
     logging.info("Traitement de posts %s", newspaper)
     for network in networks:
@@ -286,7 +290,7 @@ def main():
     url_newspapers = {'qdm': os.getenv('QDM_URL_RSS'), 'qph':os.getenv('QPH_URL_RSS')}
     logging.basicConfig(filename=log_path,
                         encoding='utf-8',
-                        level=logging.DEBUG,
+                        level=logging.INFO,
                         format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M'
                         )
     engine = create_db_and_tables(database_path)
