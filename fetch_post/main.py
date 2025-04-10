@@ -5,6 +5,7 @@ from datetime import datetime
 import requests
 import tweepy
 from sqlalchemy import select, update, exists
+from sqlalchemy.exc import SQLAlchemyError
 import feedparser
 from database import Articles_rss, Posts, Networks, create_db_and_tables, get_session
 from atproto import models, Client
@@ -71,12 +72,16 @@ def update_network_post_id(engine, post_id, network_post_id):
             )
             session.execute(statement)
             session.commit()
-            logging.info("Mise à jour du network_post_id %s pour le post %s",
-                          network_post_id, post_id)
+            logging.debug("Transaction committée avec succès post ID: %s",
+                           post_id)
+        except SQLAlchemyError as e:
+            session.rollback()
+            logging.error("Erreur lors de la MAJ du network_post_id du post %s: %s",
+                           post_id, e)
         except Exception as e:
             session.rollback()
-            logging.error("Erreur lors de la mise à jour" \
-            " du network_post_id pour le post %s : %s", post_id, e)
+            logging.error("Erreur inattendue lors de la MAJ du network_post_id pour le post %s: %s",
+                           post_id, e)
 
 def modify_status(engine, post_id, post_title):
     with get_session(engine) as session:
@@ -259,7 +264,10 @@ def fetch_rss_function(engine, newspaper, url_rss):
                     with get_session(engine) as session:
                         present = itemrss_ispresent(session, itemrss.title, itemrss.link, newspaper)
                         if not present:
-                            new_article = Articles_rss(title=normalize_spaces(itemrss.title), link=itemrss.link, summary=itemrss.summary , image_url=image_url , pubdate=pubdate, online=1, newspaper=newspaper)
+                            new_article = Articles_rss(title=normalize_spaces(itemrss.title),
+                                                        link=itemrss.link, summary=itemrss.summary,
+                                                        image_url=image_url , pubdate=pubdate,
+                                                        online=1, newspaper=newspaper)
                             session.add(new_article)
                             session.commit()
                             nb_itemrss += 1
