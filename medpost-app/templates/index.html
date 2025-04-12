@@ -84,7 +84,7 @@
                     <div class="border-bottom border-bottom-5 mb-2 fw-bold">Posts planifiés</div>
                     {% for post in posts_planned %}
                         <div class="post-metadata d-flex">
-                            <div class="bg-warning text-dark me-2 px-1"> {{ post.date_pub }}</div> 
+                            <div class="{% if newspaper == 'qdm'%}bg-warning{% else %}bg-success{% endif %} text-dark me-2 px-1"> {{ post.date_pub }}</div> 
                             <div> {{ post.name }} </div>
                         </div>
                         <div class="post-content">{{ post.title }}</div>
