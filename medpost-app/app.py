@@ -1,7 +1,6 @@
 """ Medpost Version 0.9 """
 import logging
 import os
-import subprocess
 from datetime import datetime, timedelta
 from flask import Flask, render_template, url_for, request, redirect, flash
 from flask_sqlalchemy import SQLAlchemy
@@ -33,7 +32,7 @@ login_manager.login_message_category = "error"
 
 logging.basicConfig(filename=log_path,
                     encoding='utf-8',
-                    level=logging.INFO,
+                    level=logging.DEBUG,
                     format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M'
                     )
 
