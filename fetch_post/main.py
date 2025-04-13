@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 # from dotenv import load_dotenv
 from datetime import datetime
 import requests
@@ -245,6 +246,9 @@ def itemrss_ispresent(session, title, link, newspaper):
 def convert_date(date_str):
     return datetime.strptime(date_str, '%a, %d %b %Y %H:%M:%S %z')
 
+def clean_text(text):
+    return re.sub(r"<[p/(br)].*?>", '', text)
+
 def fetch_rss_function(engine, newspaper, url_rss):
 #    URL_RSS = os.getenv('QDM_URL_RSS')
     feed = fetch_rss(url_rss)
@@ -259,8 +263,9 @@ def fetch_rss_function(engine, newspaper, url_rss):
                     with get_session(engine) as session:
                         present = itemrss_ispresent(session, itemrss.title, itemrss.link, newspaper)
                         if not present:
+                            cleaned_summary = clean_text(itemrss.summary)
                             new_article = Articles_rss(title=normalize_spaces(itemrss.title),
-                                                        link=itemrss.link, summary=itemrss.summary,
+                                                        link=itemrss.link, summary=cleaned_summary,
                                                         image_url=image_url , pubdate=pubdate,
                                                         online=1, newspaper=newspaper)
                             session.add(new_article)
