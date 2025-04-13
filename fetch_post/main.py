@@ -96,14 +96,11 @@ def modify_status(engine, post_id, post_title):
         except Exception as e:
             logging.error("Erreur %s lors de modification du status post %s", e, post_title)
 
-def get_network_tag(engine, network, newspaper):
+def get_network_tag(engine, network):
     try:
-        column_map = {'qdm': Networks.tag_qdm, 'qph': Networks.tag_qph}
-        tag_column = column_map.get(newspaper)
-        if not tag_column:
-            raise ValueError(f"Journal inconnu : {newspaper}")
         with get_session(engine) as session:
-            return session.scalar(select(tag_column).where(Networks.name == network)) or ''
+            tag = session.scalar(select(Networks.tag).where(Networks.name == network))
+            return tag
     except Exception as err:
         logging.error("Impossible d'accéder au tag de %s : Erreur %s", network, err)
         return None
@@ -136,8 +133,7 @@ def post_all_x(posts, engine, newspaper):
     except Exception as e:
         logging.error("Erreur de connexion à l'API V2 de X: %s", e)
         return
-    tag = get_network_tag(engine, 'X', newspaper)
-    logging.info("Tag X %s - Journal : %s", tag, newspaper)
+    tag = get_network_tag(engine, 'X')
     for post in posts:
         success, network_post_id = post_to_x(x_apiv2, post, tag)
         if success:
@@ -189,7 +185,7 @@ def post_all_bluesky(posts, engine, newspaper):
     bluesky_login = os.getenv('BLUESKY_LOGIN_'+newspaper.upper())
     bluesky_password = os.getenv('BLUESKY_PASSWORD_'+newspaper.upper())
     bluesky_url = os.getenv('BLUESKY_URL_'+newspaper.upper())
-    tag = get_network_tag(engine, 'Bluesky', newspaper)
+    tag = get_network_tag(engine, 'Bluesky')
     client_bluesky = Client()
     try:
         client_bluesky.login(bluesky_login, bluesky_password)
@@ -197,8 +193,7 @@ def post_all_bluesky(posts, engine, newspaper):
     except Exception as err:
         logging.info("Échec de connexion à Bluesky %s", err)
         return
-    tag = get_network_tag(engine, 'Bluesky', newspaper)
-    logging.info("Tag Bluesky %s - Journal : %s", tag, newspaper)
+    tag = get_network_tag(engine, 'Bluesky')
     for post in posts:
         try:
             network_post_id = post_to_bluesky(post, client_bluesky,

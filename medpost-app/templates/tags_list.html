@@ -1,26 +1,19 @@
 {% extends "layout.html" %}
 {% block content %}
 <div class="container">
-    <div class="mb-4">
-        <div class="col d-flex flex-row align-items-center justify-content-center border-bottom border-3 pb-2">
-            <h2 class="text-secondary me-2">Tags des réseaux</h2>
-            <a class="btn me-2 btn-sm {% if newspaper =='qdm' %}btn-warning{% else %}btn-outline-warning{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('tags_list', newspaper='qdm') }}">QDM</a>
-            <a class="btn btn-sm {% if newspaper == 'qph' %}btn-success{% else %}btn-outline-success{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('tags_list', newspaper='qph') }}">QPH</a>
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="text-center text-secondary border-bottom border-3 pb-2">Tags des réseaux</h2>
         </div>
     </div>
     {% for network in networks %}
-    {% if newspaper == 'qdm' %}
-        {% set tag_newspaper = network.tag_qdm %}
-    {% else %}
-        {% set tag_newspaper = network.tag_qph %}
-    {% endif %}
     <div class="row align-items-start mb-3">
         <div class="col-12 col-md-2 text-md-end text-center mb-2 mb-md-0">
             <span class="fw-bold text-secondary fs-5">{{ network.name }}</span>
         </div>
         <div class="col-12 col-md-8 mb-2 mb-md-0">
             <div class="network-tag p-2 border border-2">
-                {{ tag_newspaper }}
+                {{ network.tag }}
             </div>
         </div>
         <div class="col-12 col-md-2 d-flex justify-content-center justify-content-md-start">
@@ -40,7 +33,7 @@
                         <input type="hidden" name="newspaper" value="{{ newspaper }}">
                         <div class="mb-3">
                             <label for="tag{{ network.id }}" class="form-label">Nouveau tag</label>
-                            <textarea class="form-control" id="tag{{ network.id }}" name="new_tag" rows="3">{{ tag_newspaper }}</textarea>
+                            <textarea class="form-control" id="tag{{ network.id }}" name="new_tag" rows="3">{{ network_tag }}</textarea>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>

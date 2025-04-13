@@ -69,8 +69,7 @@ class Posts(db.Model):
 class Networks(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String, nullable=False)
-    tag_qdm = db.Column(db.String, nullable=True)
-    tag_qph = db.Column(db.String, nullable=True)
+    tag = db.Column(db.String, nullable=True)
 
     def __repr__(self):
         return f"Network {self.id} - {self.name}"
@@ -349,28 +348,24 @@ def logout():
 @login_required
 def update_tag(network_id):
     new_tag = request.form.get('new_tag')
-    newspaper = request.form.get('newspaper')
     network = db.session.get(Networks, network_id)
-    tag_name = 'tag_' + newspaper
     if network:
-        setattr(network, tag_name, new_tag)
+        network.tag = new_tag
         db.session.commit()
-    return redirect(url_for('tags_list', newspaper=newspaper))
+    return redirect(url_for('tags_list'))
 
 @app.route('/tags')
 @login_required
 def tags_list():
-    newspaper = request.args.get('newspaper', 'qdm', type=str)
     networks = (db.session
                 .query(Networks)
                 .with_entities(Networks.id,
                                Networks.name,
-                               Networks.tag_qdm,
-                               Networks.tag_qph
+                               Networks.tag,
                                )
                 .all()
                 )
-    return render_template('tags_list.html', networks=networks, newspaper=newspaper)
+    return render_template('tags_list.html', networks=networks)
 
 @app.route('/update_user/<int:user_id>', methods=['POST'])
 @login_required
