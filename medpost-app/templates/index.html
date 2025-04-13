@@ -36,7 +36,7 @@
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
                                         <div class="modal-body">
-                                            <!-- Séléction des réseaux à éditer -->
+                                            <!-- Sélection des réseaux à éditer -->
                                             <div class="mb-3 d-flex align-items-center flex-wrap">
                                                 <label class="form-label me-3 fw-bold">Sélectionnez les réseaux</label>
                                                 <div class="form-check form-check-inline me-2">
@@ -64,8 +64,11 @@
                             </div>
                              <!-- Fin formulaire-->
                         </div>
-                        <a class="article-title" href="{{ article.link }}" target="_blank">{{ article.title }}</a>
+                        <div class="d-flex align-items-center">
+                            <img src="{{ article.image_url }}" class="img-fluid me-3" style="max-width: 50px;" alt=""/>
+                            <a class="article-title flex-grow-1" href="{{ article.link }}" target="_blank">{{ article.title }}</a>
 <!--                        <p class="article-content">{{ article.summary[:100] }}...</p> -->
+                        </div>
                     </article>
                 {% endfor %}
                 <div class="d-flex mt-2 justify-content-left flex-wrap">
@@ -83,11 +86,14 @@
                 <div class="content-section">
                     <div class="border-bottom border-bottom-5 mb-2 fw-bold">Posts planifiés</div>
                     {% for post in posts_planned %}
-                        <div class="post-metadata d-flex">
+                        <div class="post-metadata d-flex mb-1">
                             <div class="{% if newspaper == 'qdm'%}bg-warning{% else %}bg-success{% endif %} text-dark me-2 px-1"> {{ post.date_pub }}</div> 
                             <div> {{ post.name }} </div>
                         </div>
-                        <div class="post-content">{{ post.title }}</div>
+                        <div class="d-flex align-items-center">
+                            <img src="{{ post.image_url }}" class="img-fluid me-3" style="max-width: 50px;" alt=""/>
+                            <div class="post-title flex-grow-1">{{ post.title }}</div>
+                        </div>
                         <div class="d-flex border-bottom pb-1 my-2">
                             <a class="btn btn-outline-success me-2" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" data-bs-toggle="modal" data-bs-target="#editpost{{ post.id }}">Éditer</a>
                             <!-- Formulaire édition de post planifié -->

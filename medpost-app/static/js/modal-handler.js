@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     form.id = formId;
                     form.className = 'card mb-3';
                     form.innerHTML = `
-                        <div class="card-header text-white bg-${network === 'X' ? 'dark' : network === 'Bluesky' ? 'primary' : 'info'}">
+                        <div class="card-header text-white bg-${network === 'X' ? 'dark' : network === 'Bluesky' ? 'info' : 'primary'}">
                             <strong>${network}</strong>
                         </div>
                         <div class="card-body">
