@@ -176,7 +176,7 @@ def post_to_bluesky(post, client_bluesky, tag):
     try:
         web_card = client_bluesky.send_post(post['tagline'], embed=embed)
         network_post_id = web_card.uri.rsplit('/', 1)[1] # get the post id to build the post URL
-        logging.info("Post {post['title']} posté sur Bluesky --- URI = %s", network_post_id)
+        logging.info("Post %s posté sur Bluesky  URI = %s", post['title'], network_post_id)
         return network_post_id
     except Exception as err:
         logging.info("Échec de publication sur Bluesky de %s - %s", post['title'], err)
