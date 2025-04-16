@@ -1,8 +1,9 @@
 """ Medpost Version 0.9 """
 import logging
 import os
+import requests as re
 from datetime import datetime, timedelta
-from flask import Flask, render_template, url_for, request, redirect, flash
+from flask import Flask, render_template, url_for, request, redirect, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (LoginManager, UserMixin, login_user,
                          login_required, logout_user, current_user
@@ -10,6 +11,7 @@ from flask_login import (LoginManager, UserMixin, login_user,
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
 from sqlalchemy.exc import SQLAlchemyError
+from bs4 import BeautifulSoup as bs
 
 app = Flask(__name__, template_folder='templates', static_folder='static', static_url_path='/')
 
@@ -98,9 +100,9 @@ def inject_datetime_utils():
 def fetch_articles(selectedfeed, newspaper):
     if selectedfeed == 'tous':
         articles = (db.session.query(Articles_rss)
-                    .outerjoin(Posts, Articles_rss.id == Posts.id_article)
+                    .outerjoin(Posts, Articles_rss.id==Posts.id_article)
                     .filter(Posts.id_article.is_(None))
-                    .filter(Articles_rss.online == 1)
+                    .filter(Articles_rss.online==1)
                     .filter(Articles_rss.newspaper==newspaper)
                     .with_entities(Articles_rss.id,
                                     Articles_rss.title,
@@ -238,6 +240,60 @@ def update_post(post_id, title, description, tagline, post_datetime, network):
     db.session.commit()
     logging.info("Post mis à jour sur %s: %s", network, title)
 
+def article_to_dict(fetched_article, newspaper):
+    article = {}
+    article['title'] = fetched_article.title
+    article['image_url'] = fetched_article.image_url
+    article['description'] = fetched_article.summary
+    article['link'] = fetched_article.link
+    article['datepub'] = fetched_article.pubdate
+    article['newspaper'] = newspaper
+    return article
+
+def create_article(article_data):
+    article = Articles_rss(
+        title=article_data['title'],
+        link=article_data['link'],
+        summary=article_data['description'],
+        image_url=article_data['image_url'],
+        pubdate=article_data['datepub'],
+        online=1,
+        newspaper=article_data['newspaper']
+    )
+    try:
+        db.session.add(article)
+        db.session.commit()
+        return article.id
+    except Exception as e:
+        db.session.rollback()
+        logging.warning("Impossible d'enregistrer dans la db l'article %s : %s", article.title, e)
+        return None
+
+def fetch_article_http(url):
+    response = {}
+    try:
+        http_response = re.get(url, timeout=10)
+        soup = bs(http_response.text, 'html.parser')
+        response['title'] = soup.find('meta', attrs = {"name":"twitter:title"}).attrs['content']
+        response['image_url'] = soup.find('meta', attrs = {"name":"twitter:image"}).attrs['content']
+        response['description'] = soup.find('meta', attrs = {"name":"twitter:description"}).attrs['content']
+        response['link'] = soup.find('meta', attrs = {"name":"twitter:url"}).attrs['content']
+        response['datepub'] = datetime.now().replace(second=0, microsecond=0)
+        return response
+    except re.exceptions.RequestException as e:
+        logging.error("Échec lors de la lecture URL %s : %s", url, e)
+        response['message'] = f"Erreur d'URL {url}"
+        return response
+
+def fetch_article_if_exists(url, newspaper):
+    article = (db.session.query(Articles_rss)
+            .filter(Articles_rss.newspaper == newspaper)
+            .where(Articles_rss.link == url)
+            .filter(Articles_rss.online==1)
+            .first()
+    )
+    return article
+
 @app.route('/')
 @app.route('/index')
 @login_required
@@ -366,6 +422,25 @@ def tags_list():
                 .all()
                 )
     return render_template('tags_list.html', networks=networks)
+
+@app.route('/import', methods=['POST'])
+@login_required
+def import_link():
+    data = request.get_json()
+    link = data.get('imported_link')
+    newspaper = data.get('newspaper')  # Récupérer le paramètre newspaper
+    logging.info("Lien importé : %s pour le journal %s - Data %s", link, newspaper, data)
+    if link:     
+        fetched_article = fetch_article_if_exists(link, newspaper)
+        if fetched_article is None:
+            article_info = fetch_article_http(link)
+            article_info['newspaper'] = newspaper
+            article_info['id'] = create_article(article_info)
+            return jsonify(article_info), 200
+        else:
+            logging.debug("Import - Article existant %s : ", fetched_article)
+            return jsonify(article_to_dict(fetched_article, newspaper)), 200
+    return jsonify({"message": "problème lors de la création de l'article"}), 400
 
 @app.route('/update_user/<int:user_id>', methods=['POST'])
 @login_required
