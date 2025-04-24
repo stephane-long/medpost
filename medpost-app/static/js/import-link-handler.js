@@ -1,158 +1,187 @@
-$(document).ready(function() {
-    // Reset the form when the modal is shown
-    $('#import_lien').on('shown.bs.modal', function() {
-        $('#importLink')[0].reset(); // Reset all form fields
-        $('#responseMessage').text(''); // Clear the response message
+document.addEventListener('DOMContentLoaded', () => {
+    const importModal = document.getElementById('importLinkModal'); // fenêtre modale
+    const importLinkForm = document.getElementById('importLinkForm'); // Formulaire lien à importer
+    const submitLinkBtn = document.getElementById('submitLinkBtn') // Bouton importer le lien
+    const networkFormContainer = document.getElementById('networkFormContainer'); // Formulaire sélection des réseaux
+    const postFormContainer = document.getElementById('postFormContainer'); // Formulaire dynamique de création des posts
+    const postFormButtons = document.getElementById('postFormButtons'); // Boutons Programmer/Anuuler
+    
+    // Fermeture de la modale et réinitialisation des éléments
+    importModal.addEventListener('hidden.bs.modal', () => {
+        console.log("Fermeture modale et reset");
+        importLinkForm.reset();      
+        responseMessage.style.display = "none";
+        networkFormContainer.style.display = 'none';
+        postFormContainer.style.display = 'none'
+        importLinkForm.style.display = "block";
+        // On réinitialise les checkboxes
+        const checkboxes = document.querySelectorAll('.network-checkbox');
+        if (checkboxes.length > 0) {
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+        postFormButtons.style.display = "none";
     });
 
-    // Handle form submission
-    $('#importLink').submit(function(event) {
+    // Soumission du lien
+    importLinkForm.addEventListener("submit", (event) => {
         event.preventDefault();
-        const newspaper = $(this).data('newspaper');
+        const responseMessage = document.getElementById('responseMessage');
+        const newspaper = importLinkForm.dataset.newspaper;
         const formData = {
-            imported_link: $('#link').val(),
+            importedLink: document.getElementById('importedLink').value,
             newspaper: newspaper
         };
+        fetch('/import', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => {
+            console.log(`HTTP Status Code: ${response.status}`);
+            if (!response.ok) {
+                throw new Error(`Erreur HTTP : ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(importedArticle => {
+            responseMessage.textContent = importedArticle.message || `Titre importé : ${importedArticle.title}`;
+            responseMessage.style.display = "block";
+            console.log(importedArticle);
+            // Formulaire de création de posts
+            if (importedArticle.title && importedArticle.summary && importedArticle.link && importedArticle.id && importedArticle.link && importedArticle.newspaper) {
+                console.log("Données complètes");
+                networkFormContainer.style.display = "block";
 
-        $.ajax({
-            type: 'POST',
-            url: '/import',
-            contentType: 'application/json',
-            data: JSON.stringify(formData),
-            success: function(response) {
-                $('#responseMessage').text(response.message || 'Lien importé avec succès.');
+                // Affichage des formulaires réseaux
+                const postFormContainer = document.getElementById('postFormContainer');
+                const checkboxes = document.querySelectorAll('.network-checkbox');
+                const postProgrammerBtn = document.getElementById('postProgrammerBtn');
+                
+                importLinkForm.style.display = "none"; // On cache le formulaire de saisie du lien
+                postFormButtons.style.display = "block"; // On affiche les boutons Programmer/Annuler
+                postFormContainer.style.display = 'block';
 
-                if (response.title && response.description && response.image_url && response.link) {
-                    $('#import_lien').modal('hide');                    
-                    
-                    const modalId = 'newpost-imported';
-                    const modalElement = $(`#${modalId}`);
-                    
-                    if (!modalElement.length) {
-                        $('body').append(`
-                            <div class="modal fade" id="${modalId}" tabindex="-1">
-                                <div class="modal-dialog modal-xl">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h1 class="modal-title fs-5 fw-bold">Nouveau post</h1>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <form id="postCreationForm">
-                                                <!-- Network selection -->
-                                                <div class="mb-3 d-flex align-items-center flex-wrap">
-                                                    <label class="form-label me-3 fw-bold">Sélectionnez les réseaux</label>
-                                                    <div class="form-check form-check-inline me-2">
-                                                        <input class="form-check-input network-checkbox" type="checkbox" id="x_checkbox_modal_imported" value="X">
-                                                        <label class="form-check-label" for="x_checkbox_modal_imported">X</label>
+                const regenerateForms = () => {
+                    postFormContainer.innerHTML = '';  // Effacer les formulaires existants
+                    checkboxes.forEach(checkbox => {
+                        if (checkbox.checked) {
+                            const network = checkbox.value;
+                            const formId = `form-${network}-imported`;
+                            const currentDatetime = document.getElementById('current-datetime').dataset.currentDatetime;
+                            console.log("Date : ", currentDatetime)
+
+                            const form = document.createElement('div');
+                            form.id = formId;
+                            form.className = 'card mb-3';
+
+                            form.innerHTML = `
+                                   <div class="card-header text-white bg-${network === 'X' ? 'dark' : network === 'Bluesky' ? 'info' : 'primary'}">
+                                        <strong>${network}</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <form action="/new_post" method="post">
+                                            <input type="hidden" name="network" value="${network}">
+                                            <input type="hidden" name="image_url" value="${importedArticle.image_url}">
+                                            <input type="hidden" name="article_id" value="${importedArticle.id}">
+                                            <div class="mb-3">
+                                                <img src="${importedArticle.image_url}" class="img-fluid me-3" style="max-width: 50px;" alt=""/>
+                                                <label class="form-label fw-bold">Titre</label>
+                                                <textarea class="form-control" name="title" rows="3" required>${importedArticle.title}</textarea>
+                                            </div>
+                                            ${
+                                                network !== 'X'
+                                                    ? `
+                                                    <div class="mb-3">
+                                                        <label for="description_${network}" class="form-label fw-bold">Description du post</label>
+                                                        <textarea class="form-control" id="description_${network}" name="description" rows="3" required>${importedArticle.summary}</textarea>
                                                     </div>
-                                                    <div class="form-check form-check-inline me-2">
-                                                        <input class="form-check-input network-checkbox" type="checkbox" id="bluesky_checkbox_modal_imported" value="Bluesky">
-                                                        <label class="form-check-label" for="bluesky_checkbox_modal_imported">Bluesky</label>
+                                                    <div class="mb-3">
+                                                        <label for="tagline_${network}" class="form-label fw-bold">Accroche du post</label>
+                                                        <textarea class="form-control" id="tagline_${network}" name="tagline" rows="3" required></textarea>
                                                     </div>
-                                                    <div class="form-check form-check-inline">
-                                                        <input class="form-check-input network-checkbox" type="checkbox" id="linkedin_checkbox_modal_imported" value="LinkedIn">
-                                                        <label class="form-check-label" for="linkedin_checkbox_modal_imported">LinkedIn</label>
-                                                    </div>
-                                                </div>
-                                                <!-- Dynamic forms container -->
-                                                <div id="dynamic-forms-container-imported"></div>
-                                            </form>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-primary" id="programmer-btn-imported">Créer le post</button>
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                                        </div>
+                                                    `
+                                                    : ''
+                                            }
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Lien</label>
+                                                <input type="text" class="form-control" name="link" value="${importedArticle.link}" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Date et heure</label>
+                                                <input type="datetime-local" class="form-control" name="datetime" value="${currentDatetime}" min="${currentDatetime}" style="width: 250px;" required>
+                                            </div>
+                                        </form>
                                     </div>
                                 </div>
-                            </div>
-                        `);
-                    }
-
-                    // Fill the modal fields with the response data
-                    $('#postTitle').val(response.title);
-                    $('#postDescription').val(response.description);
-                    $('#postImageUrl').val(response.image_url);
-                    $('#postLink').val(response.link);
-
-                    // Handle dynamic form generation based on selected networks
-                    const container = $('#dynamic-forms-container-imported');
-                    const checkboxes = $('.network-checkbox');
-                    const programmerButton = $('#programmer-btn-imported');
-
-                    const regenerateForms = () => {
-                        container.html(''); // Clear existing forms
-                        checkboxes.each(function() {
-                            if ($(this).is(':checked')) {
-                                const network = $(this).val();
-                                const formId = `form-${network}-imported`;
-                                const form = `
-                                    <div class="card mb-3" id="${formId}">
-                                        <div class="card-header text-white bg-${network === 'X' ? 'dark' : network === 'Bluesky' ? 'info' : 'primary'}">
-                                            <strong>${network}</strong>
-                                        </div>
-                                        <div class="card-body">
-                                            <input type="hidden" name="network" value="${network}">
-                                            <div class="mb-3">
-                                                <label for="title_${network}_imported" class="form-label fw-bold">Titre</label>
-                                                <textarea class="form-control" id="title_${network}_imported" name="title" rows="3" required>${response.title}</textarea>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="description_${network}_imported" class="form-label fw-bold">Description</label>
-                                                <textarea class="form-control" id="description_${network}_imported" name="description" rows="3" required>${response.description}</textarea>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="link_${network}_imported" class="form-label fw-bold">Lien</label>
-                                                <input type="text" class="form-control" id="link_${network}_imported" name="link" value="${response.link}" required>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `;
-                                container.append(form);
-                            }
-                        });
-                    };
-
-                    // Regenerate forms when checkboxes are toggled
-                    checkboxes.on('change', regenerateForms);
-
-                    // Handle form submission
-                    programmerButton.on('click', function() {
-                        const forms = container.find('form');
-                        let allValid = true;
-
-                        forms.each(function() {
-                            if (!this.checkValidity()) {
-                                allValid = false;
-                                $(this).find(':invalid').addClass('is-invalid');
-                            }
-                        });
-
-                        if (allValid) {
-                            forms.each(function() {
-                                const formData = new FormData(this);
-                                fetch('/new_post', {
-                                    method: 'POST',
-                                    body: formData,
-                                }).then(response => {
-                                    if (!response.ok) {
-                                        console.error('Erreur lors de la création du post.');
-                                    }
-                                });
-                            });
-
-                            // Close the modal after submission
-                            $(`#${modalId}`).modal('hide');
+                            `;
+                            postFormContainer.appendChild(form);
                         }
                     });
+                };
 
-                    // Show the modal
-                    $(`#${modalId}`).modal('show');
-                }
-            },
-            error: function(error) {
-                $('#responseMessage').text('Erreur lors du traitement des données.');
+                checkboxes.forEach(checkbox => {
+                    checkbox.addEventListener('change', () => {
+                        regenerateForms();
+                    });
+                });
+
+                postProgrammerBtn.addEventListener('click', () => {
+                    const forms = postFormContainer.querySelectorAll('form');
+                    console.log("Form", forms)
+                    let allValid = true;
+
+                    forms.forEach(form => {
+                        if (!form.checkValidity()) {
+                            allValid = false;
+                            form.querySelectorAll(':invalid').forEach(field => {
+                                field.classList.add('is-invalid');
+                                field.addEventListener('input', () => {
+                                    field.classList.remove('is-invalid');
+                                });
+                            });
+                        }
+                    });
+                    
+                    if (allValid) {
+                        const promises = [];
+                        forms.forEach(form => {
+                            const formData = new FormData(form);
+                            const promise = fetch(form.action, {
+                                method: form.method,
+                                body: formData,
+                            });
+                            promises.push(promise);
+                        });
+                        
+                        Promise.all(promises)
+                        .then(responses => {
+                            const allSuccessful = responses.every(response => response.ok);
+                            if (allSuccessful) {
+                                window.location.href = `/?selectedfeed=tous&newspaper=${newspaper}`;
+                            } else {
+                                console.error("Échec sur une plusieurs soumissions.");
+                            }
+                        })
+                        .catch(error => {
+                            console.error("Erreur lors des soumissions :", error);
+                        });
+                    }
+                });
+            } else {
+                // Données du serveur incomplètes
+                console.log("Données incomplètes lors de l'import");
             }
+        })
+        .catch(error => {
+            console.error("Erreur lors de l'importation :", error);
+            responseMessage.textContent = `Erreur : ${error.message}`;
+            responseMessage.style.display = "block";
         });
     });
-});
+
+
+})

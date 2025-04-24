@@ -244,19 +244,21 @@ def article_to_dict(fetched_article, newspaper):
     article = {}
     article['title'] = fetched_article.title
     article['image_url'] = fetched_article.image_url
-    article['description'] = fetched_article.summary
+    article['summary'] = fetched_article.summary
     article['link'] = fetched_article.link
-    article['datepub'] = fetched_article.pubdate
+    article['pubdate'] = fetched_article.pubdate.strftime('%Y-%m-%dT%H:%M')
     article['newspaper'] = newspaper
+    article['id'] = fetched_article.id
+    logging.debug("Article dict : %s", article)
     return article
 
 def create_article(article_data):
     article = Articles_rss(
         title=article_data['title'],
         link=article_data['link'],
-        summary=article_data['description'],
+        summary=article_data['summary'],
         image_url=article_data['image_url'],
-        pubdate=article_data['datepub'],
+        pubdate=article_data['pubdate'],
         online=1,
         newspaper=article_data['newspaper']
     )
@@ -276,9 +278,9 @@ def fetch_article_http(url):
         soup = bs(http_response.text, 'html.parser')
         response['title'] = soup.find('meta', attrs = {"name":"twitter:title"}).attrs['content']
         response['image_url'] = soup.find('meta', attrs = {"name":"twitter:image"}).attrs['content']
-        response['description'] = soup.find('meta', attrs = {"name":"twitter:description"}).attrs['content']
+        response['summary'] = soup.find('meta', attrs = {"name":"twitter:description"}).attrs['content']
         response['link'] = soup.find('meta', attrs = {"name":"twitter:url"}).attrs['content']
-        response['datepub'] = datetime.now().replace(second=0, microsecond=0)
+        response['pubdate'] = datetime.now().replace(second=0, microsecond=0)
         return response
     except re.exceptions.RequestException as e:
         logging.error("Échec lors de la lecture URL %s : %s", url, e)
@@ -427,19 +429,22 @@ def tags_list():
 @login_required
 def import_link():
     data = request.get_json()
-    link = data.get('imported_link')
+    link = data.get('importedLink')
     newspaper = data.get('newspaper')  # Récupérer le paramètre newspaper
     logging.info("Lien importé : %s pour le journal %s - Data %s", link, newspaper, data)
-    if link:     
-        fetched_article = fetch_article_if_exists(link, newspaper)
-        if fetched_article is None:
+    if link:
+        fetched_article = fetch_article_if_exists(link, newspaper)    
+        if fetched_article is None: # Création del'article si absent de la base
             article_info = fetch_article_http(link)
             article_info['newspaper'] = newspaper
             article_info['id'] = create_article(article_info)
+            article_info['pubdate'] =  article_info['pubdate'].strftime('%Y-%m-%dT%H:%M')
             return jsonify(article_info), 200
         else:
             logging.debug("Import - Article existant %s : ", fetched_article)
-            return jsonify(article_to_dict(fetched_article, newspaper)), 200
+            article_json = jsonify(article_to_dict(fetched_article, newspaper))
+            logging.debug("Article json : %s", article_json.get_data(as_text=True))
+            return article_json, 200
     return jsonify({"message": "problème lors de la création de l'article"}), 400
 
 @app.route('/update_user/<int:user_id>', methods=['POST'])

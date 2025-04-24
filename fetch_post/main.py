@@ -5,7 +5,7 @@ import re
 from datetime import datetime
 import requests
 import tweepy
-from sqlalchemy import select, update, exists
+from sqlalchemy import select, update
 from sqlalchemy.exc import SQLAlchemyError
 import feedparser
 from database import Articles_rss, Posts, Networks, create_db_and_tables, get_session
@@ -233,20 +233,65 @@ def check_itemrss(item):
 def normalize_spaces(text):
     return ' '.join(text.split())
 
+def extract_base_link(link):
+    return re.sub(r"-\d$", '', link)
+
 def itemrss_ispresent(session, title, link, newspaper):
-    normalized_title = normalize_spaces(title)
-    title_db = Articles_rss.title
-    stmt = select(exists().where((title_db == normalized_title),
-                                 (Articles_rss.link == link),
-                                 (Articles_rss.newspaper == newspaper))
-                                )
-    result = session.execute(stmt).scalar()
-    return result
+    """
+    Vérifie la présence d'un article du flux rss dans la BDD
+           
+    Args:
+        session (_type_): session SQLalchemy
+        title (str): titre à vérifier
+        link (str): lien à vérifier
+        newspaper (str): journal à tester
+
+    Returns:
+        boolean : True si article présent dans la BDD
+    """
+    normalized_title = normalize_spaces(title) # On se débarrasse des insécables
+    stmt = (select(Articles_rss)
+                  .where(Articles_rss.title == normalized_title)
+                  .where(Articles_rss.newspaper == newspaper)
+                )
+    try:
+        same_title = session.execute(stmt).scalars().all()
+    except SQLAlchemyError as err:
+        logging.debug("Erreur sql : %s", err)
+        # En cas d'erreur, on n'ajoute pas l'article dansla base
+        return True
+
+    # pas d'article similaire dans la base
+    if not same_title:
+        logging.debug("Pas de doublon dans la base : %s", same_title)
+        return False
+    # Examen des articles ayant le même titre et même journal
+    # Examen des liens
+    for article in same_title:
+        if article.link == link:
+            # Liens identiques, il y a au moins un artcile similaire
+            return True
+        if extract_base_link(article.link) == extract_base_link(link):
+            # Pas de doublon, on vérifie les autres articles ayant le même titre
+            continue
+        # Liens différents, il y a au moins un artcile similaire
+        return True
+    return False
+
 
 def convert_date(date_str):
     return datetime.strptime(date_str, '%a, %d %b %Y %H:%M:%S %z')
 
 def clean_text(text):
+    """On se débarrase des balises p et br 
+    présentes dans les summary des articles.
+
+    Args:
+        text (str): summary à nettoyer
+
+    Returns:
+        str: summary nettoyé
+    """
     return re.sub(r"<[p/(br)].*?>", '', text)
 
 def fetch_rss_function(engine, newspaper, url_rss):
@@ -275,6 +320,8 @@ def fetch_rss_function(engine, newspaper, url_rss):
                     logging.error('Erreur lors de la lecture d\'un item RSS: %s', inst)
         logging.info('%s nouveaux articles insérés', nb_itemrss)
         print(f"{nb_itemrss} nouveaux articles insérés")
+    else:
+        logging.warning("Pas de fil RSS")
 
 def post_auto_function(engine, newspaper):
     networks = ['X', 'Bluesky'] # Active networks
@@ -296,9 +343,10 @@ def main():
     log_path = os.getenv('LOG_PATH')
     database_path = os.getenv('DATABASE_PATH')
     url_newspapers = {'qdm': os.getenv('QDM_URL_RSS'), 'qph':os.getenv('QPH_URL_RSS')}
+#    url_newspapers = {'qdm': '/app/rss.xml', 'qph':os.getenv('QPH_URL_RSS')}
     logging.basicConfig(filename=log_path,
                         encoding='utf-8',
-                        level=logging.INFO,
+                        level=logging.DEBUG,
                         format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M'
                         )
     engine = create_db_and_tables(database_path)

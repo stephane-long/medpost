@@ -6,39 +6,68 @@
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <div class="fw-bold">Articles non postés</div>
                         <div>
-                            <a class="btn btn-sm me-3 btn-secondary" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" data-bs-toggle="modal" data-bs-target="#import_lien">Nouveau Post</a>
+                            <a class="btn btn-sm me-3 btn-secondary" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" data-bs-toggle="modal" data-bs-target="#importLinkModal">Nouveau Post</a>
                             <!-- Création post et article à partir d'un lien -->
-                            <div class="modal fade" id="import_lien" tabindex="-1">
+                            <div class="modal fade" id="importLinkModal" tabindex="-1" aria-hidden="true">
+                                <div id="current-datetime" data-current-datetime="{{ current_datetime() }}"></div>
                                 <div class="modal-dialog modal-xl">
                                     <div class="modal-content">
                                         <div class="modal-header">
-                                            <h1 class="modal-title fs-5 fw-bold" id="">Lien du post à créer</h1>
+                                            <h1 class="modal-title fs-5 fw-bold" id="importModalHeader">Importer un article</h1>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
+                                        <!-- Formulaire de saisie du lien à importer -->
                                         <div class="modal-body">
-                                            <form id="importLink" data-newspaper="{{ newspaper }}">
+                                            <form id="importLinkForm" data-newspaper="{{ newspaper }}" style="display: block;">
                                                 <div class="mb-3">
-                                                    <label for="link" class="form-label fw-bold">Lien de l'article</label>
-                                                    <input type="url" class="form-control" id="link" name="imported_link" placeholder="https://www.example.com">
+                                                    <label for="linkForm" class="form-label fw-bold">Lien de l'article</label>
+                                                    <input type="url" class="form-control" id="importedLink" name="importedLink" placeholder="Saisir un lien {{ newspaper | upper }}" required>
                                                 </div>
-                                                <div class="modal-footer">
-                                                    <button type="submit" class="btn btn-primary">Programmer</button>
+                                                <div id="responseMessage" class="text-muted mt-3" style="display: none;"></div>
+                                                <div id="importButtonsContainer" class="modal-footer">
+                                                    <button type="submit" class="btn btn-primary" id="submitLinkBtn">Importer</button>
                                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                                                </div>  
+                                                </div>
                                             </form>
-                                            <div id="responseMessage" class="mt-3"></div>
+                                            <!-- Conteneur pour le formulaire de création de posts -->
+                                            <div id="networkFormContainer" style="display: none;">
+                                                <form id="networkForm">
+                                                    <div class="mb-3 d-flex align-items-center flex-wrap">
+                                                        <label class="form-label me-3 fw-bold">Sélectionnez les réseaux</label>
+                                                        <div class="form-check form-check-inline me-2">
+                                                            <input class="form-check-input network-checkbox" type="checkbox" id="xCheckboxLink" value="X">
+                                                            <label class="form-check-label" for="x_checkbox_modal_imported">X</label>
+                                                        </div>
+                                                        <div class="form-check form-check-inline me-2">
+                                                            <input class="form-check-input network-checkbox" type="checkbox" id="blueskyCheckboxLink" value="Bluesky">
+                                                            <label class="form-check-label" for="bluesky_checkbox_modal_imported">Bluesky</label>
+                                                        </div>
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input network-checkbox" type="checkbox" id="linkedinCheckboxLink" value="LinkedIn">
+                                                            <label class="form-check-label" for="linkedin_checkbox_modal_imported">LinkedIn</label>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                            <div id="postFormContainer" style="display: none;"></div>
+                                            <div id="postFormButtons" class="modal-footer" style="display: none;">
+                                                <button type="button" class="btn btn-primary" id="postProgrammerBtn">Programmer</button>
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
+
+                                
                             </div>
-                            <!-- Fin imoprt lien création post -->
+                            <!-- Fin import lien création post -->
                             <a class="btn me-2 btn-sm {% if newspaper =='qdm' %}btn-warning{% else %}btn-outline-warning{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='tous', newspaper='qdm') }}">QDM</a>
                             <a class="btn btn-sm {% if newspaper == 'qph' %}btn-success{% else %}btn-outline-success{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='tous', newspaper='qph') }}">QPH</a>
                         </div>
                     </div>
                     <div class="d-flex justify-content-start align-items-center">
                         <a class="btn btn-sm mb-1 me-1 {% if selectedfeed == 'tous' %}btn-warning{% else %}btn-outline-warning{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='tous', newspaper=newspaper) }}">TOUS</a>
-                        <a class="btn btn-sm mb-1 me-1  {% if selectedfeed == 'X' %}btn-dark{% else %}btn-outline-dark{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='X', newspaper=newspaper) }}">X</a>
+                        <a class="btn btn-sm mb-1 me-1  {% if selectedfeed == 'X' %}btn-dark{% else %}btn-outline-dark{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='X', newspaper=newspaper) }}">X (Twitter)</a>
                         <a class="btn btn-sm mb-1 me-1  {% if selectedfeed == 'Bluesky' %}btn-info{% else %}btn-outline-info{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='Bluesky', newspaper=newspaper) }}">Bluesky</a>
                         <a class="btn btn-sm mb-1 {% if selectedfeed == 'LinkedIn' %}btn-primary{% else %}btn-outline-primary{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='LinkedIn', newspaper=newspaper) }}">LinkedIn</a>
                     </div>
@@ -53,8 +82,7 @@
                             <div class="modal fade" id="newpost{{ article.id }}" tabindex="-1" 
                                  data-title="{{ article.title }}" 
                                  data-description="{{ article.summary | truncate(250) }}" 
-                                 data-link="{{ article.link }}" 
-                                 data-datetime="{{ current_datetime() }}" 
+                                 data-link="{{ article.link }}"
                                  data-min-datetime="{{ current_datetime() }}" 
                                  data-image-url="{{ article.image_url }}">
                                 <div class="modal-dialog modal-xl">
@@ -197,7 +225,6 @@
                 </div>
             </div>
         </div>
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
         <script src="{{ url_for('static', filename='js/import-link-handler.js') }}"></script>
         <script src="{{ url_for('static', filename='js/modal-handler.js') }}"></script>
 <!--        <script src="{{ url_for('static', filename='js/character-counter.js') }}"></script>-->

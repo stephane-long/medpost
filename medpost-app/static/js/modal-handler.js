@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const articleTitle = modalElement.getAttribute('data-title');
         const articleDescription = modalElement.getAttribute('data-description');
         const articleLink = modalElement.getAttribute('data-link');
-        const articleDatetime = modalElement.getAttribute('data-datetime');
+        // const articleDatetime = modalElement.getAttribute('data-datetime');
         const minDatetime = modalElement.getAttribute('data-min-datetime');
         const articleImageUrl = modalElement.getAttribute('data-image-url');
 
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                                 <div class="mb-3">
                                     <label for="date_${network}_${modalId}" class="form-label fw-bold">Date et heure</label>
-                                    <input type="datetime-local" class="form-control" id="date_${network}_${modalId}" name="datetime" value="${articleDatetime}" min="${minDatetime}" style="width: 250px;" required>
+                                    <input type="datetime-local" class="form-control" id="date_${network}_${modalId}" name="datetime" value="${minDatetime}" min="${minDatetime}" style="width: 250px;" required>
                                 </div>
                             </form>
                         </div>
@@ -73,7 +73,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 regenerateForms();
             });
         });
-
         if (programmerButton) { // Add null check for programmerButton
             programmerButton.addEventListener('click', () => {
                 const forms = container.querySelectorAll('form');
