@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const selectedFeed = document.querySelector('.row').getAttribute('data-selectedfeed') || 'QDM'; // Get selectedfeed from data attribute
-    const newspaper = document.querySelector('.row').getAttribute('data-newspaper') || 'DefaultNewspaper'; // Get newspaper from data attribute
+    const selectedFeed = document.querySelector('.row').getAttribute('data-selectedfeed'); // Get selectedfeed from data attribute
+    const newspaper = document.querySelector('.row').getAttribute('data-newspaper'); // Get newspaper from data attribute
     
     document.querySelectorAll('[id^="newpost"]').forEach(modalElement => {
         const modalId = modalElement.id.replace('newpost', '');
@@ -34,36 +34,45 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <input type="hidden" name="article_id" value="${modalId}">
                                 <input type="hidden" name="network" value="${network}">
                                 <input type="hidden" name="image_url" value="${articleImageUrl}">
-                                <div class="mb-3">
-                                    <label for="title_${network}_${modalId}" class="form-label fw-bold">Titre du post</label>
-                                    <textarea class="form-control" id="title_${network}_${modalId}" name="title" rows="3" required>${articleTitle}</textarea>
-                                </div>
-                                ${
-                                    network !== 'X'
+                                <!-- <div class="input-group input-group-lg"> -->
+                                    ${
+                                        network === 'X'
                                         ? `
-                                        <div class="mb-3">
-                                            <label for="description_${network}_${modalId}" class="form-label fw-bold">Description du post</label>
-                                            <textarea class="form-control" id="description_${network}_${modalId}" name="description" rows="3" required>${articleDescription}</textarea>
+                                        <div class="mb-3 ">
+                                            <label for="title_${network}_${modalId}" class="form-label fw-bold">Titre du post</label>
+                                            <textarea class="form-control" id="title_${network}_${modalId}" name="title" rows="1" required>${articleTitle}</textarea>
                                         </div>
-                                        <div class="mb-3">
-                                            <label for="tagline_${network}_${modalId}" class="form-label fw-bold">Accroche du post</label>
-                                            <textarea class="form-control" id="tagline_${network}_${modalId}" name="tagline" rows="3" required></textarea>
+                                        <div class="position-relative w-100 mb-3">
+                                            <img src="${articleImageUrl}" class="w-50 d-block mx-auto rounded-3 mb-3" alt=""/>
+                                            <div id="caption_${network}_${modalId}" class="legend position-absolute w-50 start-50 translate-middle-x rounded bg-dark bg-opacity-75 text-white py-1 px-2 text-truncate">
+                                                ${articleTitle}
+                                            </div>
                                         </div>
                                         `
-                                        : ''
-                                }
-                                <div class="mb-3">
-                                    <label for="link_${network}_${modalId}" class="form-label fw-bold">URL</label>
-                                    <input type="text" class="form-control" id="link_${network}_${modalId}" name="link" value="${articleLink}" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="date_${network}_${modalId}" class="form-label fw-bold">Date et heure</label>
-                                    <input type="datetime-local" class="form-control" id="date_${network}_${modalId}" name="datetime" value="${minDatetime}" min="${minDatetime}" style="width: 250px;" required>
-                                </div>
+                                        : `
+                                        <div class="border rounded p-2 mb-3">
+                                            <img src="${articleImageUrl}" class="img-fluid rounded mb-2" alt="Aperçu de l'image"/>
+                                            <div class="mb-0">
+                                                <label for="tagline_${network}_${modalId}" class="form-label fw-bold">Accroche du post</label>
+                                                <textarea class="form-control" id="tagline_${network}_${modalId}" name="tagline" rows="2" required></textarea>
+                                            </div>
+                                        </div>
+                                        `
+                                    }
+                                <!-- </div> -->
                             </form>
                         </div>
                     `;
                     container.appendChild(form);
+           
+                    // Gestion des légendes des photos
+                    if (network === 'X') {
+                        const titleField = document.getElementById(`title_${network}_${modalId}`);
+                        const caption = document.getElementById(`caption_${network}_${modalId}`);
+                        titleField.addEventListener('input', () => {
+                            caption.textContent = titleField.value;
+                        })
+                    }
                 }
             });
         };
