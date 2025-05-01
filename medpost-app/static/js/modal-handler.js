@@ -38,14 +38,18 @@ document.addEventListener('DOMContentLoaded', () => {
                                     ${
                                         network === 'X'
                                         ? `
-                                        <div class="mb-3 ">
-                                            <label for="title_${network}_${modalId}" class="form-label fw-bold">Titre du post</label>
-                                            <textarea class="form-control" id="title_${network}_${modalId}" name="title" rows="1" required>${articleTitle}</textarea>
-                                        </div>
-                                        <div class="position-relative w-100 mb-3">
-                                            <img src="${articleImageUrl}" class="w-50 d-block mx-auto rounded-3 mb-3" alt=""/>
-                                            <div id="caption_${network}_${modalId}" class="legend position-absolute w-50 start-50 translate-middle-x rounded bg-dark bg-opacity-75 text-white py-1 px-2 text-truncate">
-                                                ${articleTitle}
+                                        <div class="row mb-3">
+                                            <div class="col-8">
+                                                <label for="title_${network}_${modalId}" class="form-label fw-bold">Titre du post</label>
+                                                <textarea class="form-control" id="title_${network}_${modalId}" name="title" rows="2" required>${articleTitle}</textarea>
+                                                <div class="position-relative">
+                                                    <img src="${articleImageUrl}" class="w-60 mt-3 d-block rounded-3" alt=""/>
+                                                    <div id="caption_${network}_${modalId}" class="legend position-absolute w-80 start-10 rounded bg-dark bg-opacity-75 text-white py-1 px-1 text-truncate">
+                                                        ${articleTitle}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-4">
                                             </div>
                                         </div>
                                         `
