@@ -34,49 +34,60 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <input type="hidden" name="article_id" value="${modalId}">
                                 <input type="hidden" name="network" value="${network}">
                                 <input type="hidden" name="image_url" value="${articleImageUrl}">
-                                <!-- <div class="input-group input-group-lg"> -->
+                                <input type="hidden" name="description" value="${articleDescription}">
                                     ${
                                         network === 'X'
                                         ? `
-                                        <div class="row mb-3">
-                                            <div class="col-8">
+                                        <div class="row">
+                                            <div class="col-8 border rounded p-2">
                                                 <label for="title_${network}_${modalId}" class="form-label fw-bold">Titre du post</label>
                                                 <textarea class="form-control" id="title_${network}_${modalId}" name="title" rows="2" required>${articleTitle}</textarea>
                                                 <div class="position-relative">
-                                                    <img src="${articleImageUrl}" class="w-60 mt-3 d-block rounded-3" alt=""/>
-                                                    <div id="caption_${network}_${modalId}" class="legend position-absolute w-80 start-10 rounded bg-dark bg-opacity-75 text-white py-1 px-1 text-truncate">
+                                                    <img src="${articleImageUrl}" class="w-100 mt-3 d-block rounded-3" alt=""/>
+                                                    <div id="caption_${network}_${modalId}" class="legend position-absolute start-50 translate-middle-x rounded bg-dark bg-opacity-75 text-white py-1 px-2 text-truncate">
                                                         ${articleTitle}
                                                     </div>
+                                                    <a href="${articleLink}" class="card-link" target="_blank">De lequotidiendumedecin.fr</a>
                                                 </div>
                                             </div>
                                             <div class="col-4">
+                                                <label for="date_${network}_${modalId}" class="form-label fw-bold">Date et heure</label>
+                                                <input type="datetime-local" class="form-control" id="date_${network}_${modalId}" name="datetime" value="${minDatetime}" min="${minDatetime}" style="width: 250px;" required>
                                             </div>
                                         </div>
                                         `
                                         : `
-                                        <div class="border rounded p-2 mb-3">
-                                            <img src="${articleImageUrl}" class="img-fluid rounded mb-2" alt="Aperçu de l'image"/>
-                                            <div class="mb-0">
+                                        <input type="hidden" name="title" value="${articleTitle}">
+                                        <div class="row">
+                                            <div class="col-8 border rounded p-2">
                                                 <label for="tagline_${network}_${modalId}" class="form-label fw-bold">Accroche du post</label>
                                                 <textarea class="form-control" id="tagline_${network}_${modalId}" name="tagline" rows="2" required></textarea>
+                                                <img src="${articleImageUrl}" class="w-100 mt-3 rounded mb-2" alt=""/>
+                                                <div class="legend-title">${articleTitle}</div>
+                                                <div class="legend-chapo">${articleDescription.length > 165 ? articleDescription.substring(0, 165) + '...' : articleDescription}</div>
+                                                <a href="${articleLink}" class="card-link" target="_blank">@ www.lequotidiendumedecin.fr</a>
+                                            </div>
+                                            <div class="col-4">
+                                                <label for="date_${network}_${modalId}" class="form-label fw-bold">Date et heure</label>
+                                                <input type="datetime-local" class="form-control" id="date_${network}_${modalId}" name="datetime" value="${minDatetime}" min="${minDatetime}" style="width: 250px;" required>
                                             </div>
                                         </div>
                                         `
                                     }
-                                <!-- </div> -->
                             </form>
                         </div>
                     `;
                     container.appendChild(form);
            
-                    // Gestion des légendes des photos
-                    if (network === 'X') {
+
+                    // Gestion des légendes des photos 165
+                    /* if (network === 'X') {
                         const titleField = document.getElementById(`title_${network}_${modalId}`);
                         const caption = document.getElementById(`caption_${network}_${modalId}`);
                         titleField.addEventListener('input', () => {
                             caption.textContent = titleField.value;
                         })
-                    }
+                    } */
                 }
             });
         };
