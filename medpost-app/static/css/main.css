@@ -79,13 +79,27 @@ body {
   }
 
   .legend {
-    font-size: 0.7rem;
-    bottom: 10px;
+    font-size: 0.9rem;
+    bottom: 10%;
+    max-width: 96%; 
   }
 
   .legend-title {
     font-size: 0.8rem;
     font-weight: bold;
+  }
+
+  .legend-chapo {
+    font-size: 0.7rem;
+  }
+
+  .card-link {
+    font-size: 0.6rem;
+  }
+
+  .card-link:hover {
+    color: #428bca;
+    text-decoration: none;
   }
 
   .button-shadow {

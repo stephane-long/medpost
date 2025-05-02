@@ -16,7 +16,38 @@ document.addEventListener('DOMContentLoaded', () => {
         const minDatetime = modalElement.getAttribute('data-min-datetime');
         const articleImageUrl = modalElement.getAttribute('data-image-url');
 
+        // Sauvegarde des formulaires
+        const saveFormData = (container) => {
+            const formData = {};
+            container.querySelectorAll('form').forEach(form => {
+                const network = form.querySelector('input[name="network"]').value;
+                formData[network] = {};
+                form.querySelectorAll('textarea, input').forEach(field => {
+                    if (field.name) {
+                        formData[network][field.name] = field.value;
+                    }
+                });
+            });
+            return formData;
+        };
+
+        // Restauration des formulaires
+        const restoreFormData = (container, formData) => {
+            container.querySelectorAll('form').forEach(form => {
+                const network = form.querySelector('input[name="network"]').value;
+                if (formData[network]) {
+                    form.querySelectorAll('textarea, input').forEach(field => {
+                        if (field.name && formData[network][field.name] !== undefined) {
+                            field.value = formData[network][field.name];
+                        }
+                    });
+                }
+            });
+        };        
+
+
         const regenerateForms = () => {
+            const existingFormData = saveFormData(container);
             container.innerHTML = ''; // Clear existing forms
             checkboxes.forEach(checkbox => {
                 if (checkbox.checked) {
@@ -90,7 +121,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     } */
                 }
             });
+            restoreFormData(container, existingFormData);
         };
+
+        let isModalInitialized = false;
+        modalElement.addEventListener('shown.bs.modal', () => {
+            if (!isModalInitialized) {
+                regenerateForms(); // Réinitialiser uniquement lors de la première ouverture
+                isModalInitialized = true;
+            }
+        });
 
         checkboxes.forEach(checkbox => {
             checkbox.addEventListener('change', () => {
