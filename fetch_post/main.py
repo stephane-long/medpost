@@ -157,7 +157,7 @@ def post_to_bluesky(post, client_bluesky, tag):
             return
         logging.info("Upload de l'image Bluesky OK %s", post['title'])
     except requests.exceptions.HTTPError as err:
-        logging.error("Erreur HTTP  lors de la lecture de image_url : %s", err)
+        logging.error("Erreur HTTP lors de la lecture de image_url : %s", err)
         return
     # upload image to Bluesky
     img_data=response.content

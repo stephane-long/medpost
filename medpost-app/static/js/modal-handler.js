@@ -45,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         };        
 
-
         const regenerateForms = () => {
             const existingFormData = saveFormData(container);
             container.innerHTML = ''; // Clear existing forms
