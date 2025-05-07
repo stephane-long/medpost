@@ -201,33 +201,60 @@ def fetch_planned_posts(selectedfeed, newspaper):
                    .filter(Posts.status == 'plan'))
     return articles
 
-def record_new_post(article_id, image_url, title, description, tagline, post_datetime, networks):
-    date_pub = datetime.strptime(post_datetime, '%Y-%m-%dT%H:%M')
-    # Création d'un post par réseau sélectionné
-    for network_txt in networks:
-        network = (db.session.query(Networks.id)
-               .filter(Networks.name==network_txt).first()) # récupération de l'id du network
-        title = title.rstrip()
-        if network_txt == 'X':
-            if (title[-1] not in ['.', '!', '?']):
-                title += '.'
-        elif network_txt == 'Bluesky':
-            tagline = tagline.rstrip()
-            if (tagline[-1] not in ['.', '!', '?']):
-                tagline += '. '
-        post = Posts(
-            title=title,
-            description=description,
-            tagline=tagline,
-            image_url=image_url,
-            date_pub=date_pub,
-            status='plan',
-            id_article=article_id,
-            network=network.id
-            )
-        db.session.add(post)
-        db.session.commit()
-        logging.info("Nouveau post sur %s : %s", network_txt, post.title)
+def save_image(image_file):
+    logging.debug("File : %s", image_file.filename)
+    save_path ="static/images/"
+    filename = image_file.filename
+    image_file.save(save_path+filename)
+    return "images/"+filename
+
+
+def record_new_post(form_data, image_file):
+    # form_data  ={
+    #  'article_id': '1069',
+    #  'network': 'Bluesky',
+    #  'image_url': 'https://',
+    #  'description': 'Les Drs Estelle Touboul et Maxime',
+    #  'title': 'Pour créer le logiciel'
+    #  'tagline': 'Pour créer le ', 
+    #  'datetime': '2025-05-06T10:18'}
+    date_pub = datetime.strptime(form_data['datetime'], '%Y-%m-%dT%H:%M')
+    network = form_data['network']
+    network_id = (db.session.query(Networks.id)
+               .filter(Networks.name==network)
+               .first())[0]
+    article_id = form_data['article_id']
+    description = form_data['description']
+    if image_file:
+        logging.debug("Image file présent")
+        image_url = save_image(image_file)
+    else:
+            image_url = form_data['image_url']
+
+    title = form_data['title'].rstrip()
+    if network == 'X':
+        tagline = None # Pas de tagline fourni par le fomulaire X
+        if (title[-1] not in ['.', '!', '?']):
+            title += '.'
+    else:
+        tagline = form_data['tagline']
+        tagline = tagline.rstrip()
+        if (tagline[-1] not in ['.', '!', '?']):
+            tagline += '. '
+
+    post = Posts(
+        title=title,
+        description=description,
+        tagline=tagline,
+        image_url=image_url,
+        date_pub=date_pub,
+        status='plan',
+        id_article=article_id,
+        network=network_id
+        )
+    db.session.add(post)
+    db.session.commit()
+    logging.info("Nouveau post sur %s : %s", network, title)
 
 def update_post(post_id, title, description, tagline, post_datetime, network):
     date_plan = datetime.strptime(post_datetime, '%Y-%m-%dT%H:%M')
@@ -277,7 +304,10 @@ def fetch_article_http(url):
         http_response = re.get(url, timeout=10)
         soup = bs(http_response.text, 'html.parser')
         response['title'] = soup.find('meta', attrs = {"name":"twitter:title"}).attrs['content']
-        response['image_url'] = soup.find('meta', attrs = {"name":"twitter:image"}).attrs['content']
+        try:
+            response['image_url'] = soup.find('meta', attrs = {"name":"twitter:image"}).attrs['content']
+        except Exception: # Pas de vignette dans la Twitter card du site
+            response['image_url'] = "images/no_picture.jpg"
         response['summary'] = soup.find('meta', attrs = {"name":"twitter:description"}).attrs['content']
         response['link'] = soup.find('meta', attrs = {"name":"twitter:url"}).attrs['content']
         response['pubdate'] = datetime.now().replace(second=0, microsecond=0)
@@ -334,20 +364,16 @@ def delete_article(article_id, selectedfeed, newspaper):
 @app.route('/new_post', methods=['POST'])
 @login_required
 def new_post():
-    article_id = request.form.get('article_id', type=int)
-    image_url = request.form.get('image_url', type=str)
     selectedfeed = request.args.get('selectedfeed', type=str)
     newspaper = request.args.get('newspaper', type=str)
-    title = request.form.get('title')
-    description = request.form.get('description')
-    tagline = request.form.get('tagline')
-    link = request.form.get('link')
-    post_datetime = request.form.get('datetime')
-    networks = request.form.getlist('network')
-    if networks:
-        record_new_post(article_id, image_url, title, description, tagline, post_datetime, networks)
+    form_data = dict(request.form)
+    logging.debug("Request : %s", request.files)
+    if 'imageFile' in request.files:
+        image_file = request.files['imageFile']
+        logging.debug("réception de imagefile : %s", image_file)
     else:
-        logging.info('Aucun post créé')
+        image_file = None
+    record_new_post(form_data, image_file)
     return redirect(url_for('home', selectedfeed=selectedfeed, newspaper=newspaper))
 
 @app.route('/edit_post', methods=['POST'])
@@ -434,7 +460,7 @@ def import_link():
     logging.info("Lien importé : %s pour le journal %s - Data %s", link, newspaper, data)
     if link:
         fetched_article = fetch_article_if_exists(link, newspaper)    
-        if fetched_article is None: # Création del'article si absent de la base
+        if fetched_article is None: # Création de l'article si absent de la base
             article_info = fetch_article_http(link)
             article_info['newspaper'] = newspaper
             article_info['id'] = create_article(article_info)
