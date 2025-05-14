@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const selectedFeed = document.querySelector('.row').getAttribute('data-selectedfeed'); // Get selectedfeed from data attribute
     const newspaper = document.querySelector('.row').getAttribute('data-newspaper'); // Get newspaper from data attribute
-    const modifiedImages = {}; 
+    const modifiedImages = {};
     
     document.querySelectorAll('[id^="newpost"]').forEach(modalElement => {
         const modalId = modalElement.id.replace('newpost', ''); // récupère l'id
@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
             });
-        };        
+        };
 
         const regenerateForms = () => {
             // articleImageUrl : url originale de l'image
@@ -74,21 +74,22 @@ document.addEventListener('DOMContentLoaded', () => {
                             <strong>${network}</strong>
                         </div>
                         <div class="card-body">
-                            <form action="/new_post" method="post">
+                            <form action="/new_post" method="post" enctype="multipart/form-data">
                                 <input type="hidden" name="article_id" value="${modalId}">
                                 <input type="hidden" name="network" value="${network}">
+                                <input type="hidden" name="selectedfeed" value="${selectedFeed}">
+                                <input type="hidden" name="newspaper" value="${newspaper}">
                                 <input type="hidden" name="description" value="${articleDescription}">
                                 <input type="hidden" name="image_url" value="${articleImageUrl}">
                                     ${
                                         network === 'X'
                                         ? `
-
                                         <div class="row">
                                             <div class="col-8 border rounded p-2">
                                                 <label for="title_${network}_${modalId}" class="form-label fw-bold">Titre du post</label>
                                                 <textarea class="form-control" id="title_${network}_${modalId}" name="title" rows="2" required>${articleTitle}</textarea>                                                
                                                 <div class="position-relative">
-                                                    <img id="previewImage_${network}_${modalId}" src="${modifiedImages[modalId]?.[network] || articleImageUrl}" class="w-100 mt-3 d-block rounded-3" alt=""/>
+                                                    <img id="previewImage_${network}_${modalId}" src="${modifiedImages[modalId]?.[network]?.url || articleImageUrl}" class="w-100 mt-3 d-block rounded-3" alt=""/>
                                                     <div id="caption_${network}_${modalId}" class="legend position-absolute start-50 translate-middle-x rounded bg-dark bg-opacity-75 text-white py-1 px-2 text-truncate">
                                                         ${articleTitle}
                                                     </div>
@@ -111,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                             <div class="col-8 border rounded p-2">
                                                 <label for="tagline_${network}_${modalId}" class="form-label fw-bold">Accroche du post</label>
                                                 <textarea class="form-control" id="tagline_${network}_${modalId}" name="tagline" rows="2" required></textarea>
-                                                <img id="previewImage_${network}_${modalId}" src="${modifiedImages[modalId]?.[network] || articleImageUrl}" class="w-100 mt-3 rounded mb-2" alt=""/>
+                                                <img id="previewImage_${network}_${modalId}" src="${modifiedImages[modalId]?.[network]?.url || articleImageUrl}" class="w-100 mt-3 rounded mb-2" alt=""/>
                                                 <div class="legend-title">${articleTitle}</div>
                                                 <div class="legend-chapo">${articleDescription.length > 165 ? articleDescription.substring(0, 165) + '...' : articleDescription}</div>
                                                 <a href="${articleLink}" class="card-link" target="_blank">@ www.lequotidiendumedecin.fr</a>
@@ -154,19 +155,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (imageFile) {
                             const reader = new FileReader();
                             reader.onload = (event) => {
-                                urlData = event.target.result; // URL de données
+                                const urlData = event.target.result; // URL de données
                                 previewImageElement.src = urlData;
                                 // Stocker le chemin de l'image modifiée
                                 if (!modifiedImages[modalId]) {
                                     modifiedImages[modalId] = {};
                                 };
-                                modifiedImages[modalId][network] = urlData;
-                                console.log("URL data : %s", modifiedImages[modalId][network])
+                                modifiedImages[modalId][network] = {
+                                    file: imageFile,
+                                    url: urlData
+                                    
+                                };
                             };                  
                             reader.readAsDataURL(imageFile);
-                            // imageUrlInput.value = imageFile.name;
                         }
-                    })
+                    });
 
                     // Gestion des légendes des photos
                     /* if (network === 'X') {
@@ -214,12 +217,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     const promises = [];
                     forms.forEach(form => {
                         const formData = new FormData(form);
-                    // Ajouter le fichier image au FormData
-                    const fileInput = form.querySelector('input[type="file"]');
-                    if (fileInput && fileInput.files.length > 0) {
-                        formData.append('imageFile', fileInput.files[0]); // Ajout du fichier image
-                    }
-
+                        const network = form.querySelector('input[name="network"]').value;
+                        // Ajouter le fichier image au FormData
+                        // const fileInput = form.querySelector('input[type="file"]');
+                        if (modifiedImages[modalId] && modifiedImages[modalId][network]) {
+                            const imageFile = modifiedImages[modalId][network].file;
+                            // formData.append('imageFile', fileInput.files[0]); // Ajout du fichier image
+                            formData.append('imageFile', imageFile);
+                        }
                         const promise = fetch(form.action, {
                             method: form.method,
                             body: formData,

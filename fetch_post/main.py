@@ -44,24 +44,24 @@ def connect_x_apiv2(x_api_key, x_api_secret, x_access_token, x_access_token_secr
                          access_token=x_access_token,
                          access_token_secret=x_access_token_secret)
 
-def download_images(posts, file_path):
-    for post in posts:
-        image_url = post['image_url']
-        image_path = f"{file_path}image{post['article_id']}.jpg"
-        try:
-            response = requests.get(image_url, timeout=10)
-            response.raise_for_status()
-            content_type = response.headers.get('Content-Type')
-            if content_type not in ['image/jpeg', 'image/png']:
-                logging.error("Erreur : Le type de contenu attendu est" \
-                " 'image/jpeg' ou 'image/png', mais reçu %s", content_type)
-                return
-            with open(image_path, 'wb') as file:
-                file.write(response.content)
-            post['image_path'] = image_path
-            logging.info("Image downloaded to %s", image_path)
-        except requests.exceptions.HTTPError as err:
-            logging.error("Erreur HTTP : %s", err)
+#def download_images(posts, file_path):
+#    for post in posts:
+#        image_url = post['image_url']
+#        image_path = f"{file_path}image{post['article_id']}.jpg"
+#        try:
+#            response = requests.get(image_url, timeout=10)
+#            response.raise_for_status()
+#            content_type = response.headers.get('Content-Type')
+#            if content_type not in ['image/jpeg', 'image/png']:
+#                logging.error("Erreur : Le type de contenu attendu est" \
+#                " 'image/jpeg' ou 'image/png', mais reçu %s", content_type)
+#                return
+#            with open(image_path, 'wb') as file:
+#                file.write(response.content)
+#            post['image_path'] = image_path
+#            logging.info("Image downloaded to %s", image_path)
+#        except requests.exceptions.HTTPError as err:
+#            logging.error("Erreur HTTP : %s", err)
 
 def update_network_post_id(engine, post_id, network_post_id):
     with get_session(engine) as session:
@@ -227,7 +227,7 @@ def check_itemrss(item):
         image_url = item.links[1].href # teste si vignette présente
     except IndexError:
 #        logging.info('Pas d\'image')
-        image_url = None
+        image_url = "static/images/no_picture.jpg"
     return True, image_url
 
 def normalize_spaces(text):

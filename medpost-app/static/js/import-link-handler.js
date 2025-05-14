@@ -1,10 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const selectedFeed = document.querySelector('.row').getAttribute('data-selectedfeed');
     const importModal = document.getElementById('importLinkModal'); // fenêtre modale
     const importLinkForm = document.getElementById('importLinkForm'); // Formulaire lien à importer
     const submitLinkBtn = document.getElementById('submitLinkBtn') // Bouton importer le lien
     const networkFormContainer = document.getElementById('networkFormContainer'); // Formulaire sélection des réseaux
     const postFormContainer = document.getElementById('postFormContainer'); // Formulaire dynamique de création des posts
     const postFormButtons = document.getElementById('postFormButtons'); // Boutons Programmer/Anuuler
+    const modifiedImages = {};
     
     // Fermeture de la modale et réinitialisation des éléments
     importModal.addEventListener('hidden.bs.modal', () => {
@@ -65,14 +67,53 @@ document.addEventListener('DOMContentLoaded', () => {
                 postFormButtons.style.display = "block"; // On affiche les boutons Programmer/Annuler
                 postFormContainer.style.display = 'block';
 
+                // Sauvegarde des formulaires pour chaque réseau sélectionné
+                const saveFormData = (postFormContainer) => {
+                    const formData = {};
+                    postFormContainer.querySelectorAll('form').forEach(form => {
+                        const network = form.querySelector('input[name="network"]').value;
+                        formData[network] = {};
+                        form.querySelectorAll('textarea, input').forEach(field => {
+                            if (field.name) {
+                                formData[network][field.name] = field.value;
+                            }
+                        });
+                        console.log("Données sauvegardées : ", formData[network]);
+                    });
+                    return formData;
+                };
+
+                // Réinitialisation des formulaires lors de l'ouverture de modale
+                let isModalInitialized = false;
+                importModal.addEventListener('shown.bs.modal', () => {
+                    if (!isModalInitialized) {
+                        regenerateForms(); 
+                        isModalInitialized = true;
+                    }
+                });
+
+                // Restauration des formulaires
+                const restoreFormData = (postFormContainer, formData) => {
+                    postFormContainer.querySelectorAll('form').forEach(form => {
+                        const network = form.querySelector('input[name="network"]').value;
+                        if (formData[network]) {
+                            form.querySelectorAll('textarea, input').forEach(field => {
+                                if (field.name && formData[network][field.name] !== undefined) {
+                                    field.value = formData[network][field.name];
+                                }
+                            });
+                        }
+                    });
+                };
+        
                 const regenerateForms = () => {
+                    const existingFormData = saveFormData(postFormContainer);
                     postFormContainer.innerHTML = '';  // Effacer les formulaires existants
                     checkboxes.forEach(checkbox => {
                         if (checkbox.checked) {
                             const network = checkbox.value;
                             const formId = `form-${network}-imported`;
                             const currentDatetime = document.getElementById('current-datetime').dataset.currentDatetime;
-                            console.log("Date : ", currentDatetime)
 
                             const form = document.createElement('div');
                             form.id = formId;
@@ -85,42 +126,94 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <div class="card-body">
                                         <form action="/new_post" method="post">
                                             <input type="hidden" name="network" value="${network}">
+                                            <input type="hidden" name="newspaper" value="${newspaper}">
+                                            <input type="hidden" name="selectedfeed" value="${selectedFeed}">
                                             <input type="hidden" name="image_url" value="${importedArticle.image_url}">
                                             <input type="hidden" name="article_id" value="${importedArticle.id}">
-                                            <div class="mb-3">
-                                                <img src="${importedArticle.image_url}" class="img-fluid me-3" style="max-width: 50px;" alt=""/>
-                                                <label class="form-label fw-bold">Titre</label>
-                                                <textarea class="form-control" name="title" rows="3" required>${importedArticle.title}</textarea>
-                                            </div>
+                                            <input type="hidden" name="description" value="${importedArticle.summary}">
                                             ${
-                                                network !== 'X'
-                                                    ? `
-                                                    <div class="mb-3">
-                                                        <label for="description_${network}" class="form-label fw-bold">Description du post</label>
-                                                        <textarea class="form-control" id="description_${network}" name="description" rows="3" required>${importedArticle.summary}</textarea>
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label for="tagline_${network}" class="form-label fw-bold">Accroche du post</label>
-                                                        <textarea class="form-control" id="tagline_${network}" name="tagline" rows="3" required></textarea>
-                                                    </div>
-                                                    `
-                                                    : ''
+                                                network == 'X'
+                                                ? `
+                                                    <div class="row">
+                                                        <div class="col-8 border rounded p-2">
+                                                            <label class="form-label fw-bold">Titre</label>
+                                                            <textarea class="form-control" name="title" rows="2" required>${importedArticle.title}</textarea>
+                                                            <div class="position-relative">
+                                                                <img id="previewImage_${network}" src="${modifiedImages[network]?.url || importedArticle.image_url}" class="w-100 mt-3 d-block rounded-3" alt=""/>
+                                                                <a href="${importedArticle.link}" class="card-link" target="_blank">De lequotidiendumedecin.fr</a>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-4">
+                                                            <label class="form-label fw-bold">Date et heure</label>
+                                                            <input type="datetime-local" class="form-control" name="datetime" value="${currentDatetime}" min="${currentDatetime}" style="width: 250px;" required>
+                                                `
+                                                : `
+                                                    <input type="hidden" name="title" value="${importedArticle.title}">
+                                                    <div class="row">
+                                                        <div class="col-8 border rounded p-2">
+                                                            <label for="description_${network}" class="form-label fw-bold">Accroche du post</label>
+                                                            <textarea class="form-control" id="tagline_${network}" name="tagline" rows="2" required></textarea>
+                                                            <img id="previewImage_${network}" src="${modifiedImages[network]?.url || importedArticle.image_url}" class="w-100 mt-3 d-block rounded-3" alt=""/>
+                                                            <div class="legend-title">${importedArticle.title}</div>
+                                                            <div class="legend-chapo">${importedArticle.summary.length > 165 ? importedArticle.summary.substring(0, 165) + '...' : importedArticle.summary}</div>
+                                                            <a href="${importedArticle.link}" class="card-link" target="_blank">@ www.lequotidiendumedecin.fr</a>
+                                                        </div>
+                                                        <div class="col-4">
+                                                            <label class="form-label fw-bold">Date et heure</label>
+                                                            <input type="datetime-local" class="form-control" name="datetime" value="${currentDatetime}" min="${currentDatetime}" style="width: 250px;" required>
+                                                `
                                             }
-                                            <div class="mb-3">
-                                                <label class="form-label fw-bold">Lien</label>
-                                                <input type="text" class="form-control" name="link" value="${importedArticle.link}" required>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label fw-bold">Date et heure</label>
-                                                <input type="datetime-local" class="form-control" name="datetime" value="${currentDatetime}" min="${currentDatetime}" style="width: 250px;" required>
-                                            </div>
+                                                            <label for="modifyImageFormFile_${network}" class="form-label fw-bold">Modifier l'image</label>
+                                                            <input type="file" class="form-control mb-3" id="modifyImageFormFile_${network}" accept="image/*">
+                                                            <button type="button" class="btn btn-primary" id="modifyImageBtn_${network}">Upload</button>
+                                                        </div>
+                                                    </div>
                                         </form>
                                     </div>
                                 </div>
                             `;
                             postFormContainer.appendChild(form);
+
+                            // Upload d'un fichier image
+                            const uploadImageBtn = document.getElementById(`modifyImageBtn_${network}`);
+                            const fileInputForm = document.getElementById(`modifyImageFormFile_${network}`);
+                            const previewImageElement = document.getElementById(`previewImage_${network}`);
+                            uploadImageBtn.disabled = true;
+
+                            // Activation du bouton upload si nom de fichier fourni
+                            fileInputForm.addEventListener('change', () => {
+                                if (fileInputForm.files.length > 0) {
+                                    uploadImageBtn.disabled = false;
+                                } else {
+                                    uploadImageBtn.disabled = true;
+                                }
+                            });
+
+                            // Mise à jour de l'image
+                            uploadImageBtn.addEventListener('click', () => {
+                                const imageFile = fileInputForm.files[0];
+                                if (imageFile) {
+                                    const reader = new FileReader();
+                                    reader.onload = (event) => {
+                                        urlData = event.target.result; // URL de données
+                                        previewImageElement.src = urlData;
+                                        // Stocker le chemin de l'image modifiée
+                                        if (!modifiedImages[network]) {
+                                            modifiedImages[network] = {};
+                                        };
+                                        modifiedImages[network] = {
+                                            file: imageFile,
+                                            url: urlData
+                                        };
+                                    };                  
+                                    reader.readAsDataURL(imageFile);
+                                    // imageUrlInput.value = imageFile.name;
+                                }
+                            });
+
                         }
                     });
+                    restoreFormData(postFormContainer, existingFormData);
                 };
 
                 checkboxes.forEach(checkbox => {
@@ -131,7 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 postProgrammerBtn.addEventListener('click', () => {
                     const forms = postFormContainer.querySelectorAll('form');
-                    console.log("Form", forms)
                     let allValid = true;
 
                     forms.forEach(form => {
@@ -150,6 +242,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         const promises = [];
                         forms.forEach(form => {
                             const formData = new FormData(form);
+                            const network = form.querySelector('input[name="network"]').value;
+                            // Ajouter le fichier image au FormData
+                            if (modifiedImages[network]) {
+                                const imageFile = modifiedImages[network].file;
+                                formData.append('imageFile', imageFile); // Ajout du fichier image
+                            }
                             const promise = fetch(form.action, {
                                 method: form.method,
                                 body: formData,

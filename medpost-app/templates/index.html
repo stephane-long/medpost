@@ -121,7 +121,8 @@
                              <!-- Fin formulaire-->
                         </div>
                         <div class="d-flex align-items-center">
-                            <img src="{{ article.image_url }}" class="img-fluid me-3" style="max-width: 50px;" alt=""/>
+                            <img src="{% if article.image_url.startswith('http') %}{{ article.image_url }}{% else %}{{ url_for('static', filename=article.image_url) }}{% endif %}" class="img-fluid me-3" style="max-width: 50px;" alt=""/>
+<!--                            <img src="{{ article.image_url }}" class="img-fluid me-3" style="max-width: 50px;" alt=""/> -->
                             <a class="article-title flex-grow-1" href="{{ article.link }}" target="_blank">{{ article.title }}</a>
 <!--                        <p class="article-content">{{ article.summary[:100] }}...</p> -->
                         </div>

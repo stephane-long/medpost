@@ -9,6 +9,7 @@ from flask_login import (LoginManager, UserMixin, login_user,
                          login_required, logout_user, current_user
                         )
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
 from sqlalchemy.exc import SQLAlchemyError
 from bs4 import BeautifulSoup as bs
@@ -226,6 +227,7 @@ def record_new_post(form_data, image_file):
     article_id = form_data['article_id']
     description = form_data['description']
     if image_file:
+        # MODIFURE SECURE FILE
         logging.debug("Image file présent")
         image_url = save_image(image_file)
     else:
@@ -364,9 +366,14 @@ def delete_article(article_id, selectedfeed, newspaper):
 @app.route('/new_post', methods=['POST'])
 @login_required
 def new_post():
-    selectedfeed = request.args.get('selectedfeed', type=str)
-    newspaper = request.args.get('newspaper', type=str)
+    # selectedfeed = request.args.get('selectedfeed', type=str)
+    # newspaper = request.args.get('newspaper', type=str)  
     form_data = dict(request.form)
+    for key, value in form_data.items():
+        logging.debug("key : %s - value : %s \n", key, value)
+
+    selectedfeed = form_data['selectedfeed']
+    newspaper = form_data['newspaper']
     logging.debug("Request : %s", request.files)
     if 'imageFile' in request.files:
         image_file = request.files['imageFile']
