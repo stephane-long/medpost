@@ -43,6 +43,7 @@ logging.basicConfig(filename=log_path,
 
 class Articles_rss(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    nid = db.Column(db.Integer, nullable=False, index=True)
     title = db.Column(db.Text, nullable=False, index=True)
     link = db.Column(db.Text, nullable=False)
     summary = db.Column(db.Text, nullable=False)

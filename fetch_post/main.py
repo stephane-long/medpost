@@ -3,6 +3,7 @@ import os
 import re
 # from dotenv import load_dotenv
 from datetime import datetime
+from xmlrpc.client import boolean
 import requests
 import tweepy
 from sqlalchemy import select, update
@@ -10,6 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 import feedparser
 from database import Articles_rss, Posts, Networks, create_db_and_tables, get_session
 from atproto import models, Client
+from bs4 import BeautifulSoup as bs
 
 ###### Fonctions de post_auto
 
@@ -43,25 +45,6 @@ def connect_x_apiv2(x_api_key, x_api_secret, x_access_token, x_access_token_secr
                          consumer_secret=x_api_secret,
                          access_token=x_access_token,
                          access_token_secret=x_access_token_secret)
-
-#def download_images(posts, file_path):
-#    for post in posts:
-#        image_url = post['image_url']
-#        image_path = f"{file_path}image{post['article_id']}.jpg"
-#        try:
-#            response = requests.get(image_url, timeout=10)
-#            response.raise_for_status()
-#            content_type = response.headers.get('Content-Type')
-#            if content_type not in ['image/jpeg', 'image/png']:
-#                logging.error("Erreur : Le type de contenu attendu est" \
-#                " 'image/jpeg' ou 'image/png', mais reçu %s", content_type)
-#                return
-#            with open(image_path, 'wb') as file:
-#                file.write(response.content)
-#            post['image_path'] = image_path
-#            logging.info("Image downloaded to %s", image_path)
-#        except requests.exceptions.HTTPError as err:
-#            logging.error("Erreur HTTP : %s", err)
 
 def update_network_post_id(engine, post_id, network_post_id):
     with get_session(engine) as session:
@@ -207,28 +190,32 @@ def post_all_bluesky(posts, engine, newspaper):
         modify_status(engine, post['post_id'], post['title'])
 
 ###### Fonctions de fetch_rss
-def fetch_rss(url):
-    logging.info("Début d'import RSS %s", url)
+def fetch_rss(url: str) -> list:
+    """
+    Récupère les entrées du flux RSS QDM/QPH à partir d'une URL donnée.
+
+    Args:
+        url (str): L'URL du flux RSS.
+
+    Returns:
+        list: Une liste des entrées du flux RSS, ou None en cas d'erreur.
+    """
+    logging.debug("Début d'import RSS %s", url)
     try:
         feed = feedparser.parse(url)
         if feed.bozo:
             raise ValueError(feed.bozo_exception)
-        logging.info('Lecture du flux RSS réussie')
+        logging.debug("Lecture du flux RSS réussie %s", url)
         return feed.entries
     except Exception as e:
         logging.error('Lecture du flux RSS impossible : %s', e)
         return None
 
-def check_itemrss(item):
-    if item.title == 'Votre journal au format numérique': # article à ne pas poster
-#        logging.info('Article supprimé : %s', item.title)
-        return False, None
-    try:
-        image_url = item.links[1].href # teste si vignette présente
-    except IndexError:
-#        logging.info('Pas d\'image')
-        image_url = "static/images/no_picture.jpg"
-    return True, image_url
+def is_valid_article(item: str) -> boolean:
+    if item.title == 'Votre journal au format numérique':
+        return False
+    else:
+        return True
 
 def normalize_spaces(text):
     return ' '.join(text.split())
@@ -294,34 +281,135 @@ def clean_text(text):
     """
     return re.sub(r"<[p/(br)].*?>", '', text)
 
-def fetch_rss_function(engine, newspaper, url_rss):
+def fetch_article_html(url: str):
+    try:
+        http_response = requests.get(url, timeout=10)
+        html_article = bs(http_response.text, 'html.parser')
+        return html_article
+    except requests.exceptions.RequestException as e:
+        logging.error("Échec lors de la lecture URL %s : %s", url, e)
+
+def get_article_nid(html_article):
+        # <article data-history-node-id="248526"
+        try:
+            nid_article = html_article.article['data-history-node-id']
+            logging.debug("NID : %s", nid_article)
+            return nid_article
+        except Exception:
+            logging.error("Pas de NID pour l'article")
+            return None
+
+    #     response['title'] = soup.find('meta', attrs = {"name":"twitter:title"}).attrs['content']
+    #     try:
+    #         response['image_url'] = soup.find('meta', attrs = {"name":"twitter:image"}).attrs['content']
+    #     except Exception: # Pas de vignette dans la Twitter card du site
+    #         response['image_url'] = "images/no_picture.jpg"
+    #     response['summary'] = soup.find('meta', attrs = {"name":"twitter:description"}).attrs['content']
+    #     response['link'] = soup.find('meta', attrs = {"name":"twitter:url"}).attrs['content']
+    #     response['pubdate'] = datetime.now().replace(second=0, microsecond=0)
+    #     return response
+    # except re.exceptions.RequestException as e:
+    #     logging.error("Échec lors de la lecture URL %s : %s", url, e)
+    #     response['message'] = f"Erreur d'URL {url}"
+    #     return response
+
+def is_article_in_db(session, nid_article):
+    stmt = (select(Articles_rss)
+                     .where(Articles_rss.nid == nid_article)
+            )  
+    article_in_db = session.execute(stmt).scalars().first()
+    logging.debug("Article in db : %s", article_in_db)
+    return article_in_db
+
+def read_new_article(html_article, nid_article, pubdate, newspaper):
+    new_article = {}
+    new_article['nid'] = nid_article
+    new_article['title'] = html_article.find('meta', attrs = {"name":"twitter:title"}).attrs['content']
+    new_article['link'] = html_article.find('meta', attrs = {"name":"twitter:url"}).attrs['content']
+    new_article['summary'] = html_article.find('meta', attrs = {"name":"twitter:description"}).attrs['content']
+    try:
+        new_article['image_url'] = html_article.find('meta', attrs = {"name":"twitter:image"}).attrs['content']
+    except Exception: # Pas de vignette dans la Twitter card du site
+        new_article['image_url'] = "images/no_picture.jpg"
+    new_article['pubdate'] = convert_date(pubdate)
+    new_article['online'] = 1
+    new_article['newspaper'] = newspaper
+    return new_article
+    
+def store_new_article(session, new_article):
+    new_article_db = Articles_rss(title=normalize_spaces(new_article['title']),
+                                  nid=new_article['nid'],
+                                  link=new_article['link'],
+                                  summary=new_article['summary'],
+                                  image_url=new_article['image_url'],
+                                  pubdate=new_article['pubdate'],
+                                  online=new_article['online'],
+                                  newspaper=new_article['newspaper'])
+    try:
+        session.add(new_article_db)
+        session.commit()
+        return True
+    except SQLAlchemyError as err:
+        session.rollback()
+        logging.error("Impossible d'enregistrer l'article %s", err)
+        return False
+
+def load_articles(engine, newspaper, url_rss):
 #    URL_RSS = os.getenv('QDM_URL_RSS')
     feed = fetch_rss(url_rss)
     if feed:
-        logging.info('Lecture des articles RSS %s', newspaper)
         nb_itemrss = 0
         for itemrss in feed:
-            item_valid, image_url = check_itemrss(itemrss)
-            if item_valid:
-                try:
-                    pubdate = convert_date(itemrss.published)
-                    with get_session(engine) as session:
-                        present = itemrss_ispresent(session, itemrss.title, itemrss.link, newspaper)
-                        if not present:
-                            cleaned_summary = clean_text(itemrss.summary)
-                            new_article = Articles_rss(title=normalize_spaces(itemrss.title),
-                                                        link=itemrss.link, summary=cleaned_summary,
-                                                        image_url=image_url , pubdate=pubdate,
-                                                        online=1, newspaper=newspaper)
-                            session.add(new_article)
-                            session.commit()
-                            nb_itemrss += 1
-                except Exception as inst:
-                    logging.error('Erreur lors de la lecture d\'un item RSS: %s', inst)
-        logging.info('%s nouveaux articles insérés', nb_itemrss)
-        print(f"{nb_itemrss} nouveaux articles insérés")
-    else:
-        logging.warning("Pas de fil RSS")
+            if is_valid_article(itemrss):
+                html_article = fetch_article_html(itemrss.link)
+                nid_article = get_article_nid(html_article)
+                if nid_article is not None:
+                    try:
+                        with get_session(engine) as session:
+                            if is_article_in_db(session, nid_article) is None:
+                                new_article = read_new_article(html_article, nid_article, itemrss.published, newspaper)
+                                if store_new_article(session, new_article):
+                                    logging.debug("Article stocké : new_article['title]")
+                                else:
+                                    logging.error("Article impossible à stocker : new_article['title']")
+                            else:
+                                logging.debug("Article déjà en base")
+                    except Exception as err:
+                        logging.error("Pb lors du stockage d'un nouvel article")
+            else:
+                logging.debug("Article invalide %s", itemrss.title)
+            nb_itemrss += 1
+            if nb_itemrss == 50:
+                break
+
+        
+
+
+
+#                if not article_exists:
+#                    logging.debug("Article n'est pas dans la base %s", itemrss.title)
+
+
+    #             try:
+    #                 pubdate = convert_date(itemrss.published)
+    #                 with get_session(engine) as session:
+    #                     present = itemrss_ispresent(session, itemrss.title, itemrss.link, newspaper)
+    #                     if not present:
+    #                         cleaned_summary = clean_text(itemrss.summary)
+    #                         new_article = Articles_rss(title=normalize_spaces(itemrss.title),
+    #                                                     link=itemrss.link, summary=cleaned_summary,
+    #                                                     image_url=image_url , pubdate=pubdate,
+    #                                                     online=1, newspaper=newspaper)
+    #                         session.add(new_article)
+    #                         session.commit()
+    #                         nb_itemrss += 1
+    #             except Exception as inst:
+    #                 logging.error('Erreur lors de la lecture d\'un item RSS: %s', inst)
+    #     logging.info('%s nouveaux articles insérés', nb_itemrss)
+    #     print(f"{nb_itemrss} nouveaux articles insérés")
+    # else:
+    #     logging.warning("Pas de fil RSS")
+
 
 def post_auto_function(engine, newspaper):
     networks = ['X', 'Bluesky'] # Active networks
@@ -351,9 +439,8 @@ def main():
                         )
     engine = create_db_and_tables(database_path)
     for newspaper, url_newspaper in url_newspapers.items():
-        logging.info("Journal : %s", newspaper)
-        fetch_rss_function(engine, newspaper, url_newspaper)
-        post_auto_function(engine, newspaper)
+        load_articles(engine, newspaper, url_newspaper)
+        #post_auto_function(engine, newspaper)
 
 if __name__ == '__main__':
     main()

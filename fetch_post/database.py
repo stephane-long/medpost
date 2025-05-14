@@ -1,8 +1,7 @@
 # /Users/stephanelong/Documents/DEV/Medpost/fetch_post/database.py
-
+import os
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
-import os
 
 class Base(DeclarativeBase):
     pass
@@ -10,6 +9,7 @@ class Base(DeclarativeBase):
 class Articles_rss(Base):
     __tablename__ = 'articles_rss'
     id = Column(Integer, primary_key=True, autoincrement=True)
+    nid = Column(Integer, nullable=False) # Node id Drupal
     title = Column(String, nullable=False)
     link = Column(String, nullable=False)
     summary = Column(String)
@@ -33,7 +33,6 @@ class Posts(Base):
     network_post_id = Column(Integer, nullable=True)
     id_article = Column(ForeignKey('articles_rss.id'))
     network = Column(ForeignKey('networks.id'))
-
 
     def __repr__(self):
         return f"Post sur {self.network} - {self.title} - {self.date_pub}"
