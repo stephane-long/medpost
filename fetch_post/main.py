@@ -375,41 +375,12 @@ def load_articles(engine, newspaper, url_rss):
                             else:
                                 logging.debug("Article déjà en base")
                     except Exception as err:
-                        logging.error("Pb lors du stockage d'un nouvel article")
+                        logging.error("Pb lors du stockage d'un nouvel article : %s", err)
             else:
                 logging.debug("Article invalide %s", itemrss.title)
             nb_itemrss += 1
             if nb_itemrss == 50:
                 break
-
-        
-
-
-
-#                if not article_exists:
-#                    logging.debug("Article n'est pas dans la base %s", itemrss.title)
-
-
-    #             try:
-    #                 pubdate = convert_date(itemrss.published)
-    #                 with get_session(engine) as session:
-    #                     present = itemrss_ispresent(session, itemrss.title, itemrss.link, newspaper)
-    #                     if not present:
-    #                         cleaned_summary = clean_text(itemrss.summary)
-    #                         new_article = Articles_rss(title=normalize_spaces(itemrss.title),
-    #                                                     link=itemrss.link, summary=cleaned_summary,
-    #                                                     image_url=image_url , pubdate=pubdate,
-    #                                                     online=1, newspaper=newspaper)
-    #                         session.add(new_article)
-    #                         session.commit()
-    #                         nb_itemrss += 1
-    #             except Exception as inst:
-    #                 logging.error('Erreur lors de la lecture d\'un item RSS: %s', inst)
-    #     logging.info('%s nouveaux articles insérés', nb_itemrss)
-    #     print(f"{nb_itemrss} nouveaux articles insérés")
-    # else:
-    #     logging.warning("Pas de fil RSS")
-
 
 def post_auto_function(engine, newspaper):
     networks = ['X', 'Bluesky'] # Active networks
