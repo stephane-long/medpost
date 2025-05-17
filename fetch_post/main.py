@@ -321,15 +321,19 @@ def is_article_in_db(session, nid_article):
     logging.debug("Article in db : %s", article_in_db)
     return article_in_db
 
-def read_new_article(html_article, nid_article, pubdate, newspaper):
+def read_new_article_html(html_article, nid_article, pubdate, newspaper):
     new_article = {}
     new_article['nid'] = nid_article
     new_article['title'] = html_article.find('meta', attrs = {"name":"twitter:title"}).attrs['content']
     new_article['link'] = html_article.find('meta', attrs = {"name":"twitter:url"}).attrs['content']
     new_article['summary'] = html_article.find('meta', attrs = {"name":"twitter:description"}).attrs['content']
-    try:
-        new_article['image_url'] = html_article.find('meta', attrs = {"name":"twitter:image"}).attrs['content']
-    except Exception: # Pas de vignette dans la Twitter card du site
+    image_meta = html_article.find('meta', attrs={"name": "twitter:image"})
+    if image_meta is not None:
+        try:
+            new_article['image_url'] = image_meta['content']
+        except KeyError:  # L'attribut 'content' n'existe pas
+            new_article['image_url'] = "images/no_picture.jpg"
+    else:
         new_article['image_url'] = "images/no_picture.jpg"
     new_article['pubdate'] = convert_date(pubdate)
     new_article['online'] = 1
@@ -367,7 +371,7 @@ def load_articles(engine, newspaper, url_rss):
                     try:
                         with get_session(engine) as session:
                             if is_article_in_db(session, nid_article) is None:
-                                new_article = read_new_article(html_article, nid_article, itemrss.published, newspaper)
+                                new_article = read_new_article_html(html_article, nid_article, itemrss.published, newspaper)
                                 if store_new_article(session, new_article):
                                     logging.debug("Article stocké : new_article['title]")
                                 else:

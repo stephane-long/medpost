@@ -204,10 +204,10 @@ def fetch_planned_posts(selectedfeed, newspaper):
     return articles
 
 def save_image(image_file):
-    logging.debug("File : %s", image_file.filename)
+    logging.debug("Sauvegarde de image_file : %s", image_file.filename)
     save_path ="static/images/"
-    filename = image_file.filename
-    image_file.save(save_path+filename)
+    filename = secure_filename(image_file.filename) 
+    image_file.save(os.path.join(save_path, filename))
     return "images/"+filename
 
 
@@ -228,8 +228,6 @@ def record_new_post(form_data, image_file):
     article_id = form_data['article_id']
     description = form_data['description']
     if image_file:
-        # MODIFURE SECURE FILE
-        logging.debug("Image file présent")
         image_url = save_image(image_file)
     else:
             image_url = form_data['image_url']
