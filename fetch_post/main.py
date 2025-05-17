@@ -220,66 +220,8 @@ def is_valid_article(item: str) -> boolean:
 def normalize_spaces(text):
     return ' '.join(text.split())
 
-def extract_base_link(link):
-    return re.sub(r"-\d$", '', link)
-
-def itemrss_ispresent(session, title, link, newspaper):
-    """
-    Vérifie la présence d'un article du flux rss dans la BDD
-           
-    Args:
-        session (_type_): session SQLalchemy
-        title (str): titre à vérifier
-        link (str): lien à vérifier
-        newspaper (str): journal à tester
-
-    Returns:
-        boolean : True si article présent dans la BDD
-    """
-    normalized_title = normalize_spaces(title) # On se débarrasse des insécables
-    stmt = (select(Articles_rss)
-                  .where(Articles_rss.title == normalized_title)
-                  .where(Articles_rss.newspaper == newspaper)
-                )
-    try:
-        same_title = session.execute(stmt).scalars().all()
-    except SQLAlchemyError as err:
-        logging.debug("Erreur sql : %s", err)
-        # En cas d'erreur, on n'ajoute pas l'article dansla base
-        return True
-
-    # pas d'article similaire dans la base
-    if not same_title:
-        logging.debug("Pas de doublon dans la base : %s", same_title)
-        return False
-    # Examen des articles ayant le même titre et même journal
-    # Examen des liens
-    for article in same_title:
-        if article.link == link:
-            # Liens identiques, il y a au moins un artcile similaire
-            return True
-        if extract_base_link(article.link) == extract_base_link(link):
-            # Pas de doublon, on vérifie les autres articles ayant le même titre
-            continue
-        # Liens différents, il y a au moins un artcile similaire
-        return True
-    return False
-
-
 def convert_date(date_str):
     return datetime.strptime(date_str, '%a, %d %b %Y %H:%M:%S %z')
-
-def clean_text(text):
-    """On se débarrase des balises p et br 
-    présentes dans les summary des articles.
-
-    Args:
-        text (str): summary à nettoyer
-
-    Returns:
-        str: summary nettoyé
-    """
-    return re.sub(r"<[p/(br)].*?>", '', text)
 
 def fetch_article_html(url: str):
     try:
@@ -298,20 +240,6 @@ def get_article_nid(html_article):
         except Exception:
             logging.error("Pas de NID pour l'article")
             return None
-
-    #     response['title'] = soup.find('meta', attrs = {"name":"twitter:title"}).attrs['content']
-    #     try:
-    #         response['image_url'] = soup.find('meta', attrs = {"name":"twitter:image"}).attrs['content']
-    #     except Exception: # Pas de vignette dans la Twitter card du site
-    #         response['image_url'] = "images/no_picture.jpg"
-    #     response['summary'] = soup.find('meta', attrs = {"name":"twitter:description"}).attrs['content']
-    #     response['link'] = soup.find('meta', attrs = {"name":"twitter:url"}).attrs['content']
-    #     response['pubdate'] = datetime.now().replace(second=0, microsecond=0)
-    #     return response
-    # except re.exceptions.RequestException as e:
-    #     logging.error("Échec lors de la lecture URL %s : %s", url, e)
-    #     response['message'] = f"Erreur d'URL {url}"
-    #     return response
 
 def is_article_in_db(session, nid_article):
     stmt = (select(Articles_rss)
@@ -340,7 +268,7 @@ def read_new_article_html(html_article, nid_article, pubdate, newspaper):
     new_article['newspaper'] = newspaper
     return new_article
     
-def store_new_article(session, new_article):
+def store_new_article(session, new_article) -> boolean:
     new_article_db = Articles_rss(title=normalize_spaces(new_article['title']),
                                   nid=new_article['nid'],
                                   link=new_article['link'],
@@ -358,6 +286,28 @@ def store_new_article(session, new_article):
         logging.error("Impossible d'enregistrer l'article %s", err)
         return False
 
+def update_article(session, new_article):
+    stmt = (select(Articles_rss)
+            .where(Articles_rss.nid==new_article['nid'])
+            )
+    try:
+        article = session.scalars(stmt).one()
+        logging.debug("Article à mettre à jour : %s", article.title)
+        try:
+            article.title = normalize_spaces(new_article['title'])
+            article.link = new_article['link']
+            article.summary = new_article['summary']
+            article.image_url=new_article['image_url']
+            article.pubdate = new_article['pubdate']
+            article.online=new_article['online']
+            session.commit()
+            logging.debug("Article mis à jour : %s", article.title)
+        except SQLAlchemyError as err:
+            logging.error("Erreur de mise à jour de l'article en base : %s", err)
+            session.rollback()
+    except SQLAlchemyError as err:
+        logging.error("Erreur de mise à jour de l'article en base : %s", err)
+
 def load_articles(engine, newspaper, url_rss):
 #    URL_RSS = os.getenv('QDM_URL_RSS')
     feed = fetch_rss(url_rss)
@@ -370,20 +320,25 @@ def load_articles(engine, newspaper, url_rss):
                 if nid_article is not None:
                     try:
                         with get_session(engine) as session:
+                            new_article = read_new_article_html(html_article, nid_article, itemrss.published, newspaper)
                             if is_article_in_db(session, nid_article) is None:
-                                new_article = read_new_article_html(html_article, nid_article, itemrss.published, newspaper)
-                                if store_new_article(session, new_article):
+                                article_stored = store_new_article(session, new_article)
+                                if article_stored:
                                     logging.debug("Article stocké : new_article['title]")
                                 else:
                                     logging.error("Article impossible à stocker : new_article['title']")
-                            else:
+                            else: # Remplacement de l'article déjà en base
+                                update_article(session, new_article)
                                 logging.debug("Article déjà en base")
+
                     except Exception as err:
                         logging.error("Pb lors du stockage d'un nouvel article : %s", err)
+                else:
+                    logging.error("NID absent dans l'article")
             else:
                 logging.debug("Article invalide %s", itemrss.title)
             nb_itemrss += 1
-            if nb_itemrss == 50:
+            if nb_itemrss == 5:
                 break
 
 def post_auto_function(engine, newspaper):

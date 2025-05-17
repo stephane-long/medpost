@@ -1,6 +1,7 @@
 """ Medpost Version 0.9 """
 import logging
 import os
+import requests
 import requests as re
 from datetime import datetime, timedelta
 from flask import Flask, render_template, url_for, request, redirect, flash, jsonify
@@ -12,7 +13,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
 from sqlalchemy.exc import SQLAlchemyError
-from bs4 import BeautifulSoup as bs
+from bs4 import Beautifulhtml_article as bs
+# from main import get_article_nid
 
 app = Flask(__name__, template_folder='templates', static_folder='static', static_url_path='/')
 
@@ -268,15 +270,15 @@ def update_post(post_id, title, description, tagline, post_datetime, network):
     db.session.commit()
     logging.info("Post mis à jour sur %s: %s", network, title)
 
-def article_to_dict(fetched_article, newspaper):
+def article_to_dict(imported_article, newspaper):
     article = {}
-    article['title'] = fetched_article.title
-    article['image_url'] = fetched_article.image_url
-    article['summary'] = fetched_article.summary
-    article['link'] = fetched_article.link
-    article['pubdate'] = fetched_article.pubdate.strftime('%Y-%m-%dT%H:%M')
+    article['title'] = imported_article.title
+    article['image_url'] = imported_article.image_url
+    article['summary'] = imported_article.summary
+    article['link'] = imported_article.link
+    article['pubdate'] = imported_article.pubdate.strftime('%Y-%m-%dT%H:%M')
     article['newspaper'] = newspaper
-    article['id'] = fetched_article.id
+    article['id'] = imported_article.id
     logging.debug("Article dict : %s", article)
     return article
 
@@ -299,33 +301,59 @@ def create_article(article_data):
         logging.warning("Impossible d'enregistrer dans la db l'article %s : %s", article.title, e)
         return None
 
-def fetch_article_http(url):
-    response = {}
+def extract_data_from_html(html_article):
+    article_data = {}
     try:
-        http_response = re.get(url, timeout=10)
-        soup = bs(http_response.text, 'html.parser')
-        response['title'] = soup.find('meta', attrs = {"name":"twitter:title"}).attrs['content']
+        article_data['title'] = html_article.find('meta', attrs = {"name":"twitter:title"}).attrs['content']
         try:
-            response['image_url'] = soup.find('meta', attrs = {"name":"twitter:image"}).attrs['content']
+            article_data['image_url'] = html_article.find('meta', attrs = {"name":"twitter:image"}).attrs['content']
         except Exception: # Pas de vignette dans la Twitter card du site
-            response['image_url'] = "images/no_picture.jpg"
-        response['summary'] = soup.find('meta', attrs = {"name":"twitter:description"}).attrs['content']
-        response['link'] = soup.find('meta', attrs = {"name":"twitter:url"}).attrs['content']
-        response['pubdate'] = datetime.now().replace(second=0, microsecond=0)
-        return response
+            article_data['image_url'] = "images/no_picture.jpg"
+        article_data['summary'] = html_article.find('meta', attrs = {"name":"twitter:description"}).attrs['content']
+        article_data['link'] = html_article.find('meta', attrs = {"name":"twitter:url"}).attrs['content']
+        article_data['pubdate'] = datetime.now().replace(second=0, microsecond=0)
+        return article_data
     except re.exceptions.RequestException as e:
         logging.error("Échec lors de la lecture URL %s : %s", url, e)
-        response['message'] = f"Erreur d'URL {url}"
-        return response
+        article_data['message'] = f"Erreur d'URL {url}"
+        return article_data
 
-def fetch_article_if_exists(url, newspaper):
+def fetch_article_html(url: str):
+    try:
+        http_article_data = requests.get(url, timeout=10)
+        html_article = bs(http_article_data.text, 'html.parser')
+        return html_article
+    except requests.exceptions.RequestException as e:
+        logging.error("Échec lors de la lecture URL %s : %s", url, e)
+
+def get_article_nid(html_article):
+        # <article data-history-node-id="248526"
+        try:
+            nid_article = html_article.article['data-history-node-id']
+            logging.debug("NID : %s", nid_article)
+            return nid_article
+        except Exception:
+            logging.error("Pas de NID pour l'article")
+            return None
+
+def read_article_if_exists(url, newspaper):
+    html_article = fetch_article_html(url)
+    nid = get_article_nid(html_article)
     article = (db.session.query(Articles_rss)
-            .filter(Articles_rss.newspaper == newspaper)
-            .where(Articles_rss.link == url)
-            .filter(Articles_rss.online==1)
-            .first()
-    )
-    return article
+               .where(Articles_rss.nid==nid)
+               .where(Articles_rss==newspaper)
+               .where(Articles_rss.online==1)
+               ).first()
+    return article, html_article
+
+# def fetch_article_if_exists(url, newspaper):
+#     article = (db.session.query(Articles_rss)
+#             .where(Articles_rss.newspaper == newspaper)
+#             .where(Articles_rss.link == url)
+#             .where(Articles_rss.online==1)
+#             .first()
+#     )
+#     return article
 
 @app.route('/')
 @app.route('/index')
@@ -465,16 +493,16 @@ def import_link():
     newspaper = data.get('newspaper')  # Récupérer le paramètre newspaper
     logging.info("Lien importé : %s pour le journal %s - Data %s", link, newspaper, data)
     if link:
-        fetched_article = fetch_article_if_exists(link, newspaper)    
-        if fetched_article is None: # Création de l'article si absent de la base
-            article_info = fetch_article_http(link)
+        imported_article, html_article = read_article_if_exists(link, newspaper)    
+        if imported_article is None: # Création de l'article si absent de la base
+            article_info = extract_data_from_html(html_article)
             article_info['newspaper'] = newspaper
             article_info['id'] = create_article(article_info)
             article_info['pubdate'] =  article_info['pubdate'].strftime('%Y-%m-%dT%H:%M')
             return jsonify(article_info), 200
         else:
-            logging.debug("Import - Article existant %s : ", fetched_article)
-            article_json = jsonify(article_to_dict(fetched_article, newspaper))
+            logging.debug("Import - Article existant %s : ", imported_article)
+            article_json = jsonify(article_to_dict(imported_article, newspaper))
             logging.debug("Article json : %s", article_json.get_data(as_text=True))
             return article_json, 200
     return jsonify({"message": "problème lors de la création de l'article"}), 400
