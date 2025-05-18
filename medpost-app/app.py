@@ -13,7 +13,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
 from sqlalchemy.exc import SQLAlchemyError
-from bs4 import Beautifulhtml_article as bs
+from bs4 import BeautifulSoup as bs
 # from main import get_article_nid
 
 app = Flask(__name__, template_folder='templates', static_folder='static', static_url_path='/')
@@ -284,6 +284,7 @@ def article_to_dict(imported_article, newspaper):
 
 def create_article(article_data):
     article = Articles_rss(
+        nid=article_data['nid'],
         title=article_data['title'],
         link=article_data['link'],
         summary=article_data['summary'],
@@ -301,7 +302,7 @@ def create_article(article_data):
         logging.warning("Impossible d'enregistrer dans la db l'article %s : %s", article.title, e)
         return None
 
-def extract_data_from_html(html_article):
+def extract_data_from_html(html_article, url):
     article_data = {}
     try:
         article_data['title'] = html_article.find('meta', attrs = {"name":"twitter:title"}).attrs['content']
@@ -344,7 +345,7 @@ def read_article_if_exists(url, newspaper):
                .where(Articles_rss==newspaper)
                .where(Articles_rss.online==1)
                ).first()
-    return article, html_article
+    return article, html_article, nid
 
 # def fetch_article_if_exists(url, newspaper):
 #     article = (db.session.query(Articles_rss)
@@ -493,13 +494,14 @@ def import_link():
     newspaper = data.get('newspaper')  # Récupérer le paramètre newspaper
     logging.info("Lien importé : %s pour le journal %s - Data %s", link, newspaper, data)
     if link:
-        imported_article, html_article = read_article_if_exists(link, newspaper)    
+        imported_article, html_article, nid = read_article_if_exists(link, newspaper)    
         if imported_article is None: # Création de l'article si absent de la base
-            article_info = extract_data_from_html(html_article)
-            article_info['newspaper'] = newspaper
-            article_info['id'] = create_article(article_info)
-            article_info['pubdate'] =  article_info['pubdate'].strftime('%Y-%m-%dT%H:%M')
-            return jsonify(article_info), 200
+            article_data = extract_data_from_html(html_article, link)
+            article_data['nid'] = nid
+            article_data['newspaper'] = newspaper
+            article_data['id'] = create_article(article_data)
+            article_data['pubdate'] =  article_data['pubdate'].strftime('%Y-%m-%dT%H:%M')
+            return jsonify(article_data), 200
         else:
             logging.debug("Import - Article existant %s : ", imported_article)
             article_json = jsonify(article_to_dict(imported_article, newspaper))
