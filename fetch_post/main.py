@@ -1,10 +1,11 @@
 import logging
 import os
-import re
+# import re
 # from dotenv import load_dotenv
 from datetime import datetime
 from xmlrpc.client import boolean
 import requests
+from requests_oauthlib import OAuth1
 import tweepy
 from sqlalchemy import select, update
 from sqlalchemy.exc import SQLAlchemyError
@@ -23,14 +24,15 @@ def fetch_posts(engine, selectedfeed, newspaper):
                             Posts.image_url,
                             Articles_rss.id.label('article_id'),
                             Articles_rss.link,
+                            Articles_rss.image_url.label('article_image_url'),
                             Networks.name.label('network_name'),
                             Posts.id.label('post_id'))
                      .join(Articles_rss, Articles_rss.id == Posts.id_article)
                      .join(Networks, Networks.id == Posts.network)
                      .where(Networks.name == selectedfeed)
-                     .filter(Posts.status == 'plan')
-                     .filter(Posts.date_pub < datetime.today())
-                     .filter(Articles_rss.newspaper == newspaper)
+                     .where(Posts.status == 'plan')
+                     .where(Posts.date_pub < datetime.today())
+                     .where(Articles_rss.newspaper == newspaper)
                     )
         try:
             posts = session.execute(statement).mappings().all()
@@ -89,18 +91,33 @@ def get_network_tag(engine, network):
         logging.error("Impossible d'accéder au tag de %s : Erreur %s", network, err)
         return None
 
-def post_to_x(api, post, tag):
+def post_to_x(api, post, tag, media_id):
     url_to_post = post['link'] + tag
     post_content = f"{post['title']} {url_to_post}"
     try:
-        response = api.create_tweet(text=post_content)
+        if media_id == []:
+            response = api.create_tweet(text=post_content)
+        else:
+            response = api.create_tweet(text=post_content, media_ids=media_id)
         network_post_id = response.data['id']
-        logging.info("Tweet publié - ID : %s Link : %s", network_post_id, url_to_post)
+        logging.info("Tweet publié - ID : %s Link : %s - media : %s", network_post_id, url_to_post, media_id)
         return True, network_post_id
     except Exception as e:
         logging.error("Échec du post: %s\n%s", e, post_content)
         return False, None
 
+def upload_image_to_x(x_api_key, x_api_secret, x_access_token, x_access_token_secret, image_path):
+    image_path = "static/" + image_path
+    auth = OAuth1(x_api_key, x_api_secret, x_access_token, x_access_token_secret)
+    upload_url = "https://api.x.com/2/media/upload"  
+    with open(image_path, 'rb') as image_file:
+        files = {'media': image_file}
+        req = requests.post(
+            url=upload_url,
+            auth=auth,
+            files=files)
+    media_id = req.json()['id']
+    return media_id
 
 def post_all_x(posts, engine, newspaper):
 #    load_dotenv()
@@ -113,13 +130,21 @@ def post_all_x(posts, engine, newspaper):
     # Connexion à X API V2
     try:
         x_apiv2 = connect_x_apiv2(x_api_key, x_api_secret, x_access_token, x_access_token_secret)
-        logging.info("Connexion à l'API V2 de X : %s", newspaper)
     except Exception as e:
         logging.error("Erreur de connexion à l'API V2 de X: %s", e)
         return
     tag = get_network_tag(engine, 'X')
     for post in posts:
-        success, network_post_id = post_to_x(x_apiv2, post, tag)
+        if post.article_image_url != "images/no_picture.jpg":
+            logging.debug("Post avec image : %s", post.title)
+            media_id = []
+            success, network_post_id = post_to_x(x_apiv2, post, tag, media_id)
+        elif post.image_url != "":
+            media_id = [upload_image_to_x(x_api_key, x_api_secret, x_access_token, x_access_token_secret, post.image_url)]
+            logging.debug("Post sans image, id est : %s", media_id)
+            success, network_post_id = post_to_x(x_apiv2, post, tag, media_id)
+        else:
+            success = False      
         if success:
             modify_status(engine, post['post_id'], post['title'])
             network_post_link = x_url + network_post_id
@@ -338,7 +363,7 @@ def load_articles(engine, newspaper, url_rss):
             else:
                 logging.debug("Article invalide %s", itemrss.title)
             nb_itemrss += 1
-            if nb_itemrss == 5:
+            if nb_itemrss == 25: # nombre d'articles à traiter dans le flux RSS
                 break
 
 def post_auto_function(engine, newspaper):
@@ -370,7 +395,7 @@ def main():
     engine = create_db_and_tables(database_path)
     for newspaper, url_newspaper in url_newspapers.items():
         load_articles(engine, newspaper, url_newspaper)
-        #post_auto_function(engine, newspaper)
+        post_auto_function(engine, newspaper)
 
 if __name__ == '__main__':
     main()
