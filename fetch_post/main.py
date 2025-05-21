@@ -153,22 +153,30 @@ def post_all_x(posts, engine, newspaper):
             logging.error("Changement de statut impossible %s", post['title'])
 
 def post_to_bluesky(post, client_bluesky, tag):
-    # Download image from image_url
-    try:
-        image_url = post['image_url']
-        response = requests.get(image_url, timeout=10)
-        response.raise_for_status()
-        content_type = response.headers.get('Content-Type')
-        if content_type not in ['image/jpeg', 'image/png']:
-            logging.error("Erreur : Le type de contenu attendu est" \
-            " 'image/jpeg' ou 'image/png', mais reçu %s", content_type)
+    image_url = post['image_url']
+    if post.article_image_url != 'images/no_picture.jpg':
+        try:
+
+            response = requests.get(image_url, timeout=10)
+            response.raise_for_status()
+            content_type = response.headers.get('Content-Type')
+            if content_type not in ['image/jpeg', 'image/png']:
+                logging.error("Erreur : Le type de contenu attendu est" \
+                " 'image/jpeg' ou 'image/png', mais reçu %s", content_type)
+                return
+            img_data=response.content
+            logging.info("Upload de l'image Bluesky OK %s", post['title'])
+        except requests.exceptions.HTTPError as err:
+            logging.error("Erreur HTTP lors de la lecture de image_url : %s", err)
             return
-        logging.info("Upload de l'image Bluesky OK %s", post['title'])
-    except requests.exceptions.HTTPError as err:
-        logging.error("Erreur HTTP lors de la lecture de image_url : %s", err)
-        return
-    # upload image to Bluesky
-    img_data=response.content
+    else:
+        image_path = "static/" + image_url
+        try:
+            with open(image_path, 'rb') as image_file:
+                img_data = image_file.read()
+        except Exception as e:
+            logging.error("Erreur lors du load de l'image ", image_url)
+
     thumb = client_bluesky.upload_blob(img_data)
     # Creating the web card and uploading
     url_to_post = post['link'] + tag
