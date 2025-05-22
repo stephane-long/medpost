@@ -1,18 +1,20 @@
 import logging
 import os
 # import re
-# from dotenv import load_dotenv
+import io
+import requests
+import tweepy
+import feedparser
+from PIL import Image
 from datetime import datetime
 from xmlrpc.client import boolean
-import requests
 from requests_oauthlib import OAuth1
-import tweepy
 from sqlalchemy import select, update
 from sqlalchemy.exc import SQLAlchemyError
-import feedparser
 from database import Articles_rss, Posts, Networks, create_db_and_tables, get_session
 from atproto import models, Client
 from bs4 import BeautifulSoup as bs
+# from dotenv import load_dotenv
 
 ###### Fonctions de post_auto
 
@@ -49,6 +51,14 @@ def connect_x_apiv2(x_api_key, x_api_secret, x_access_token, x_access_token_secr
                          access_token_secret=x_access_token_secret)
 
 def update_network_post_id(engine, post_id, network_post_id):
+    """
+    Met à jour l'URL (avec Id fourni par le réseau) du post dans la base de données.
+
+    Args:
+        engine: L'objet moteur SQLAlchemy.
+        post_id (int): L'ID du post à mettre à jour.
+        network_post_id (str): L'ID du post sur le réseau social (URL avec id)
+    """
     with get_session(engine) as session:
         try:
             statement = (
@@ -92,7 +102,10 @@ def get_network_tag(engine, network):
         return None
 
 def post_to_x(api, post, tag, media_id):
-    url_to_post = post['link'] + tag
+    if post['link'] != '':
+        url_to_post = post['link'] + tag
+    else:
+        url_to_post = ''
     post_content = f"{post['title']} {url_to_post}"
     try:
         if media_id == []:
@@ -135,13 +148,11 @@ def post_all_x(posts, engine, newspaper):
         return
     tag = get_network_tag(engine, 'X')
     for post in posts:
-        if post.article_image_url != "images/no_picture.jpg":
-            logging.debug("Post avec image : %s", post.title)
+        if post.article_image_url != "images/no_picture.jpg": # Post a une image uploadée
             media_id = []
             success, network_post_id = post_to_x(x_apiv2, post, tag, media_id)
         elif post.image_url != "":
             media_id = [upload_image_to_x(x_api_key, x_api_secret, x_access_token, x_access_token_secret, post.image_url)]
-            logging.debug("Post sans image, id est : %s", media_id)
             success, network_post_id = post_to_x(x_apiv2, post, tag, media_id)
         else:
             success = False      
@@ -152,11 +163,41 @@ def post_all_x(posts, engine, newspaper):
         else:
             logging.error("Changement de statut impossible %s", post['title'])
 
+def clean_and_resize_image(image_bytes, max_size=1000000):
+    """
+    Supprime les métadonnées et réduit la taille de l'image si nécessaire.
+    Retourne les bytes de l'image nettoyée, ou None si impossible.
+    """
+    img = Image.open(io.BytesIO(image_bytes))
+    # Convertir en RGB pour éviter les problèmes de mode
+    if img.mode in ("RGBA", "P"):
+        img = img.convert("RGB")
+    quality = 95
+    while True:
+        buffer = io.BytesIO()
+        img.save(buffer, format="JPEG", quality=quality, optimize=True)
+        data = buffer.getvalue()
+        if len(data) <= max_size or quality < 30:
+            break
+        quality -= 5  # Réduire la qualité pour compresser
+    if len(data) > max_size:
+        # Dernier recours : redimensionner l'image
+        width, height = img.size
+        while len(data) > max_size and width > 100 and height > 100:
+            width = int(width * 0.9)
+            height = int(height * 0.9)
+            img = img.resize((width, height), Image.LANCZOS)
+            buffer = io.BytesIO()
+            img.save(buffer, format="JPEG", quality=quality, optimize=True)
+            data = buffer.getvalue()
+    if len(data) > max_size:
+        return None  # Impossible de réduire suffisamment
+    return data
+
 def post_to_bluesky(post, client_bluesky, tag):
     image_url = post['image_url']
     if post.article_image_url != 'images/no_picture.jpg':
         try:
-
             response = requests.get(image_url, timeout=10)
             response.raise_for_status()
             content_type = response.headers.get('Content-Type')
@@ -176,27 +217,41 @@ def post_to_bluesky(post, client_bluesky, tag):
                 img_data = image_file.read()
         except Exception as e:
             logging.error("Erreur lors du load de l'image ", image_url)
-
-    thumb = client_bluesky.upload_blob(img_data)
-    # Creating the web card and uploading
-    url_to_post = post['link'] + tag
-    logging.info("URL Bluesky : %s", url_to_post)
-    embed = models.AppBskyEmbedExternal.Main(
-        external=models.AppBskyEmbedExternal.External(
-            title=post['title'],
-            description=post['description'],
-            uri=url_to_post,
-            thumb=thumb.blob
+    if post['link'] != '': # publication d'une WebSite Card
+        # Création et upload d'une WebSite Card
+        thumb = client_bluesky.upload_blob(img_data)
+        url_to_post = post['link'] + tag
+        logging.info("URL Bluesky : %s", url_to_post)
+        embed = models.AppBskyEmbedExternal.Main(
+            external=models.AppBskyEmbedExternal.External(
+                title=post['title'],
+                description=post['description'],
+                uri=url_to_post,
+                thumb=thumb.blob
+            )
         )
-    )
-    try:
-        web_card = client_bluesky.send_post(post['tagline'], embed=embed)
-        network_post_id = web_card.uri.rsplit('/', 1)[1] # get the post id to build the post URL
-        logging.info("Post %s posté sur Bluesky  URI = %s", post['title'], network_post_id)
-        return network_post_id
-    except Exception as err:
-        logging.info("Échec de publication sur Bluesky de %s - %s", post['title'], err)
-        return None
+        try:
+            response = client_bluesky.send_post(post['tagline'], embed=embed)
+            network_post_id = response.uri.rsplit('/', 1)[1]
+            logging.info("Post %s posté sur Bluesky  URI = %s", post['title'], network_post_id)
+            return network_post_id
+        except Exception as err:
+            logging.info("Échec de publication sur Bluesky de %s - %s", post['title'], err)
+            return None
+    else:
+        # Upload d'un post avec image
+        try:
+            img_data_clean = clean_and_resize_image(img_data, max_size=1000000)
+            if img_data_clean is None:
+                logging.error("Impossible de réduire l'image sous 1 Mo pour %s", post['title'])
+                return
+            response = client_bluesky.send_image(text=post['tagline'], image=img_data, image_alt='')
+            network_post_id = response.uri.rsplit('/', 1)[1]
+            logging.info("Post posté sur Bluesky : %s, %s", post['tagline'], network_post_id)
+            return network_post_id
+        except Exception as err:
+            logging.info("Échec de publication sur Bluesky de %s - %s", post['tagline'], err)
+            return
 
 def post_all_bluesky(posts, engine, newspaper):
     bluesky_login = os.getenv('BLUESKY_LOGIN_'+newspaper.upper())
@@ -213,14 +268,16 @@ def post_all_bluesky(posts, engine, newspaper):
     tag = get_network_tag(engine, 'Bluesky')
     for post in posts:
         try:
-            network_post_id = post_to_bluesky(post, client_bluesky,
-                                               tag) # need the network_post_id to build the post URL
+            network_post_id = post_to_bluesky(post,
+                                              client_bluesky,
+                                              tag
+                                              )
         except Exception as err:
-            logging.info("Echec de passage à post Bluesky : %s", err)
+            logging.info("Echec de publication du post Bluesky : %s", err)
             break
         network_post_link = bluesky_url+str(network_post_id)
         update_network_post_id(engine, post['post_id'], network_post_link)
-        modify_status(engine, post['post_id'], post['title'])
+        modify_status(engine, post['post_id'], post['tagline'])
 
 ###### Fonctions de fetch_rss
 def fetch_rss(url: str) -> list:
