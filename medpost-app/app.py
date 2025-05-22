@@ -107,6 +107,7 @@ def fetch_articles(selectedfeed, newspaper):
                     .outerjoin(Posts, Articles_rss.id==Posts.id_article)
                     .filter(Posts.id_article.is_(None))
                     .filter(Articles_rss.online==1)
+                    .filter(Articles_rss.nid != 0)
                     .filter(Articles_rss.newspaper==newspaper)
                     .with_entities(Articles_rss.id,
                                     Articles_rss.title,
@@ -127,6 +128,7 @@ def fetch_articles(selectedfeed, newspaper):
         articles = (db.session.query(Articles_rss)
                     .filter(~Articles_rss.id.in_(db.select(subquery))) # articles postés
                     .filter(Articles_rss.online == 1)
+                    .filter(Articles_rss.nid != 0)
                     .filter(Articles_rss.newspaper == newspaper)
                     .with_entities(Articles_rss.id,
                                     Articles_rss.title,
@@ -347,15 +349,6 @@ def read_article_if_exists(url, newspaper):
                ).first()
     return article, html_article, nid
 
-# def fetch_article_if_exists(url, newspaper):
-#     article = (db.session.query(Articles_rss)
-#             .where(Articles_rss.newspaper == newspaper)
-#             .where(Articles_rss.link == url)
-#             .where(Articles_rss.online==1)
-#             .first()
-#     )
-#     return article
-
 @app.route('/')
 @app.route('/index')
 @login_required
@@ -397,9 +390,6 @@ def new_post():
     # selectedfeed = request.args.get('selectedfeed', type=str)
     # newspaper = request.args.get('newspaper', type=str)  
     form_data = dict(request.form)
-    for key, value in form_data.items():
-        logging.debug("key : %s - value : %s \n", key, value)
-
     selectedfeed = form_data['selectedfeed']
     newspaper = form_data['newspaper']
     logging.debug("Request : %s", request.files)
@@ -533,6 +523,36 @@ def admin():
         return redirect(url_for('home'))
     users = db.session.query(User).all()
     return render_template('admin.html', users=users)
+
+@app.route('/new_post_image', methods=['POST'])
+@login_required
+def new_post_image():
+    form_data = dict(request.form)
+    selectedfeed = form_data['selectedfeed']
+    newspaper = form_data['newspaper']
+    fake_article = {}
+    fake_article['nid'] = 0
+    fake_article['title'] = form_data['title']
+    fake_article['link'] = ""
+    fake_article['summary'] = ""
+    fake_article['image_url'] = "images/no_picture.jpg"
+    fake_article['pubdate']  = datetime.strptime(form_data['datetime'], '%Y-%m-%dT%H:%M')
+    fake_article['online'] = 0
+    fake_article['newspaper'] = form_data['newspaper']
+    id_article = create_article(fake_article)
+    if 'imageFile' in request.files:
+        image_file = request.files['imageFile']
+        logging.debug("réception de imagefile : %s", image_file)
+    else:
+        image_file = None
+    form_data['article_id'] = id_article   
+    record_new_post(form_data, image_file)
+    return redirect(url_for('home', selectedfeed=selectedfeed, newspaper=newspaper))
+
+
+
+
+    pass
 
 if __name__ == '__main__':
     #app.run(port=8000, debug=True)

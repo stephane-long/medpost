@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
         importLinkForm.reset();      
         responseMessage.style.display = "none";
         networkFormContainer.style.display = 'none';
-        postFormContainer.style.display = 'none'
+        postFormContainer.style.display = 'none';
         importLinkForm.style.display = "block";
         // On réinitialise les checkboxes
         const checkboxes = document.querySelectorAll('.network-checkbox');
@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 networkFormContainer.style.display = "block";
 
                 // Affichage des formulaires réseaux
-                const postFormContainer = document.getElementById('postFormContainer');
+                // const postFormContainer = document.getElementById('postFormContainer');
                 const checkboxes = document.querySelectorAll('.network-checkbox');
                 const postProgrammerBtn = document.getElementById('postProgrammerBtn');
                 
@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                                 network == 'X'
                                                 ? `
                                                     <div class="row">
-                                                        <div class="col-8 border rounded p-2">
+                                                        <div class="col-7 border rounded p-2">
                                                             <label class="form-label fw-bold">Titre</label>
                                                             <textarea class="form-control" name="title" rows="2" required>${importedArticle.title}</textarea>
                                                             <div class="position-relative">
@@ -143,14 +143,14 @@ document.addEventListener('DOMContentLoaded', () => {
                                                                 <a href="${importedArticle.link}" class="card-link" target="_blank">De lequotidiendumedecin.fr</a>
                                                             </div>
                                                         </div>
-                                                        <div class="col-4">
+                                                        <div class="col-5">
                                                             <label class="form-label fw-bold">Date et heure</label>
                                                             <input type="datetime-local" class="form-control" name="datetime" value="${currentDatetime}" min="${currentDatetime}" style="width: 250px;" required>
                                                 `
                                                 : `
                                                     <input type="hidden" name="title" value="${importedArticle.title}">
                                                     <div class="row">
-                                                        <div class="col-8 border rounded p-2">
+                                                        <div class="col-7 border rounded p-2">
                                                             <label for="description_${network}" class="form-label fw-bold">Accroche du post</label>
                                                             <textarea class="form-control" id="tagline_${network}" name="tagline" rows="2" required></textarea>
                                                             <img id="previewImage_${network}" src="${modifiedImages[network]?.url || importedArticle.image_url}" class="w-100 mt-3 d-block rounded-3" alt=""/>
@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                                             <div class="legend-chapo">${importedArticle.summary.length > 165 ? importedArticle.summary.substring(0, 165) + '...' : importedArticle.summary}</div>
                                                             <a href="${importedArticle.link}" class="card-link" target="_blank">@ www.lequotidiendumedecin.fr</a>
                                                         </div>
-                                                        <div class="col-4">
+                                                        <div class="col-5">
                                                             <label class="form-label fw-bold">Date et heure</label>
                                                             <input type="datetime-local" class="form-control" name="datetime" value="${currentDatetime}" min="${currentDatetime}" style="width: 250px;" required>
                                                 `
@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                             file: imageFile,
                                             url: urlData
                                         };
-                                    };                  
+                                    };
                                     reader.readAsDataURL(imageFile);
                                     // imageUrlInput.value = imageFile.name;
                                 }

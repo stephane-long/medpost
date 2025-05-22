@@ -4,13 +4,64 @@
             <div class="col-7">
                 <div class="content-menu">
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div class="fw-bold">Articles non postés</div>
+                        <div class="fw-bold">Articles non postés</div>                     
                         <div>
-                            <a class="btn btn-sm me-3 btn-secondary" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" data-bs-toggle="modal" data-bs-target="#importLinkModal">Importer lien</a>
                             <!-- Création post et article à partir d'un lien -->
+                            <a class="btn btn-sm btn-secondary" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" data-bs-toggle="modal" data-bs-target="#importImage">Post image</a>
+                            <div class="modal fade" id="importImage" tabindex="-1">
+                                <div class="modal-dialog modal-xl">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h1 class="modal-title fs-5 fw-bold">Importer une image</h1>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <!-- Formulaire de saisie de l'image à charger -->
+                                        <div class="modal-body">
+                                            <form id="importFileForm" style="display: block;">
+                                                <div class="mb-3">
+                                                    <label for="selectImageFile" class="form-label fw-bold">Sélectionner un fichier</label>
+                                                    <input type="file" class="form-control mb-3" id="selectImageFile" accept="image/*">
+                                                </div>
+                                                <div id="fileBtnsContainer" class="modal-footer">
+                                                    <button type="submit" class="btn btn-primary" id="submitFileBtn">Importer</button>
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                                </div>
+                                            </form>
+                                            <!-- Conteneur pour le formulaire de création de posts à patir d'une image -->
+                                            <div id="networkForm_image" style="display: none;">
+                                                <form id="networkForm_image">
+                                                    <div class="mb-3 d-flex align-items-center flex-wrap">
+                                                        <label class="form-label me-3 fw-bold">Sélectionnez les réseaux</label>
+                                                        <div class="form-check form-check-inline me-2">
+                                                            <input class="form-check-input network-checkbox_image" type="checkbox" id="xCheckboxLink_image" value="X">
+                                                            <label class="form-check-label" for="xCheckboxLink_image">X</label>
+                                                        </div>
+                                                        <div class="form-check form-check-inline me-2">
+                                                            <input class="form-check-input network-checkbox_image" type="checkbox" id="blueskyCheckboxLink_image" value="Bluesky">
+                                                            <label class="form-check-label" for="blueskyCheckboxLink_image">Bluesky</label>
+                                                        </div>
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input network-checkbox_image" type="checkbox" id="linkedinCheckboxLink_image" value="LinkedIn">
+                                                            <label class="form-check-label" for="linkedinCheckboxLink_image">LinkedIn</label>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                            <!-- Conteneur formulaire dynamique posts à partir d'une image-->
+                                            <div id="postImageFormContainer" style="display: none;"></div>
+                                            <div id="postImageFormBtns" class="modal-footer" style="display: none;">
+                                                <button type="button" class="btn btn-primary" id="postImageProgrammerBtn">Programmer</button>
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Création post et article à partir d'un lien -->
+                            <a class="btn btn-sm me-3 btn-secondary" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" data-bs-toggle="modal" data-bs-target="#importLinkModal">Importer lien</a>
                             <div class="modal fade" id="importLinkModal" tabindex="-1">
                                 <div id="current-datetime" data-current-datetime="{{ current_datetime() }}"></div>
-                                <div class="modal-dialog modal-lg">
+                                <div class="modal-dialog modal-xl">
                                     <div class="modal-content">
                                         <div class="modal-header">
                                             <h1 class="modal-title fs-5 fw-bold" id="importModalHeader">Importer un article</h1>
@@ -29,7 +80,7 @@
                                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
                                                 </div>
                                             </form>
-                                            <!-- Conteneur pour le formulaire de création de posts -->
+                                            <!-- Conteneur pour le formulaire de création de posts à partir d'un lien -->
                                             <div id="networkFormContainer" style="display: none;">
                                                 <form id="networkForm">
                                                     <div class="mb-3 d-flex align-items-center flex-wrap">
@@ -244,5 +295,6 @@
         </div>
         <script src="{{ url_for('static', filename='js/import-link-handler.js') }}"></script>
         <script src="{{ url_for('static', filename='js/modal-handler.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/modal-post-image.js') }}"></script>
 <!--        <script src="{{ url_for('static', filename='js/character-counter.js') }}"></script>-->
     {% endblock content %}
