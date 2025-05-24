@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <input type="hidden" name="network" value="${network}">
                                     <input type="hidden" name="newspaper" value="${newspaper}">
                                     <input type="hidden" name="selectedfeed" value="${selectedFeed}">
-                                    <input type="hidden" name="description" value="">
+                                    <input type="hidden" name="description" value="Non utilisé">
                                     ${
                                         network == 'X'
                                         ? `
@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                                     <input type="datetime-local" class="form-control" name="datetime" value="${currentDatetime}" min="${currentDatetime}" style="width: 250px;" required>
                                         `
                                         : `
-                                            <input type="hidden" name="title" value="">
+                                            <input type="hidden" name="title" value="Non utilisé">
                                             <div class="row">
                                                 <div class="col-7 border rounded p-2">
                                                     <label class="form-label fw-bold">Accroche du post</label>

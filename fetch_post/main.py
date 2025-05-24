@@ -210,14 +210,14 @@ def post_to_bluesky(post, client_bluesky, tag):
         except requests.exceptions.HTTPError as err:
             logging.error("Erreur HTTP lors de la lecture de image_url : %s", err)
             return
-    else:
+    else: # Récupérer l'image en local
         image_path = "static/" + image_url
         try:
             with open(image_path, 'rb') as image_file:
                 img_data = image_file.read()
         except Exception as e:
-            logging.error("Erreur lors du load de l'image ", image_url)
-    if post['link'] != '': # publication d'une WebSite Card
+            logging.error("Erreur lors du load de l'image %s : %s", image_url), e
+    if post['link'] != '':
         # Création et upload d'une WebSite Card
         thumb = client_bluesky.upload_blob(img_data)
         url_to_post = post['link'] + tag
@@ -239,13 +239,13 @@ def post_to_bluesky(post, client_bluesky, tag):
             logging.info("Échec de publication sur Bluesky de %s - %s", post['title'], err)
             return None
     else:
-        # Upload d'un post avec image
+        # Upload d'un post créé avec une image (pas de post['link'])
         try:
-            img_data_clean = clean_and_resize_image(img_data, max_size=1000000)
+            img_data_clean = clean_and_resize_image(img_data, max_size=900000)
             if img_data_clean is None:
                 logging.error("Impossible de réduire l'image sous 1 Mo pour %s", post['title'])
                 return
-            response = client_bluesky.send_image(text=post['tagline'], image=img_data, image_alt='')
+            response = client_bluesky.send_image(text=post['tagline'], image=img_data_clean, image_alt='')
             network_post_id = response.uri.rsplit('/', 1)[1]
             logging.info("Post posté sur Bluesky : %s, %s", post['tagline'], network_post_id)
             return network_post_id

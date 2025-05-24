@@ -285,7 +285,7 @@
                             <div class="bg-secondary-subtle text-secondary-emphasis me-2 px-1"> {{ post.date_pub }}</div> 
                             <div> {{ post.name }} </div>
                         </div>
-                        <a class="post-title" href="{{ post.network_post_id }}" target="_blank">{{ post.title }}</a>
+                        <a class="post-title" href="{{ post.network_post_id }}" target="_blank">{% if post.name == "X" %}{{ post.title }}{% else %}{{ post.tagline }}{% endif %}</a>
                         <div class="d-flex border-bottom pb-1 my-2">
                             <a class="btn btn-outline-secondary disabled" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="#">Repartager</a>
                         </div>
