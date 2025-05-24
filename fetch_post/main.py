@@ -251,7 +251,7 @@ def post_to_bluesky(post, client_bluesky, tag):
             return network_post_id
         except Exception as err:
             logging.info("Échec de publication sur Bluesky de %s - %s", post['tagline'], err)
-            return
+            return None
 
 def post_all_bluesky(posts, engine, newspaper):
     bluesky_login = os.getenv('BLUESKY_LOGIN_'+newspaper.upper())
@@ -267,17 +267,11 @@ def post_all_bluesky(posts, engine, newspaper):
         return
     tag = get_network_tag(engine, 'Bluesky')
     for post in posts:
-        try:
-            network_post_id = post_to_bluesky(post,
-                                              client_bluesky,
-                                              tag
-                                              )
-        except Exception as err:
-            logging.info("Echec de publication du post Bluesky : %s", err)
-            break
-        network_post_link = bluesky_url+str(network_post_id)
-        update_network_post_id(engine, post['post_id'], network_post_link)
-        modify_status(engine, post['post_id'], post['tagline'])
+        network_post_id = post_to_bluesky(post, client_bluesky, tag)
+        if network_post_id is not None:
+            network_post_link = bluesky_url+str(network_post_id)
+            update_network_post_id(engine, post['post_id'], network_post_link)
+            modify_status(engine, post['post_id'], post['tagline'])
 
 ###### Fonctions de fetch_rss
 def fetch_rss(url: str) -> list:

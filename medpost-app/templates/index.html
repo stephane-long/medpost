@@ -7,7 +7,7 @@
                         <div class="fw-bold">Articles non postés</div>                     
                         <div>
                             <!-- Création post et article à partir d'un lien -->
-                            <a class="btn btn-sm btn-secondary" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" data-bs-toggle="modal" data-bs-target="#importImage">Post image</a>
+                            <a class="btn btn-sm btn-outline-secondary" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" data-bs-toggle="modal" data-bs-target="#importImage">Post image</a>
                             <div class="modal fade" id="importImage" tabindex="-1">
                                 <div class="modal-dialog modal-xl">
                                     <div class="modal-content">
@@ -58,7 +58,7 @@
                                 </div>
                             </div>
                             <!-- Création post et article à partir d'un lien -->
-                            <a class="btn btn-sm me-3 btn-secondary" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" data-bs-toggle="modal" data-bs-target="#importLinkModal">Importer lien</a>
+                            <a class="btn btn-sm me-3 btn-outline-secondary" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" data-bs-toggle="modal" data-bs-target="#importLinkModal">Importer lien</a>
                             <div class="modal fade" id="importLinkModal" tabindex="-1">
                                 <div id="current-datetime" data-current-datetime="{{ current_datetime() }}"></div>
                                 <div class="modal-dialog modal-xl">
@@ -127,7 +127,8 @@
                     <article class="content-section">
                         <div class="article-metadata d-flex justify-content-between align-items-center">
                             <small class="text-muted">Publié le {{ article.pubdate }}</small>
-                            <a class="btn btn-sm btn-outline-success ms-auto" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" data-bs-toggle="modal" data-bs-target="#newpost{{ article.id }}">Partager</a>
+                            <a class="btn btn-sm btn-outline-secondary ms-auto" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="{{ url_for('refresh', article_id=article.id, link=article.link, selectedfeed='tous', newspaper='qdm') }}">Refresh</a>
+                            <a class="btn btn-sm btn-outline-success ms-2" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" data-bs-toggle="modal" data-bs-target="#newpost{{ article.id }}">Partager</a>
                             <a class="btn btn-sm btn-outline-danger ms-2" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;" role="button" href="{{ url_for('delete_article', article_id=article.id, selectedfeed=selectedfeed, newspaper=newspaper) }}">Supprimer</a>
                             <!-- Formulaire d'édition partage-->
                             <div class="modal fade" id="newpost{{ article.id }}" tabindex="-1" 

@@ -110,12 +110,12 @@ def fetch_articles(selectedfeed, newspaper):
                     .filter(Articles_rss.nid != 0)
                     .filter(Articles_rss.newspaper==newspaper)
                     .with_entities(Articles_rss.id,
-                                    Articles_rss.title,
-                                    Articles_rss.summary,
-                                    Articles_rss.link,
-                                    Articles_rss.image_url,
-                                    Articles_rss.pubdate
-                                    )
+                                Articles_rss.title,
+                                Articles_rss.summary,
+                                Articles_rss.link,
+                                Articles_rss.image_url,
+                                Articles_rss.pubdate
+                                )
                     .order_by(Articles_rss.pubdate.desc())
                     )
     else:
@@ -131,12 +131,12 @@ def fetch_articles(selectedfeed, newspaper):
                     .filter(Articles_rss.nid != 0)
                     .filter(Articles_rss.newspaper == newspaper)
                     .with_entities(Articles_rss.id,
-                                    Articles_rss.title,
-                                    Articles_rss.summary,
-                                    Articles_rss.link,
-                                    Articles_rss.image_url,
-                                    Articles_rss.pubdate,
-                                   )
+                                   Articles_rss.title,
+                                   Articles_rss.summary,
+                                   Articles_rss.link,
+                                   Articles_rss.image_url,
+                                   Articles_rss.pubdate,
+                                )
                     .distinct()
                     .order_by(Articles_rss.pubdate.desc())
                     )
@@ -328,6 +328,7 @@ def fetch_article_html(url: str):
         return html_article
     except requests.exceptions.RequestException as e:
         logging.error("Échec lors de la lecture URL %s : %s", url, e)
+        return None
 
 def get_article_nid(html_article):
         # <article data-history-node-id="248526"
@@ -348,6 +349,21 @@ def read_article_if_exists(url, newspaper):
                .where(Articles_rss.online==1)
                ).first()
     return article, html_article, nid
+
+def update_article(article_data) -> bool:
+    logging.debug("Article à updater : %s", article_data)
+    article_to_update = db.session.execute(db.select(Articles_rss).filter_by(id=article_data['id'])).scalar_one()
+    article_to_update.title = article_data['title']
+    article_to_update.image_url = article_data['image_url']
+    article_to_update.summary = article_data['summary']
+    article_to_update.pubdate = article_data['pubdate']
+    try:
+        db.session.commit()
+        return True
+    except Exception as e:
+        db.session.rollback()
+        logging.error("Erreur lors de la mise à jour de l'article %s : %s", article_data['title'], e)
+        return False
 
 @app.route('/')
 @app.route('/index')
@@ -553,6 +569,20 @@ def new_post_image():
 
 
     pass
+
+@app.route('/refresh')
+@login_required
+def refresh():
+    link = request.args.get('link', type=str)
+    selectedfeed = request.args.get('selectedfeed', type=str)
+    newspaper = request.args.get('newspaper', type=str)
+    html_article = fetch_article_html(link)
+    article_data = extract_data_from_html(html_article, link)
+    article_data['id'] = request.args.get('article_id', type=int)
+    update_success = update_article(article_data)
+    if update_success:
+        logging.debug("Refresh de %s réussi", article_data['title'])
+    return redirect(url_for('home', selectedfeed=selectedfeed, newspaper=newspaper))
 
 if __name__ == '__main__':
     #app.run(port=8000, debug=True)
