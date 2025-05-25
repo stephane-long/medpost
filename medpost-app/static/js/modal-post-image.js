@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const imageModal = document.getElementById('importImage'); // Fenêtre modale
     const importFileForm = document.getElementById('importFileForm'); // Formulaire de sélection du fichier image
-    const submitFileBtn = document.getElementById('submitFileBtn'); // Bouton import du fichier
+    // const submitFileBtn = document.getElementById('submitFileBtn'); // Bouton import du fichier
     const networkFormImage = document.getElementById('networkForm_image'); // Check box réseau
     const postImageFormContainer = document.getElementById('postImageFormContainer'); // Formulaire dynamique de création des posts
 
@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentDatetime = document.getElementById('current-datetime').dataset.currentDatetime;
         const postImageFormBtns = document.getElementById('postImageFormBtns'); // Container Bouton de programmation des formulaires
         const postImageProgrammerBtn = document.getElementById('postImageProgrammerBtn');
-
+        const spinner = document.getElementById('imageProcessingSpinner');
 
         const imageFileData = {
             image_path: imageFileDataInput.value,
@@ -154,6 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (allValid) {
+                spinner.style.display = 'block'; // Affiche le spinner
                 const promises = [];
                 forms.forEach(form => {
                     const formData = new FormData(form);
@@ -170,17 +171,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 
                 Promise.all(promises)
-                .then(responses => {
-                    const allSuccessful = responses.every(response => response.ok);
-                    if (allSuccessful) {
-                        window.location.href = `/?selectedfeed=tous&newspaper=${newspaper}`;
-                    } else {
-                        console.error("Échec sur une plusieurs soumissions.");
-                    }
-                })
-                .catch(error => {
-                    console.error("Erreur lors des soumissions :", error);
-                });
+                    .then(responses => {
+                        // spinner.style.display = 'none'; // Masque le spinner
+                        const allSuccessful = responses.every(response => response.ok);
+                        if (allSuccessful) {
+                            window.location.href = `/?selectedfeed=tous&newspaper=${newspaper}`;
+                        } else {
+                            console.error("Échec sur une plusieurs soumissions.");
+                        }
+                    })
+                    .catch(error => {
+                        // spinner.style.display = 'none'; // Masque le spinner même en cas d'erreur
+                        console.error("Erreur lors des soumissions :", error);
+                    });
             }            
         });
     });

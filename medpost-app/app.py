@@ -3,6 +3,8 @@ import logging
 import os
 import requests
 import requests as re
+import io
+
 from datetime import datetime, timedelta
 from flask import Flask, render_template, url_for, request, redirect, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -14,7 +16,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
 from sqlalchemy.exc import SQLAlchemyError
 from bs4 import BeautifulSoup as bs
-# from main import get_article_nid
+from PIL import Image
 
 app = Flask(__name__, template_folder='templates', static_folder='static', static_url_path='/')
 
@@ -197,7 +199,6 @@ def fetch_planned_posts(selectedfeed, newspaper):
                             Networks.name)
                 .order_by(Posts.date_pub.asc())
                 )
-
     if selectedfeed == 'tous':
         articles = (base_query
                    .filter(Posts.status == 'plan'))
@@ -205,15 +206,53 @@ def fetch_planned_posts(selectedfeed, newspaper):
         articles = (base_query
                    .filter(Networks.name == selectedfeed)
                    .filter(Posts.status == 'plan'))
-    return articles
+    return articles, articles.count()
+
+def clean_and_resize_image(image_bytes, max_size=500000):
+    """
+    Supprime les métadonnées et réduit la taille de l'image si nécessaire.
+    Retourne les bytes de l'image nettoyée, ou None si impossible.
+    """
+    img = Image.open(io.BytesIO(image_bytes))
+    # Convertir en RGB pour éviter les problèmes de mode
+    if img.mode in ("RGBA", "P"):
+        img = img.convert("RGB")
+    quality = 95
+    while True:
+        buffer = io.BytesIO()
+        img.save(buffer, format="JPEG", quality=quality, optimize=True)
+        data = buffer.getvalue()
+        if len(data) <= max_size or quality < 30:
+            break
+        quality -= 5  # Réduire la qualité pour compresser
+    if len(data) > max_size:
+        # Dernier recours : redimensionner l'image
+        width, height = img.size
+        while len(data) > max_size and width > 100 and height > 100:
+            width = int(width * 0.9)
+            height = int(height * 0.9)
+            img = img.resize((width, height), Image.LANCZOS)
+            buffer = io.BytesIO()
+            img.save(buffer, format="JPEG", quality=quality, optimize=True)
+            data = buffer.getvalue()
+    if len(data) > max_size:
+        return None  # Impossible de réduire suffisamment
+    return data
 
 def save_image(image_file):
     logging.debug("Sauvegarde de image_file : %s", image_file.filename)
-    save_path ="static/images/"
+    save_path = "static/images/"
     filename = secure_filename(image_file.filename) 
-    image_file.save(os.path.join(save_path, filename))
-    return "images/"+filename
-
+    image_bytes = image_file.read()
+    cleaned_bytes = clean_and_resize_image(image_bytes)
+    if cleaned_bytes is None:
+        logging.warning("Impossible de réduire l'image %s", filename)
+        return "images/no_picture.jpg"
+    with open(os.path.join(save_path, filename), "wb") as f:
+        f.write(cleaned_bytes)
+    # Remettre le pointeur du fichier à zéro pour d'autres utilisations éventuelles
+    # image_file.seek(0)
+    return "images/" + filename
 
 def record_new_post(form_data, image_file):
     # form_data  ={
@@ -227,15 +266,14 @@ def record_new_post(form_data, image_file):
     date_pub = datetime.strptime(form_data['datetime'], '%Y-%m-%dT%H:%M')
     network = form_data['network']
     network_id = (db.session.query(Networks.id)
-               .filter(Networks.name==network)
-               .first())[0]
+                  .filter(Networks.name==network)
+                  .first())[0]
     article_id = form_data['article_id']
     description = form_data['description']
     if image_file:
         image_url = save_image(image_file)
     else:
             image_url = form_data['image_url']
-
     title = form_data['title'].rstrip()
     if network == 'X':
         tagline = None # Pas de tagline fourni par le fomulaire X
@@ -246,7 +284,6 @@ def record_new_post(form_data, image_file):
         tagline = tagline.rstrip()
         if (tagline[-1] not in ['.', '!', '?']):
             tagline += '. '
-
     post = Posts(
         title=title,
         description=description,
@@ -314,7 +351,7 @@ def extract_data_from_html(html_article, url):
             article_data['image_url'] = "images/no_picture.jpg"
         article_data['summary'] = html_article.find('meta', attrs = {"name":"twitter:description"}).attrs['content']
         article_data['link'] = html_article.find('meta', attrs = {"name":"twitter:url"}).attrs['content']
-        article_data['pubdate'] = datetime.now().replace(second=0, microsecond=0)
+        #article_data['pubdate'] = datetime.now().replace(second=0, microsecond=0)
         return article_data
     except re.exceptions.RequestException as e:
         logging.error("Échec lors de la lecture URL %s : %s", url, e)
@@ -356,7 +393,6 @@ def update_article(article_data) -> bool:
     article_to_update.title = article_data['title']
     article_to_update.image_url = article_data['image_url']
     article_to_update.summary = article_data['summary']
-    article_to_update.pubdate = article_data['pubdate']
     try:
         db.session.commit()
         return True
@@ -376,14 +412,15 @@ def home():
     articles = fetch_articles(selectedfeed, newspaper)
     articles = articles.paginate(per_page=perpage, page=page)
     posts_pub = fetch_pub_posts(selectedfeed, newspaper)
-    posts_planned = fetch_planned_posts(selectedfeed, newspaper)
+    posts_planned, nb_posts_planned = fetch_planned_posts(selectedfeed, newspaper)
     return render_template('index.html',
-                            articles=articles,
-                            posts_pub=posts_pub,
-                            posts_planned=posts_planned,
-                            selectedfeed=selectedfeed,
-                            newspaper=newspaper
-                            )
+                           articles=articles,
+                           posts_pub=posts_pub,
+                           posts_planned=posts_planned,
+                           selectedfeed=selectedfeed,
+                           newspaper=newspaper,
+                           nb_posts_planned=nb_posts_planned
+                           )
 
 @app.route('/delete_article/<int:article_id>/<string:selectedfeed>/<string:newspaper>')
 @login_required
@@ -426,7 +463,7 @@ def edit_post():
     title = request.form.get('post_title')
     description = request.form.get('post_description')
     tagline = request.form.get('post_tagline')
-    link = request.form.get('post_link')
+    # link = request.form.get('post_link')
     post_datetime = request.form.get('post_datetime')
     network = request.form.get('post_network')
     update_post(post_id, title, description, tagline, post_datetime, network)
@@ -505,6 +542,7 @@ def import_link():
             article_data = extract_data_from_html(html_article, link)
             article_data['nid'] = nid
             article_data['newspaper'] = newspaper
+            article_data['pubdate'] = datetime.now().replace(second=0, microsecond=0)
             article_data['id'] = create_article(article_data)
             article_data['pubdate'] =  article_data['pubdate'].strftime('%Y-%m-%dT%H:%M')
             return jsonify(article_data), 200
@@ -565,11 +603,6 @@ def new_post_image():
     record_new_post(form_data, image_file)
     return redirect(url_for('home', selectedfeed=selectedfeed, newspaper=newspaper))
 
-
-
-
-    pass
-
 @app.route('/refresh')
 @login_required
 def refresh():
@@ -582,6 +615,9 @@ def refresh():
     update_success = update_article(article_data)
     if update_success:
         logging.debug("Refresh de %s réussi", article_data['title'])
+        flash(f"Refresh réussi : {article_data['title']}")
+    else:
+        flash("Erreur lors du refresh")
     return redirect(url_for('home', selectedfeed=selectedfeed, newspaper=newspaper))
 
 if __name__ == '__main__':

@@ -5,7 +5,7 @@ import io
 import requests
 import tweepy
 import feedparser
-from PIL import Image
+#from PIL import Image
 from datetime import datetime
 from xmlrpc.client import boolean
 from requests_oauthlib import OAuth1
@@ -148,10 +148,10 @@ def post_all_x(posts, engine, newspaper):
         return
     tag = get_network_tag(engine, 'X')
     for post in posts:
-        if post.article_image_url != "images/no_picture.jpg": # Post a une image uploadée
-            media_id = []
+        if post.article_image_url != "images/no_picture.jpg": # Article ayant une image
+            media_id = [] # Pas d'image  uploader
             success, network_post_id = post_to_x(x_apiv2, post, tag, media_id)
-        elif post.image_url != "":
+        elif post.image_url != "": # Article sans image, post avec image uploadée 
             media_id = [upload_image_to_x(x_api_key, x_api_secret, x_access_token, x_access_token_secret, post.image_url)]
             success, network_post_id = post_to_x(x_apiv2, post, tag, media_id)
         else:
@@ -163,36 +163,36 @@ def post_all_x(posts, engine, newspaper):
         else:
             logging.error("Changement de statut impossible %s", post['title'])
 
-def clean_and_resize_image(image_bytes, max_size=1000000):
-    """
-    Supprime les métadonnées et réduit la taille de l'image si nécessaire.
-    Retourne les bytes de l'image nettoyée, ou None si impossible.
-    """
-    img = Image.open(io.BytesIO(image_bytes))
-    # Convertir en RGB pour éviter les problèmes de mode
-    if img.mode in ("RGBA", "P"):
-        img = img.convert("RGB")
-    quality = 95
-    while True:
-        buffer = io.BytesIO()
-        img.save(buffer, format="JPEG", quality=quality, optimize=True)
-        data = buffer.getvalue()
-        if len(data) <= max_size or quality < 30:
-            break
-        quality -= 5  # Réduire la qualité pour compresser
-    if len(data) > max_size:
-        # Dernier recours : redimensionner l'image
-        width, height = img.size
-        while len(data) > max_size and width > 100 and height > 100:
-            width = int(width * 0.9)
-            height = int(height * 0.9)
-            img = img.resize((width, height), Image.LANCZOS)
-            buffer = io.BytesIO()
-            img.save(buffer, format="JPEG", quality=quality, optimize=True)
-            data = buffer.getvalue()
-    if len(data) > max_size:
-        return None  # Impossible de réduire suffisamment
-    return data
+# def clean_and_resize_image(image_bytes, max_size=1000000):
+#     """
+#     Supprime les métadonnées et réduit la taille de l'image si nécessaire.
+#     Retourne les bytes de l'image nettoyée, ou None si impossible.
+#     """
+#     img = Image.open(io.BytesIO(image_bytes))
+#     # Convertir en RGB pour éviter les problèmes de mode
+#     if img.mode in ("RGBA", "P"):
+#         img = img.convert("RGB")
+#     quality = 95
+#     while True:
+#         buffer = io.BytesIO()
+#         img.save(buffer, format="JPEG", quality=quality, optimize=True)
+#         data = buffer.getvalue()
+#         if len(data) <= max_size or quality < 30:
+#             break
+#         quality -= 5  # Réduire la qualité pour compresser
+#     if len(data) > max_size:
+#         # Dernier recours : redimensionner l'image
+#         width, height = img.size
+#         while len(data) > max_size and width > 100 and height > 100:
+#             width = int(width * 0.9)
+#             height = int(height * 0.9)
+#             img = img.resize((width, height), Image.LANCZOS)
+#             buffer = io.BytesIO()
+#             img.save(buffer, format="JPEG", quality=quality, optimize=True)
+#             data = buffer.getvalue()
+#     if len(data) > max_size:
+#         return None  # Impossible de réduire suffisamment
+#     return data
 
 def post_to_bluesky(post, client_bluesky, tag):
     image_url = post['image_url']
@@ -241,11 +241,12 @@ def post_to_bluesky(post, client_bluesky, tag):
     else:
         # Upload d'un post créé avec une image (pas de post['link'])
         try:
-            img_data_clean = clean_and_resize_image(img_data, max_size=900000)
-            if img_data_clean is None:
-                logging.error("Impossible de réduire l'image sous 1 Mo pour %s", post['title'])
-                return
-            response = client_bluesky.send_image(text=post['tagline'], image=img_data_clean, image_alt='')
+            #img_data_clean = clean_and_resize_image(img_data, max_size=900000)
+            #if img_data_clean is None:
+            #    logging.error("Impossible de réduire l'image sous 1 Mo pour %s", post['title'])
+            #    return
+#            response = client_bluesky.send_image(text=post['tagline'], image=img_data_clean, image_alt='')
+            response = client_bluesky.send_image(text=post['tagline'], image=img_data, image_alt='')
             network_post_id = response.uri.rsplit('/', 1)[1]
             logging.info("Post posté sur Bluesky : %s, %s", post['tagline'], network_post_id)
             return network_post_id
@@ -333,7 +334,7 @@ def is_article_in_db(session, nid_article):
     logging.debug("Article in db : %s", article_in_db)
     return article_in_db
 
-def read_new_article_html(html_article, nid_article, pubdate, newspaper):
+def extract_article_data(html_article, nid_article, pubdate, newspaper):
     new_article = {}
     new_article['nid'] = nid_article
     new_article['title'] = html_article.find('meta', attrs = {"name":"twitter:title"}).attrs['content']
@@ -404,7 +405,7 @@ def load_articles(engine, newspaper, url_rss):
                 if nid_article is not None:
                     try:
                         with get_session(engine) as session:
-                            new_article = read_new_article_html(html_article, nid_article, itemrss.published, newspaper)
+                            new_article = extract_article_data(html_article, nid_article, itemrss.published, newspaper)
                             if is_article_in_db(session, nid_article) is None:
                                 article_stored = store_new_article(session, new_article)
                                 if article_stored:

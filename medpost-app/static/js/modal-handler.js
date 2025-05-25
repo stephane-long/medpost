@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectedFeed = document.querySelector('.row').getAttribute('data-selectedfeed'); // Get selectedfeed from data attribute
     const newspaper = document.querySelector('.row').getAttribute('data-newspaper'); // Get newspaper from data attribute
     const modifiedImages = {};
+    const spinner = document.getElementById('newPostProcessingSpinner');
+    
     
     document.querySelectorAll('[id^="newpost"]').forEach(modalElement => {
         const modalId = modalElement.id.replace('newpost', ''); // récupère l'id
@@ -214,6 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (allValid) {
                     // Submit all valid forms
+                    spinner.style.display = 'block'; // Affiche le spinner
                     const promises = [];
                     forms.forEach(form => {
                         const formData = new FormData(form);

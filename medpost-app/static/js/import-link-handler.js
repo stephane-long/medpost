@@ -52,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(importedArticle => {
             responseMessage.textContent = importedArticle.message || `Titre importé : ${importedArticle.title}`;
             responseMessage.style.display = "block";
+            const spinner = document.getElementById('linkProcessingSpinner');
             console.log(importedArticle);
             // Formulaire de création de posts
             if (importedArticle.title && importedArticle.summary && importedArticle.link && importedArticle.id && importedArticle.link && importedArticle.newspaper) {
@@ -239,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     
                     if (allValid) {
+                        spinner.style.display = 'block'; // Affiche le spinner
                         const promises = [];
                         forms.forEach(form => {
                             const formData = new FormData(form);
