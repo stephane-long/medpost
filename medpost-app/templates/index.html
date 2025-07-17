@@ -135,7 +135,7 @@
                         <a class="btn btn-sm mb-1 me-1 {% if selectedfeed == 'tous' %}btn-warning{% else %}btn-outline-warning{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='tous', newspaper=newspaper) }}">TOUS</a>
                         <a class="btn btn-sm mb-1 me-1  {% if selectedfeed == 'X' %}btn-dark{% else %}btn-outline-dark{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='X', newspaper=newspaper) }}">X (Twitter)</a>
                         <a class="btn btn-sm mb-1 me-1  {% if selectedfeed == 'Bluesky' %}btn-info{% else %}btn-outline-info{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='Bluesky', newspaper=newspaper) }}">Bluesky</a>
-                        <a class="btn btn-sm mb-1 {% if selectedfeed == 'LinkedIn' %}btn-primary{% else %}btn-outline-primary{% endif %}" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='LinkedIn', newspaper=newspaper) }}">LinkedIn</a>
+                        <a class="btn btn-sm mb-1 {% if selectedfeed == 'LinkedIn' %}btn-primary{% else %}btn-outline-primary{% endif %} disabled" style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;" role="button" href="{{ url_for('home', selectedfeed='LinkedIn', newspaper=newspaper) }}">LinkedIn</a>
 
                     </div>
                 </div>

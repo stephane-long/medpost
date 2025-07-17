@@ -122,15 +122,23 @@ def post_to_x(api, post, tag, media_id):
 def upload_image_to_x(x_api_key, x_api_secret, x_access_token, x_access_token_secret, image_path):
     image_path = "static/" + image_path
     auth = OAuth1(x_api_key, x_api_secret, x_access_token, x_access_token_secret)
-    upload_url = "https://api.x.com/2/media/upload"  
+    upload_url = "https://upload.twitter.com/1.1/media/upload.json"
     with open(image_path, 'rb') as image_file:
         files = {'media': image_file}
-        req = requests.post(
-            url=upload_url,
-            auth=auth,
-            files=files)
-    media_id = req.json()['id']
-    return media_id
+        try:
+            req = requests.post(
+                url=upload_url,
+                auth=auth,
+                files=files)
+            req.raise_for_status()
+            media_id = req.json()['media_id']
+            return media_id
+        except requests.exceptions.HTTPError as e:
+            logging.error("Erreur HTTP lors de l'upload de l'image sur X: %s - Réponse: %s", e, req.text)
+            return None
+        except Exception as e:
+            logging.error("Erreur upload : %s", e)
+            return None
 
 def post_all_x(posts, engine, newspaper):
 #    load_dotenv()
@@ -149,10 +157,11 @@ def post_all_x(posts, engine, newspaper):
     tag = get_network_tag(engine, 'X')
     for post in posts:
         if post.article_image_url != "images/no_picture.jpg": # Article ayant une image
-            media_id = [] # Pas d'image  uploader
+            media_id = [] # Pas d'image à uploader
             success, network_post_id = post_to_x(x_apiv2, post, tag, media_id)
-        elif post.image_url != "": # Article sans image, post avec image uploadée 
-            media_id = [upload_image_to_x(x_api_key, x_api_secret, x_access_token, x_access_token_secret, post.image_url)]
+        elif post.image_url != "": # Article sans image, post avec image uploadée
+            retour_id = upload_image_to_x(x_api_key, x_api_secret, x_access_token, x_access_token_secret, post.image_url)
+            media_id = [retour_id]
             success, network_post_id = post_to_x(x_apiv2, post, tag, media_id)
         else:
             success = False      
@@ -162,37 +171,6 @@ def post_all_x(posts, engine, newspaper):
             update_network_post_id(engine, post['post_id'], network_post_link)
         else:
             logging.error("Changement de statut impossible %s", post['title'])
-
-# def clean_and_resize_image(image_bytes, max_size=1000000):
-#     """
-#     Supprime les métadonnées et réduit la taille de l'image si nécessaire.
-#     Retourne les bytes de l'image nettoyée, ou None si impossible.
-#     """
-#     img = Image.open(io.BytesIO(image_bytes))
-#     # Convertir en RGB pour éviter les problèmes de mode
-#     if img.mode in ("RGBA", "P"):
-#         img = img.convert("RGB")
-#     quality = 95
-#     while True:
-#         buffer = io.BytesIO()
-#         img.save(buffer, format="JPEG", quality=quality, optimize=True)
-#         data = buffer.getvalue()
-#         if len(data) <= max_size or quality < 30:
-#             break
-#         quality -= 5  # Réduire la qualité pour compresser
-#     if len(data) > max_size:
-#         # Dernier recours : redimensionner l'image
-#         width, height = img.size
-#         while len(data) > max_size and width > 100 and height > 100:
-#             width = int(width * 0.9)
-#             height = int(height * 0.9)
-#             img = img.resize((width, height), Image.LANCZOS)
-#             buffer = io.BytesIO()
-#             img.save(buffer, format="JPEG", quality=quality, optimize=True)
-#             data = buffer.getvalue()
-#     if len(data) > max_size:
-#         return None  # Impossible de réduire suffisamment
-#     return data
 
 def post_to_bluesky(post, client_bluesky, tag):
     image_url = post['image_url']
@@ -236,7 +214,7 @@ def post_to_bluesky(post, client_bluesky, tag):
             logging.info("Post %s posté sur Bluesky  URI = %s", post['title'], network_post_id)
             return network_post_id
         except Exception as err:
-            logging.info("Échec de publication sur Bluesky de %s - %s", post['title'], err)
+            logging.error("Échec de publication sur Bluesky de %s - %s", post['title'], err)
             return None
     else:
         # Upload d'un post créé avec une image (pas de post['link'])
@@ -251,7 +229,7 @@ def post_to_bluesky(post, client_bluesky, tag):
             logging.info("Post posté sur Bluesky : %s, %s", post['tagline'], network_post_id)
             return network_post_id
         except Exception as err:
-            logging.info("Échec de publication sur Bluesky de %s - %s", post['tagline'], err)
+            logging.error("Échec de publication sur Bluesky de %s - %s", post['tagline'], err)
             return None
 
 def post_all_bluesky(posts, engine, newspaper):
@@ -262,9 +240,9 @@ def post_all_bluesky(posts, engine, newspaper):
     client_bluesky = Client()
     try:
         client_bluesky.login(bluesky_login, bluesky_password)
-        logging.info("Connexion réussie à Bluesky")
+        logging.debug("Connexion réussie à Bluesky")
     except Exception as err:
-        logging.info("Échec de connexion à Bluesky %s", err)
+        logging.error("Échec de connexion à Bluesky %s", err)
         return
     tag = get_network_tag(engine, 'Bluesky')
     for post in posts:
@@ -398,6 +376,8 @@ def load_articles(engine, newspaper, url_rss):
     feed = fetch_rss(url_rss)
     if feed:
         nb_itemrss = 0
+        new_articles = 0
+        logging.info("lecture fu flux %s", newspaper)
         for itemrss in feed:
             if is_valid_article(itemrss):
                 html_article = fetch_article_html(itemrss.link)
@@ -410,6 +390,7 @@ def load_articles(engine, newspaper, url_rss):
                                 article_stored = store_new_article(session, new_article)
                                 if article_stored:
                                     logging.debug("Article stocké : new_article['title]")
+                                    new_articles += 1
                                 else:
                                     logging.error("Article impossible à stocker : new_article['title']")
                             else: # Remplacement de l'article déjà en base
@@ -421,9 +402,10 @@ def load_articles(engine, newspaper, url_rss):
                 else:
                     logging.error("NID absent dans l'article")
             else:
-                logging.debug("Article invalide %s", itemrss.title)
+                logging.error("Article invalide %s", itemrss.title)
             nb_itemrss += 1
             if nb_itemrss == 25: # nombre d'articles à traiter dans le flux RSS
+                logging.info("Fin lecture fu flux %s - %s lus - %s new", newspaper, nb_itemrss, new_articles)
                 break
 
 def post_auto_function(engine, newspaper):
@@ -449,7 +431,7 @@ def main():
 #    url_newspapers = {'qdm': '/app/rss.xml', 'qph':os.getenv('QPH_URL_RSS')}
     logging.basicConfig(filename=log_path,
                         encoding='utf-8',
-                        level=logging.DEBUG,
+                        level=logging.INFO,
                         format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M'
                         )
     engine = create_db_and_tables(database_path)

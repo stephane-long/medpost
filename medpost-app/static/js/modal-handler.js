@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                                 <img id="previewImage_${network}_${modalId}" src="${modifiedImages[modalId]?.[network]?.url || articleImageUrl}" class="w-100 mt-3 rounded mb-2" alt=""/>
                                                 <div class="legend-title">${articleTitle}</div>
                                                 <div class="legend-chapo">${articleDescription.length > 165 ? articleDescription.substring(0, 165) + '...' : articleDescription}</div>
-                                                <a href="${articleLink}" class="card-link" target="_blank">@ www.lequotidiendumedecin.fr</a>
+                                                <a href="${articleLink}" class="card-link" target="_blank">@ www.lequotidiendupharmacien.fr</a>
                                             </div>
                                             <div class="col-4">
                                                 <label for="date_${network}_${modalId}" class="form-label fw-bold">Date et heure</label>

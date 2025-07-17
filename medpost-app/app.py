@@ -349,7 +349,9 @@ def extract_data_from_html(html_article, url):
             article_data['image_url'] = html_article.find('meta', attrs = {"name":"twitter:image"}).attrs['content']
         except Exception: # Pas de vignette dans la Twitter card du site
             article_data['image_url'] = "images/no_picture.jpg"
-        article_data['summary'] = html_article.find('meta', attrs = {"name":"twitter:description"}).attrs['content']
+#        article_data['summary'] = html_article.find('meta', attrs = {"name":"twitter:description"}).attrs['content']
+        description = html_article.find('meta', attrs={"name": "twitter:description"})
+        article_data['summary'] = description.get('content', "") if description else ""
         article_data['link'] = html_article.find('meta', attrs = {"name":"twitter:url"}).attrs['content']
         #article_data['pubdate'] = datetime.now().replace(second=0, microsecond=0)
         return article_data

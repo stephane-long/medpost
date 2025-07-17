@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const spinner = document.getElementById('linkProcessingSpinner');
             console.log(importedArticle);
             // Formulaire de création de posts
-            if (importedArticle.title && importedArticle.summary && importedArticle.link && importedArticle.id && importedArticle.link && importedArticle.newspaper) {
+            if (importedArticle.title && importedArticle.link && importedArticle.id && importedArticle.link && importedArticle.newspaper) {
                 console.log("Données complètes");
                 networkFormContainer.style.display = "block";
 
@@ -157,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                                             <img id="previewImage_${network}" src="${modifiedImages[network]?.url || importedArticle.image_url}" class="w-100 mt-3 d-block rounded-3" alt=""/>
                                                             <div class="legend-title">${importedArticle.title}</div>
                                                             <div class="legend-chapo">${importedArticle.summary.length > 165 ? importedArticle.summary.substring(0, 165) + '...' : importedArticle.summary}</div>
-                                                            <a href="${importedArticle.link}" class="card-link" target="_blank">@ www.lequotidiendumedecin.fr</a>
+                                                            <a href="${importedArticle.link}" class="card-link" target="_blank">@ www.lequotidiendupharmacien.fr</a>
                                                         </div>
                                                         <div class="col-5">
                                                             <label class="form-label fw-bold">Date et heure</label>
