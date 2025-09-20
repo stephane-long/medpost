@@ -58,53 +58,39 @@ Medpost est une application basée sur Flask conçue pour gérer et automatiser 
    ```
    DATABASE_PATH=/app/data/rss_qdm.db
    LOG_PATH=/app/logs/medpost.log
+   TZ=Europe/Paris
    APP_SECRET_KEY=<secret Flask API key>
    ```
 
    Créez un fichier `.env.prod` dans le répertoire `fetch_post` avec les variables suivantes :
    ```
-   TZ=Europe/Paris
    DATABASE_PATH=/app/data/rss_qdm.db
-   LOG_PATH=/app/logs/fetch_post.log
-   API_KEY=<clé_api_x>
-   API_KEY_SECRET=<secret_api_x>
-   ACCESS_TOKEN=<jeton_d'accès_x>
-   ACCESS_TOKEN_SECRET=<secret_du_jeton_d'accès_x>
-   BLUESKY_LOGIN=<identifiant_bluesky>
-   BLUESKY_PASSWORD=<mot_de_passe_bluesky>
-   BLUESKY_URL_QDM=<URL du flux Bluesky>
-   X_URL_QDM=<URL du flux X>
-   QDM_URL_RSS=<url_du_flux_rss>
+   LOG_PATH=/app/logs/medpost.log
    IMAGES_PATH=/app/images/
+   TZ=Europe/Paris
+   QDM_URL_RSS=https://www.lequotidiendumedecin.fr/rss.xml
+   QPH_URL_RSS=https://www.lequotidiendupharmacien.fr/rss.xml
+   #### QDM ####
+   # Paramètres X QDM
+   API_KEY_SECRET_QDM=
+   API_KEY_QDM=
+   ACCESS_TOKEN_QDM=
+   ACCESS_TOKEN_SECRET_QDM=
+   X_URL_QDM=https://x.com/leQdM/status/
+   # Paramètres Bluesky QDM
+   BLUESKY_LOGIN_QDM=lequotidiendumedecin.fr
+   BLUESKY_PASSWORD_QDM=
+   BLUESKY_URL_QDM=https://bsky.app/profile/lequotidiendumedecin.fr/post/
+   #### QPH ####
+   # Paramètres X QPH
+   API_KEY_SECRET_QPH=
+   API_KEY_QPH=
+   ACCESS_TOKEN_QPH=
+   ACCESS_TOKEN_SECRET_QPH=
+   X_URL_QPH=https://x.com/leQPH_fr/status/
+   # Paramètres Bluesky QPH
+   BLUESKY_LOGIN_QPH=reseauxgps@gmail.com
+   BLUESKY_PASSWORD_QPH=
+   BLUESKY_URL_QPH=https://bsky.app/profile/leqph.bsky.social/post/
    ```
 
-4. **Lancer les services avec Docker Compose** :
-   Accédez au répertoire `medpost-app` et démarrez les services :
-   ```bash
-   docker-compose up --build
-   ```
-
-5. **Accéder à l'application** :
-   Ouvrez votre navigateur et accédez à `http://127.0.0.1:8000`.
-
-## Utilisation
-
-- **Connexion** : Utilisez la page de connexion pour vous authentifier.
-- **Gérer les publications** : Créez, modifiez et supprimez des publications depuis le tableau de bord.
-- **Programmer des publications** : Planifiez des publications pour des moments spécifiques et des réseaux donnés.
-- **Gérer les tags** : Mettez à jour les tags pour les réseaux dans la section "Tags".
-- **Récupérer les flux RSS** : Récupérez et affichez automatiquement les articles des flux RSS.
-- **Automatisation** : Les publications planifiées sont automatiquement publiées sur les réseaux sociaux.
-
-## Licence
-
-Ce projet est sous licence MIT. Consultez le fichier `LICENSE` pour plus de détails.
-
-## Remerciements
-
-- [Flask](https://flask.palletsprojects.com/)
-- [SQLAlchemy](https://www.sqlalchemy.org/)
-- [Bootstrap](https://getbootstrap.com/)
-- [Tweepy](https://www.tweepy.org/)
-- [Feedparser](https://pythonhosted.org/feedparser/)
-- [Docker](https://www.docker.com/)

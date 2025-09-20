@@ -1,0 +1,40 @@
+name: medpost
+services:
+  medpost-app:
+    container_name: medpost
+    build: .
+    env_file: .env.dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - images_volume:/app/static/images
+      - data_volume:/app/data
+      - logs_volume:/app/logs
+  fetcher-app:
+    container_name: fetcher
+    build: 
+      context: ../fetch_post
+    env_file: ../fetch_post/.env.dev
+    volumes:
+      - ../fetch_post/:/app
+      - images_volume:/app/static/images
+      - data_volume:/app/data
+      - logs_volume:/app/logs
+  sqlite-cli:
+      container_name: sqlite-cli
+      image: alpine/sqlite:latest
+      volumes:
+        - data_volume:/data
+      stdin_open: true
+      tty: true
+      entrypoint: sh -c "sqlite3 /data/rss_qdm.db"
+      deploy:
+        restart_policy:
+          condition: none
+volumes:
+  images_volume:
+  data_volume:
+    external: true
+  logs_volume:
+    external: true
