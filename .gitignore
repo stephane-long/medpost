@@ -1,7 +1,5 @@
 .DS_Store
 .venv
-/data
-/logs
 .env
 /merdier
 /.vscode

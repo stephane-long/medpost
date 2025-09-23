@@ -28,6 +28,7 @@ Medpost est une application basée sur Flask conçue pour gérer et automatiser 
   - **`Dockerfile`** : Dockerfile pour construire l'image du service de récupération des flux RSS.
 - **`data/`** : Contient les fichiers de base de données SQLite.
 - **`logs/`** : Contient les fichiers de logs générés par l'application.
+- **`images/`** : Contient les images et no_picture.jpg.
 
 ## Prérequis
 
@@ -39,21 +40,17 @@ Medpost est une application basée sur Flask conçue pour gérer et automatiser 
 - Feedparser
 - Dotenv
 - Docker et Docker Compose
+-...
 
 ## Instructions d'installation
 
 1. **Cloner le dépôt** :
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/stephane-long/medpost.git
    cd Medpost
    ```
 
-2. **Installer les dépendances** :
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Configurer les variables d'environnement** :
+2. **Configurer les variables d'environnement** :
    Créez un fichier `.env.prod` dans le répertoire `medpost-app` avec les variables suivantes :
    ```
    DATABASE_PATH=/app/data/rss_qdm.db
@@ -93,4 +90,26 @@ Medpost est une application basée sur Flask conçue pour gérer et automatiser 
    BLUESKY_PASSWORD_QPH=
    BLUESKY_URL_QPH=https://bsky.app/profile/leqph.bsky.social/post/
    ```
+3. **docker-compose** :
+   Vérifier le nom des fichiers des variables d'environnement : .env.prod
+   Mettre en commentaire la copie .:/app et ../fetch_post/:/app
+
+4. **Création des volumes persistants et copie des fichiers nécessaires** :
+   Créer les répertoires sur host et copier les fichiers
+
+   1/ Base de données rss_qdm.db stocké dans /medpost/data/
+      docker run --rm -v data_volume:/data -v /repertoire_host_absolu[ex.: %cd%\data]/:/host alpine cp /host/rss_qdm.db /data/
+   
+   2/ Fichier de log medpost.log stocké dans /medpost/logs/
+   docker run --rm -v logs_volume:/data -v /repertoire_host_absolu[ex.: %cd%\logs]/:/host alpine cp /host/medpost.log /data/
+
+   3/ Image par défaut no_picture.jpg stocké dans /medpost/images/
+   docker run --rm -v images_volume:/data -v /repertoire_host_absolu[ex.: %cd%\images]/:/host alpine cp /host/no_picture.jpg /data/
+
+5. **Création des images docker et lancement des containers** :
+   Se placer dans le répertoire medpost-app
+   docker compose up --build -d
+
+5. **Programmer tâche automatique de lancement de lecteure du flux et publication post** :
+   Lancer à intervalle régulier le container fetch_post
 
