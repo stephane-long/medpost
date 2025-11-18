@@ -582,6 +582,48 @@ def update_article_in_db(session, new_article) -> bool:
         return False
 
 
+def login_qdm(session):
+    username = os.getenv("USERNAME")
+    password = os.getenv("PASSWORD")
+    login_url = os.getenv("LOGIN_URL")
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Referer": login_url,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
+    }
+    payload = {
+        "name": username,
+        "pass": password,
+        "form_build_id": "form-P-mW6y9GQx_muaK48sJ7fg1LxJi1TIjfr6utScmKBzs",
+        "form_id": "user_login_form",
+        "destination": "/homepage",
+        "op": "Se connecter",
+    }
+    try:
+        logging.info(f"Tentative de connexion pour l'utilisateur {username}...")
+        response = session.post(
+            login_url, data=payload, headers=headers, allow_redirects=False
+        )
+        if response.status_code == 303:
+            logging.info(
+                "Connexion réussie (redirection 303 reçue). La session est authentifiée."
+            )
+            return True
+        else:
+            logging.error(
+                "Échec de la connexion. Le serveur n'a pas renvoyé de redirection (code 303)."
+            )
+            logging.error(f"Statut reçu : {response.status_code}")
+            return False
+
+    except requests.RequestException as e:
+        logging.error(
+            f"Une erreur de connexion est survenue lors de la tentative de login : {e}"
+        )
+        return False
+
+
 def load_articles(engine, newspaper, url_rss):
     """
     Charge les articles depuis un flux RSS et les stocke en base de données.
