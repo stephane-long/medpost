@@ -1,5 +1,11 @@
+"""MedpostBot Version 1.0"""
+
 import logging
 import os
+import platform
+import time
+from typing import Any, Optional
+from collections.abc import Sequence
 
 # import re
 # import io
@@ -11,18 +17,101 @@ import feedparser
 from datetime import datetime
 
 # from xmlrpc.client import boolean
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from requests_oauthlib import OAuth1
 from sqlalchemy import select, update
 from sqlalchemy.exc import SQLAlchemyError, NoResultFound, MultipleResultsFound
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Session
 from database import Articles_rss, Posts, Networks, create_db_and_tables, get_session
 from atproto import models, Client
 from bs4 import BeautifulSoup as bs
 # from dotenv import load_dotenv
 
-###### Fonctions de post_auto
+
+def create_http_session() -> requests.Session:
+    """
+    Crée une session HTTP réutilisable configurée pour le scraping
+
+    Returns:
+        requests.Session: Session HTTP configurée et prête à l'emploi
+    """
+    session = requests.Session()
+
+    # ============================================
+    # 1. CONSTRUCTION DU USER-AGENT
+    # ============================================
+
+    # Informations du bot depuis variables d'environnement (avec valeurs par défaut)
+    bot_name = os.getenv("BOT_NAME", "MedpostBot")
+    bot_version = os.getenv("BOT_VERSION", "1.0")
+    # bot_url = os.getenv("BOT_URL", "https://github.com/")
+    bot_contact = os.getenv("BOT_CONTACT", "perso@stephanelong.fr")
+
+    # Construction du User-Agent
+    # Format: NomBot/Version (+URL; email) Client/Version Système
+    user_agent = (
+        f"{bot_name}/{bot_version} "
+        # f"(+{bot_url}; {bot_contact}) "
+        f"({bot_contact}) "
+        f"Python-requests/{requests.__version__} "
+        f"{platform.system()}/{platform.release()}"
+    )
+
+    # ============================================
+    # 2. CONFIGURATION DES HEADERS
+    # ============================================
+
+    session.headers.update(
+        {
+            "User-Agent": user_agent,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+            "Cache-Control": "no-cache",
+        }
+    )
+
+    # ============================================
+    # 3. CONFIGURATION DU RETRY AUTOMATIQUE
+    # ============================================
+
+    retry_strategy = Retry(
+        total=3,
+        backoff_factor=2,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET", "POST", "HEAD"],
+        raise_on_status=False,
+    )
+
+    # ============================================
+    # 4. CONFIGURATION DU CONNECTION POOLING
+    # ============================================
+
+    adapter = HTTPAdapter(
+        max_retries=retry_strategy,
+        pool_connections=5,
+        pool_maxsize=10,
+        pool_block=False,
+    )
+
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+
+    logging.info("Session HTTP créée - User-Agent: %s", user_agent)
+    logging.debug("Headers configurés: %s", dict(session.headers))
+
+    return session
 
 
-def fetch_posts(engine, selectedfeed, newspaper):
+# ============================================
+# FONCTIONS DE POST
+# ============================================
+
+
+def fetch_posts(engine: Engine, selectedfeed: str, newspaper: str) -> Sequence[Any]:
     with get_session(engine) as session:
         statement = (
             select(
@@ -52,7 +141,9 @@ def fetch_posts(engine, selectedfeed, newspaper):
     return posts
 
 
-def connect_x_apiv2(x_api_key, x_api_secret, x_access_token, x_access_token_secret):
+def connect_x_apiv2(
+    x_api_key: str, x_api_secret: str, x_access_token: str, x_access_token_secret: str
+) -> tweepy.Client:
     return tweepy.Client(
         consumer_key=x_api_key,
         consumer_secret=x_api_secret,
@@ -61,7 +152,7 @@ def connect_x_apiv2(x_api_key, x_api_secret, x_access_token, x_access_token_secr
     )
 
 
-def update_network_post_id(engine, post_id, network_post_id):
+def update_network_post_id(engine: Engine, post_id: int, network_post_id: str) -> None:
     """
     Met à jour l'URL (avec Id fourni par le réseau) du post dans la base de données.
 
@@ -94,7 +185,7 @@ def update_network_post_id(engine, post_id, network_post_id):
             )
 
 
-def modify_status(engine, post_id, post_title):
+def modify_status(engine: Engine, post_id: int, post_title: str) -> None:
     with get_session(engine) as session:
         try:
             statement = update(Posts).where(Posts.id == post_id).values(status="pub")
@@ -107,7 +198,7 @@ def modify_status(engine, post_id, post_title):
             )
 
 
-def get_network_tag(engine, network):
+def get_network_tag(engine: Engine, network: str) -> Optional[str]:
     try:
         with get_session(engine) as session:
             tag = session.scalar(select(Networks.tag).where(Networks.name == network))
@@ -117,7 +208,9 @@ def get_network_tag(engine, network):
         return None
 
 
-def post_to_x(api, post, tag, media_id):
+def post_to_x(
+    api: tweepy.Client, post: dict[str, Any], tag: str, media_id: list[int]
+) -> tuple[bool, Optional[str]]:
     if post["link"] != "":
         url_to_post = post["link"] + tag
     else:
@@ -142,15 +235,20 @@ def post_to_x(api, post, tag, media_id):
 
 
 def upload_image_to_x(
-    x_api_key, x_api_secret, x_access_token, x_access_token_secret, image_path
-):
+    http_session: requests.Session,
+    x_api_key: str,
+    x_api_secret: str,
+    x_access_token: str,
+    x_access_token_secret: str,
+    image_path: str,
+) -> Optional[int]:
     image_path = "static/" + image_path
     auth = OAuth1(x_api_key, x_api_secret, x_access_token, x_access_token_secret)
     upload_url = "https://upload.twitter.com/1.1/media/upload.json"
     with open(image_path, "rb") as image_file:
         files = {"media": image_file}
         try:
-            req = requests.post(url=upload_url, auth=auth, files=files)
+            req = http_session.post(url=upload_url, auth=auth, files=files)
             req.raise_for_status()
             media_id = req.json()["media_id"]
             return media_id
@@ -166,7 +264,9 @@ def upload_image_to_x(
             return None
 
 
-def post_all_x(posts, engine, newspaper):
+def post_all_x(
+    posts: Sequence[Any], engine: Engine, newspaper: str, http_session: requests.Session
+) -> None:
     #    load_dotenv()
     #    image_path = os.getenv('IMAGES_PATH')
     x_api_secret = os.getenv("API_KEY_SECRET_" + newspaper.upper())
@@ -192,6 +292,7 @@ def post_all_x(posts, engine, newspaper):
         # Article sans image, post avec image uploadée
         elif post["image_url"] != "":
             retour_id = upload_image_to_x(
+                http_session,
                 x_api_key,
                 x_api_secret,
                 x_access_token,
@@ -218,11 +319,16 @@ def post_all_x(posts, engine, newspaper):
             logging.error("Changement de statut impossible %s", post["title"])
 
 
-def post_to_bluesky(post, client_bluesky, tag):
+def post_to_bluesky(
+    post: dict[str, Any],
+    client_bluesky: Client,
+    tag: str,
+    http_session: requests.Session,
+) -> Optional[str]:
     image_url = post["image_url"]
     if post["article_image_url"] != "images/no_picture.jpg":
         try:
-            response = requests.get(image_url, timeout=10)
+            response = http_session.get(image_url, timeout=10)
             response.raise_for_status()
             content_type = response.headers.get("Content-Type")
             if content_type not in ["image/jpeg", "image/png"]:
@@ -294,7 +400,9 @@ def post_to_bluesky(post, client_bluesky, tag):
             return None
 
 
-def post_all_bluesky(posts, engine, newspaper):
+def post_all_bluesky(
+    posts: Sequence[Any], engine: Engine, newspaper: str, http_session: requests.Session
+) -> None:
     bluesky_login = os.getenv("BLUESKY_LOGIN_" + newspaper.upper())
     bluesky_password = os.getenv("BLUESKY_PASSWORD_" + newspaper.upper())
     bluesky_url = os.getenv("BLUESKY_URL_" + newspaper.upper())
@@ -308,15 +416,19 @@ def post_all_bluesky(posts, engine, newspaper):
         return
     tag = get_network_tag(engine, "Bluesky")
     for post in posts:
-        network_post_id = post_to_bluesky(post, client_bluesky, tag)
+        network_post_id = post_to_bluesky(post, client_bluesky, tag, http_session)
         if network_post_id is not None:
             network_post_link = bluesky_url + str(network_post_id)
             update_network_post_id(engine, post["post_id"], network_post_link)
             modify_status(engine, post["post_id"], post["tagline"])
 
 
-###### Fonctions de fetch_rss
-def fetch_rss(url: str) -> list[dict] | None:
+# ============================================
+# FONCTIONS DE COLLECTE DES ARTICES (FETCH_RSS)
+# ============================================
+
+
+def fetch_rss(url: str) -> Optional[list[dict[str, Any]]]:
     """
     Récupère les entrées du flux RSS QDM/QPH à partir d'une URL donnée.
 
@@ -350,33 +462,87 @@ def fetch_rss(url: str) -> list[dict] | None:
         return None
 
 
-def is_valid_article(item: str) -> bool:
+def is_valid_article(item: Any) -> bool:
     if item.title == "Votre journal au format numérique":
         return False
     else:
         return True
 
 
-def normalize_spaces(text):
+def normalize_spaces(text: str) -> str:
     return " ".join(text.split())
 
 
-def convert_date(date_str):
+def convert_date(date_str: str) -> datetime:
     return datetime.strptime(date_str, "%a, %d %b %Y %H:%M:%S %z")
 
 
-def fetch_article_html(url: str):
-    try:
-        logging.debug("Lecture des données articles url : %s", url)
-        http_response = requests.get(url, timeout=10)
-        html_article = bs(http_response.text, "html.parser")
-        logging.debug("Fetch article url : %s", url)
-        return html_article
-    except requests.exceptions.RequestException as e:
-        logging.error("Échec lors de la lecture URL %s : %s", url, e)
+def fetch_article_html(
+    url: str, session: requests.Session, max_retries: int = 3
+) -> Optional[bs]:
+    """
+    Récupère le HTML d'un article avec gestion robuste des erreurs.
+
+    Args:
+        url: URL de l'article
+        session: Session HTTP configurée avec create_http_session()
+        max_retries: Nombre max de tentatives manuelles
+
+    Returns:
+        BeautifulSoup | None: HTML parsé ou None si échec
+    """
+    for attempt in range(max_retries):
+        try:
+            logging.debug(
+                "Lecture article %s (tentative %d/%d)", url, attempt + 1, max_retries
+            )
+
+            # Le retry automatique de la session gère déjà les erreurs 5xx
+            http_response = session.get(url, timeout=10)
+
+            # Gestion spécifique du rate limiting (429)
+            if http_response.status_code == 429:
+                retry_after = int(http_response.headers.get("Retry-After", 60))
+                logging.warning(
+                    "Rate limit atteint, attente de %s secondes", retry_after
+                )
+                time.sleep(retry_after)
+                continue
+
+            # Lever une exception pour les autres codes d'erreur
+            http_response.raise_for_status()
+
+            # Succès: parser le HTML
+            html_article = bs(http_response.text, "html.parser")
+            logging.debug("Article récupéré avec succès: %s", url)
+            return html_article
+
+        except requests.exceptions.Timeout:
+            logging.warning(
+                "Timeout lors de la lecture de %s (tentative %d/%d)",
+                url,
+                attempt + 1,
+                max_retries,
+            )
+            if attempt == max_retries - 1:
+                logging.error("Échec définitif (timeout) pour %s", url)
+                return None
+            time.sleep(2**attempt)  # Backoff: 1s, 2s, 4s
+
+        except requests.exceptions.HTTPError as e:
+            logging.error("Erreur HTTP %s pour %s", e.response.status_code, url)
+            return None
+
+        except requests.exceptions.RequestException as e:
+            logging.error("Erreur réseau pour %s: %s", url, e)
+            if attempt == max_retries - 1:
+                return None
+            time.sleep(2**attempt)
+
+    return None
 
 
-def get_article_nid(html_article):
+def get_article_nid(html_article: bs) -> Optional[str]:
     # <article data-history-node-id="248526"
     try:
         nid_article = html_article.article["data-history-node-id"]
@@ -387,14 +553,16 @@ def get_article_nid(html_article):
         return None
 
 
-def is_article_in_db(session, nid_article):
+def is_article_in_db(session: Session, nid_article: str) -> Optional[Articles_rss]:
     stmt = select(Articles_rss).where(Articles_rss.nid == nid_article)
     article_in_db = session.execute(stmt).scalars().first()
     logging.debug("Article in db : %s", article_in_db)
     return article_in_db
 
 
-def extract_article_data(html_article, nid_article, pubdate, newspaper):
+def extract_article_data(
+    html_article: bs, nid_article: str, pubdate: str, newspaper: str
+) -> Optional[dict[str, Any]]:
     """
     Extrait les données d'un article HTML avec gestion des erreurs.
 
@@ -488,7 +656,7 @@ def extract_article_data(html_article, nid_article, pubdate, newspaper):
     return new_article
 
 
-def store_new_article(session, new_article) -> bool:
+def store_new_article(session: Session, new_article: dict[str, Any]) -> bool:
     new_article_db = Articles_rss(
         title=normalize_spaces(new_article["title"]),
         nid=new_article["nid"],
@@ -524,7 +692,7 @@ def store_new_article(session, new_article) -> bool:
         return False
 
 
-def update_article_in_db(session, new_article) -> bool:
+def update_article_in_db(session: Session, new_article: dict[str, Any]) -> bool:
     if not new_article or "nid" not in new_article:
         logging.error("Données d'article invalides pour la mise à jour")
         return False
@@ -582,7 +750,7 @@ def update_article_in_db(session, new_article) -> bool:
         return False
 
 
-def login_qdm(session):
+def login_qdm(session: requests.Session) -> bool:
     username = os.getenv("USERNAME")
     password = os.getenv("PASSWORD")
     login_url = os.getenv("LOGIN_URL")
@@ -624,7 +792,9 @@ def login_qdm(session):
         return False
 
 
-def load_articles(engine, newspaper, url_rss):
+def load_articles(
+    engine: Engine, newspaper: str, url_rss: str, http_session: requests.Session
+) -> None:
     """
     Charge les articles depuis un flux RSS et les stocke en base de données.
 
@@ -632,6 +802,7 @@ def load_articles(engine, newspaper, url_rss):
         engine: Moteur SQLAlchemy
         newspaper: Nom du journal (qdm, qph)
         url_rss: URL du flux RSS
+        http_session: Session HTTP réutilisable
     """
     #    URL_RSS = os.getenv('QDM_URL_RSS')
     feed = fetch_rss(url_rss)
@@ -644,10 +815,14 @@ def load_articles(engine, newspaper, url_rss):
     updated_articles = 0
     max_articles = 25
     errors = 0
+
+    # Délai respectueux entre requêtes
+    crawl_delay = float(os.getenv("CRAWL_DELAY", "1.5"))
+
     logging.info("Lecture des articles du flux %s", newspaper)
 
     for itemrss in feed:
-        # Valdidation de l'article
+        # Validation de l'article
         if not is_valid_article(itemrss):
             logging.debug(
                 "Article invalide ignoré: %s", getattr(itemrss, "title", "N/A")
@@ -660,9 +835,13 @@ def load_articles(engine, newspaper, url_rss):
             errors += 1
             continue
 
-        # Récupération du HTML de l'article
+        # Délai respectueux avant chaque requête
+        if nb_itemrss > 0:  # Pas de délai pour le premier article
+            time.sleep(crawl_delay)
+
+        # Récupération du HTML de l'article avec session partagée
         try:
-            html_article = fetch_article_html(itemrss.link)
+            html_article = fetch_article_html(itemrss.link, http_session)
             if html_article is None:
                 logging.error("Impossible de récupérer le HTML pour: %s", itemrss.link)
                 errors += 1
@@ -756,28 +935,33 @@ def load_articles(engine, newspaper, url_rss):
     )
 
 
-def post_auto_function(engine, newspaper):
+def post_auto_function(
+    engine: Engine, newspaper: str, http_session: requests.Session
+) -> None:
     networks = ["X", "Bluesky"]  # Active networks
     logging.info("Traitement de posts %s", newspaper)
     for network in networks:
         posts = fetch_posts(engine, network, newspaper)
         if posts != []:
             if network == "X":
-                post_all_x(posts, engine, newspaper)
+                post_all_x(posts, engine, newspaper, http_session)
             elif network == "Bluesky":
-                post_all_bluesky(posts, engine, newspaper)
+                post_all_bluesky(posts, engine, newspaper, http_session)
         else:
             logging.info("Aucun post %s sur %s", network, newspaper)
     logging.info("Fin traitement de posts %s", newspaper)
 
 
-###### MAIN
-def main():
-    # load_dotenv(dotenv_path='/Users/stephanelong/Documents/DEV/Medpost/fetch_post/.env')
+# ============================================
+# MAIN
+# ============================================
+
+
+def main() -> None:
     log_path = os.getenv("LOG_PATH")
     database_path = os.getenv("DATABASE_PATH")
     url_newspapers = {"qdm": os.getenv("QDM_URL_RSS"), "qph": os.getenv("QPH_URL_RSS")}
-    #    url_newspapers = {'qdm': '/app/rss.xml', 'qph':os.getenv('QPH_URL_RSS')}
+
     logging.basicConfig(
         filename=log_path,
         encoding="utf-8",
@@ -785,10 +969,25 @@ def main():
         format="%(asctime)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M",
     )
+
     engine = create_db_and_tables(database_path)
-    for newspaper, url_newspaper in url_newspapers.items():
-        load_articles(engine, newspaper, url_newspaper)
-        post_auto_function(engine, newspaper)
+
+    # Utilisation de la session HTTP optimisée
+    with create_http_session() as http_session:
+        logging.info("=== Début du traitement ===")
+
+        for newspaper, url_newspaper in url_newspapers.items():
+            logging.info("Traitement du journal: %s", newspaper)
+
+            # Chargement des articles avec session partagée
+            load_articles(engine, newspaper, url_newspaper, http_session)
+
+            # Publication automatique des posts avec session partagée
+            post_auto_function(engine, newspaper, http_session)
+
+            logging.info("Fin traitement du journal: %s", newspaper)
+
+        logging.info("=== Traitement terminé ===")
 
 
 if __name__ == "__main__":

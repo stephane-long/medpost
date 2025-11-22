@@ -4,3 +4,5 @@
 /merdier
 /.vscode
 .env.*
+*.pyc
+*.db
