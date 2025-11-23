@@ -23,6 +23,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from sqlalchemy.exc import SQLAlchemyError
 from bs4 import BeautifulSoup as bs
 from PIL import Image
+from dotenv import load_dotenv
 
 app = Flask(
     __name__, template_folder="templates", static_folder="static", static_url_path="/"
@@ -31,7 +32,7 @@ app = Flask(
 # https reverse proxy
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# load_dotenv(dotenv_path='.env.dev')
+load_dotenv(dotenv_path=".env.dev")
 db_path = os.getenv("DATABASE_PATH")
 log_path = os.getenv("LOG_PATH")
 app.config["SECRET_KEY"] = os.getenv("APP_SECRET_KEY")
@@ -311,7 +312,7 @@ def record_new_post(form_data, image_file):
     else:
         image_url = form_data["image_url"]
     title = form_data["title"].rstrip()
-    if network == "X":
+    if network == "X" or network == "Threads":
         tagline = None  # Pas de tagline fourni par le fomulaire X
         if title[-1] not in [".", "!", "?"]:
             title += "."
@@ -513,6 +514,8 @@ def new_post():
     # newspaper = request.args.get('newspaper', type=str)
     form_data = dict(request.form)
     selectedfeed = form_data["selectedfeed"]
+    if selectedfeed == "Threads":
+        logging.debug("Selectedfeed : %s", selectedfeed)
     newspaper = form_data["newspaper"]
 
     if request.files:
@@ -712,5 +715,5 @@ def refresh():
 
 
 if __name__ == "__main__":
-    # app.run(port=8000, debug=True)
-    app.run(port=8000)
+    app.run(port=8000, debug=True)
+    # app.run(port=8000)
