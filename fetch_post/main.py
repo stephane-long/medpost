@@ -7,7 +7,8 @@ import time
 from typing import Any, Optional
 from collections.abc import Sequence
 
-# import re
+import re
+
 # import io
 import requests
 import tweepy
@@ -27,7 +28,19 @@ from sqlalchemy.orm import Session
 from database import Articles_rss, Posts, Networks, create_db_and_tables, get_session
 from atproto import models, Client
 from bs4 import BeautifulSoup as bs
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
+from pathlib import Path
+from paramiko import SSHClient, AutoAddPolicy
+
+# ============================================
+# CONFIG
+# ============================================
+
+script_dir = Path(__file__).parent
+
+# ============================================
+# SESSION HTTP
+# ============================================
 
 
 def create_http_session() -> requests.Session:
@@ -107,7 +120,7 @@ def create_http_session() -> requests.Session:
 
 
 # ============================================
-# FONCTIONS DE POST
+# FONCTIONS DE PUBLICATIONS
 # ============================================
 
 
@@ -139,17 +152,6 @@ def fetch_posts(engine: Engine, selectedfeed: str, newspaper: str) -> Sequence[A
         except Exception as e:
             logging.error("Erreur de lecture des posts : %s", e)
     return posts
-
-
-def connect_x_apiv2(
-    x_api_key: str, x_api_secret: str, x_access_token: str, x_access_token_secret: str
-) -> tweepy.Client:
-    return tweepy.Client(
-        consumer_key=x_api_key,
-        consumer_secret=x_api_secret,
-        access_token=x_access_token,
-        access_token_secret=x_access_token_secret,
-    )
 
 
 def update_network_post_id(engine: Engine, post_id: int, network_post_id: str) -> None:
@@ -208,6 +210,20 @@ def get_network_tag(engine: Engine, network: str) -> Optional[str]:
         return None
 
 
+# ===== X =====
+
+
+def connect_x_apiv2(
+    x_api_key: str, x_api_secret: str, x_access_token: str, x_access_token_secret: str
+) -> tweepy.Client:
+    return tweepy.Client(
+        consumer_key=x_api_key,
+        consumer_secret=x_api_secret,
+        access_token=x_access_token,
+        access_token_secret=x_access_token_secret,
+    )
+
+
 def post_to_x(
     api: tweepy.Client, post: dict[str, Any], tag: str, media_id: list[int]
 ) -> tuple[bool, Optional[str]]:
@@ -242,7 +258,7 @@ def upload_image_to_x(
     x_access_token_secret: str,
     image_path: str,
 ) -> Optional[int]:
-    image_path = "static/" + image_path
+    image_path = f"{str(script_dir.parent)}{os.getenv('IMAGES_PATH')}{image_path}"
     auth = OAuth1(x_api_key, x_api_secret, x_access_token, x_access_token_secret)
     upload_url = "https://upload.twitter.com/1.1/media/upload.json"
     with open(image_path, "rb") as image_file:
@@ -269,11 +285,11 @@ def post_all_x(
 ) -> None:
     #    load_dotenv()
     #    image_path = os.getenv('IMAGES_PATH')
-    x_api_secret = os.getenv("API_KEY_SECRET_" + newspaper.upper())
-    x_api_key = os.getenv("API_KEY_" + newspaper.upper())
-    x_access_token = os.getenv("ACCESS_TOKEN_" + newspaper.upper())
-    x_access_token_secret = os.getenv("ACCESS_TOKEN_SECRET_" + newspaper.upper())
-    x_url = os.getenv("X_URL_" + newspaper.upper())
+    x_api_secret = os.getenv(f"API_KEY_SECRET_{newspaper.upper()}")
+    x_api_key = os.getenv(f"API_KEY_{newspaper.upper()}")
+    x_access_token = os.getenv(f"ACCESS_TOKEN_{newspaper.upper()}")
+    x_access_token_secret = os.getenv(f"ACCESS_TOKEN_SECRET_{newspaper.upper()}")
+    x_url = os.getenv(f"X_URL_{newspaper.upper()}")
     # Connexion à X API V2
     try:
         x_apiv2 = connect_x_apiv2(
@@ -286,18 +302,19 @@ def post_all_x(
 
     for post in posts:
         # Article ayant une image donc inutile d'uploader une image
-        if post["article_image_url"] != "images/no_picture.jpg":
+        post_image = post["image_url"]
+        if re.search("^https?", post_image):
             media_id = []  # Pas besoin d'uploader une image
             success, network_post_id = post_to_x(x_apiv2, post, tag, media_id)
         # Article sans image, post avec image uploadée
-        elif post["image_url"] != "":
+        elif post_image != "":
             retour_id = upload_image_to_x(
                 http_session,
                 x_api_key,
                 x_api_secret,
                 x_access_token,
                 x_access_token_secret,
-                post["image_url"],
+                post_image,
             )
             if retour_id:
                 media_id = [retour_id]
@@ -319,16 +336,16 @@ def post_all_x(
             logging.error("Changement de statut impossible %s", post["title"])
 
 
-def post_to_bluesky(
-    post: dict[str, Any],
-    client_bluesky: Client,
-    tag: str,
-    http_session: requests.Session,
-) -> Optional[str]:
-    image_url = post["image_url"]
-    if post["article_image_url"] != "images/no_picture.jpg":
+# ===== Bluesky =====
+
+
+def post_to_bluesky(post, client_bluesky, tag: str, http_session):
+    post_image = post["image_url"]
+    if post_image and re.search("^https?://", post_image):
+        logging.debug("Image URL : %s", post_image)
+        # Récupération de l'image en ligne
         try:
-            response = http_session.get(image_url, timeout=10)
+            response = http_session.get(post_image, timeout=10)
             response.raise_for_status()
             content_type = response.headers.get("Content-Type")
             if content_type not in ["image/jpeg", "image/png"]:
@@ -339,17 +356,19 @@ def post_to_bluesky(
                 )
                 return None
             img_data = response.content
-            logging.info("Upload de l'image Bluesky OK %s", post["title"])
+            logging.debug("Upload de l'image Bluesky OK %s", post["title"])
         except requests.exceptions.HTTPError as err:
-            logging.error("Erreur HTTP lors de la lecture de image_url : %s", err)
+            logging.error("Erreur HTTP lors de la lecture de l'image BSky : %s", err)
             return None
-    else:  # Récupérer l'image en local
-        image_path = "static/" + image_url
+    else:
+        # Récupération de l'image en local
+        image_path = f"{str(script_dir.parent)}{os.getenv('IMAGES_PATH')}{post_image}"
+
         try:
             with open(image_path, "rb") as image_file:
                 img_data = image_file.read()
         except Exception as e:
-            logging.error("Erreur lors du load de l'image %s : %s", image_url, e)
+            logging.error("Erreur lors du load de l'image %s : %s", post_image, e)
             return None
 
     if post["link"] != "":
@@ -400,12 +419,10 @@ def post_to_bluesky(
             return None
 
 
-def post_all_bluesky(
-    posts: Sequence[Any], engine: Engine, newspaper: str, http_session: requests.Session
-) -> None:
-    bluesky_login = os.getenv("BLUESKY_LOGIN_" + newspaper.upper())
-    bluesky_password = os.getenv("BLUESKY_PASSWORD_" + newspaper.upper())
-    bluesky_url = os.getenv("BLUESKY_URL_" + newspaper.upper())
+def post_all_bluesky(posts, engine, newspaper: str, http_session) -> None:
+    bluesky_login = os.getenv(f"BLUESKY_LOGIN_{newspaper.upper()}")
+    bluesky_password = os.getenv(f"BLUESKY_PASSWORD_{newspaper.upper()}")
+    bluesky_url = os.getenv(f"BLUESKY_URL_{newspaper.upper()}")
     tag = get_network_tag(engine, "Bluesky")
     client_bluesky = Client()
     try:
@@ -421,6 +438,208 @@ def post_all_bluesky(
             network_post_link = bluesky_url + str(network_post_id)
             update_network_post_id(engine, post["post_id"], network_post_link)
             modify_status(engine, post["post_id"], post["tagline"])
+
+
+# ===== Threads =====
+
+
+def upload_img_to_bucket(post_image):
+    remote_path = f"{os.getenv('BUCKET_PATH')}{post_image}"
+    image_path = f"{str(script_dir.parent)}{os.getenv('IMAGES_PATH')}{post_image}"
+
+    if not os.path.isfile(image_path):
+        logging.error("Fichier introuvable pour upload: %s", image_path)
+        raise FileNotFoundError(f"Local image not found: {image_path}")
+
+    # Connexion SSH/SFTP
+    hostname = os.getenv("HOSTNAME_FTP_BUCKET")
+    port = int(os.getenv("PORT_BUCKET"))
+    username = os.getenv("LOGIN_HOST_BUCKET")
+    password = os.getenv("PWD_HOST_BUCKET")
+    ssh = SSHClient()
+    ssh.set_missing_host_key_policy(AutoAddPolicy())
+
+    sftp_session = None
+    try:
+        ssh.connect(hostname, port, username, password, timeout=10)
+        logging.debug("Connexion SSH réussie")
+        sftp_session = ssh.open_sftp()
+        sftp_session.put(image_path, remote_path)
+        logging.debug("Upload SFTP OK: %s -> %s", image_path, remote_path)
+    except Exception as err:
+        logging.error("Erreur SSH/SFTP %s", err)
+        raise
+    finally:
+        try:
+            if sftp_session:
+                sftp_session.close()
+        finally:
+            ssh.close()
+
+
+def delete_img_from_bucket(post_image):
+    remote_path = f"{os.getenv('BUCKET_PATH')}{post_image}"
+
+    # Connexion SSH/SFTP
+    hostname = os.getenv("HOSTNAME_FTP_BUCKET")
+    port = int(os.getenv("PORT_BUCKET"))
+    username = os.getenv("LOGIN_HOST_BUCKET")
+    password = os.getenv("PWD_HOST_BUCKET")
+
+    ssh = SSHClient()
+    ssh.set_missing_host_key_policy(AutoAddPolicy())
+
+    sftp_session = None
+    try:
+        ssh.connect(hostname, port, username, password, timeout=10)
+        logging.debug("Connexion SSH réussie")
+        sftp_session = ssh.open_sftp()
+        sftp_session.remove(remote_path)
+        logging.debug("Suppression SFTP OK: %s", remote_path)
+    except Exception as err:
+        logging.error("Echec suppression SSH/SFTP %s", err)
+    finally:
+        try:
+            if sftp_session:
+                sftp_session.close()
+        finally:
+            ssh.close()
+
+
+def post_to_threads(
+    post, url_endpoint_media, url_endpoint_publish, tag, threads_token, http_session
+):
+    post_image = post["image_url"]
+    uploaded_to_bucket = False
+    if post_image and not re.search("^https?://", post_image):
+        # Image en local, upload sur bucket
+        upload_img_to_bucket(post_image)
+        post_image = f"{os.getenv('BUCKET_URL')}{post_image}"
+        uploaded_to_bucket = True
+
+    # Create media container
+    payload = {
+        "media_type": "IMAGE",
+        "image_url": post_image,
+        "text": f"{post['title']}\n➡️ {post['link']}",
+        "access_token": threads_token,
+    }
+
+    try:
+        response = http_session.post(url_endpoint_media, data=payload)
+        response.raise_for_status()
+        creation_id = response.json().get("id")
+        logging.debug("Connexion réussie à Threads")
+        logging.debug("Creation_id : %s", creation_id)
+    except requests.exceptions.HTTPError as http_err:
+        logging.error("Erreur HTTP lors de la connexion à Threads : %s", http_err)
+        return None
+    except requests.exceptions.RequestException as req_err:
+        logging.error("Erreur de requête lors de la connexion à Threads : %s", req_err)
+        return None
+    except Exception as err:
+        logging.error("Erreur inattendue lors de la connexion à Threads : %s", err)
+        return None
+
+    time.sleep(2)
+
+    if creation_id is not None:
+        try:
+            payload = {
+                "creation_id": creation_id,
+                "access_token": threads_token,
+            }
+            response = http_session.post(url_endpoint_publish, data=payload, timeout=10)
+            response.raise_for_status()
+            threads_id = response.json().get("id")
+
+            # Suppression de l'image uploadée sur le bucket
+            if threads_id and uploaded_to_bucket:
+                try:
+                    delete_img_from_bucket(post["image_url"])
+                except Exception as err:
+                    logging.error("Éche lors de la suppression sur le bucket : %s", err)
+
+            return threads_id
+        except requests.exceptions.HTTPError as http_err:
+            logging.error(
+                "Erreur HTTP lors de la publication sur Threads : %s", http_err
+            )
+            return None
+        except requests.exceptions.RequestException as req_err:
+            logging.error(
+                "Erreur de requête lors de la publication sur Threads : %s", req_err
+            )
+            return None
+        except Exception as err:
+            logging.error(
+                "Erreur inattendue lors de la publication sur Threads : %s", err
+            )
+            return None
+
+
+def get_threads_permalink(threads_id, threads_token, http_session):
+    try:
+        url_endpoint = f"https://graph.threads.net/v1.0/{threads_id}"
+        params = {
+            "fields": "permalink",
+            "access_token": threads_token,
+        }
+        response = http_session.get(url_endpoint, params=params, timeout=10)
+        response.raise_for_status()
+        threads_permalink = response.json().get("permalink")
+        return threads_permalink
+    except requests.exceptions.HTTPError as http_err:
+        logging.error(
+            "Erreur HTTP lors de la récupération du lien Thread : %s", http_err
+        )
+        return None
+    except requests.exceptions.RequestException as req_err:
+        logging.error(
+            "Erreur de requête lors de la récupération du lien Threads : %s", req_err
+        )
+        return None
+    except Exception as err:
+        logging.error(
+            "Erreur inattendue lors de la récupération du lien Threads : %s", err
+        )
+        return None
+
+
+def post_all_threads(posts, engine, newspaper, http_session):
+    logging.debug("Début publication sur Threads")
+    threads_token = os.getenv(f"THREADS_TOKEN_{newspaper.upper()}")
+    if not threads_token:
+        logging.error("THREADS_TOKEN manquant pour %s", newspaper)
+        return
+
+    tag = get_network_tag(engine, "Threads")
+    url_endpoint_base = "https://graph.threads.net/v1.0/me/"
+    url_endpoint_media = f"{url_endpoint_base}threads"
+    url_endpoint_publish = f"{url_endpoint_base}threads_publish"
+
+    for post in posts:
+        threads_id = post_to_threads(
+            post,
+            url_endpoint_media,
+            url_endpoint_publish,
+            tag,
+            threads_token,
+            http_session,
+        )
+        if threads_id is not None:
+            logging.debug("Publication Thread réussie id : %s", threads_id)
+            network_post_link = get_threads_permalink(
+                threads_id, threads_token, http_session
+            )
+            if network_post_link is not None:
+                update_network_post_id(engine, post["post_id"], network_post_link)
+            else:
+                logging.error(
+                    "Impossible de récupérer le permalink du Threads post id  %s",
+                    post["post_id"],
+                )
+            modify_status(engine, post["post_id"], post["title"])
 
 
 # ============================================
@@ -935,20 +1154,38 @@ def load_articles(
     )
 
 
+# ================================================
+# Publication des posts sur le journal sélectionné
+# ================================================
+
+
 def post_auto_function(
     engine: Engine, newspaper: str, http_session: requests.Session
 ) -> None:
-    networks = ["X", "Bluesky"]  # Active networks
+    """
+    Traite et publie les posts planifiés pour un journal sur différents réseaux sociaux.
+
+    Args:
+        engine: Moteur SQLAlchemy pour l'accès à la base de données
+        newspaper: Nom du journal (qdm, qph)
+        http_session: Session HTTP réutilisable pour les requêtes
+    """
+    NETWORK_FUNCTIONS = {
+        "X": post_all_x,
+        "Bluesky": post_all_bluesky,
+        "Threads": post_all_threads,
+    }
+
     logging.info("Traitement de posts %s", newspaper)
-    for network in networks:
+
+    for network, handler in NETWORK_FUNCTIONS.items():
         posts = fetch_posts(engine, network, newspaper)
-        if posts != []:
-            if network == "X":
-                post_all_x(posts, engine, newspaper, http_session)
-            elif network == "Bluesky":
-                post_all_bluesky(posts, engine, newspaper, http_session)
+
+        if posts:
+            handler(posts, engine, newspaper, http_session)
         else:
             logging.info("Aucun post %s sur %s", network, newspaper)
+
     logging.info("Fin traitement de posts %s", newspaper)
 
 
@@ -958,14 +1195,16 @@ def post_auto_function(
 
 
 def main() -> None:
-    log_path = os.getenv("LOG_PATH")
-    database_path = os.getenv("DATABASE_PATH")
+    load_dotenv(dotenv_path=str(script_dir / ".env.dev"))
+
+    log_path = str(script_dir.parent / os.getenv("LOG_PATH"))
+    database_path = str(script_dir.parent / os.getenv("DATABASE_PATH"))
     url_newspapers = {"qdm": os.getenv("QDM_URL_RSS"), "qph": os.getenv("QPH_URL_RSS")}
 
     logging.basicConfig(
         filename=log_path,
         encoding="utf-8",
-        level=logging.INFO,
+        level=logging.DEBUG,
         format="%(asctime)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M",
     )
@@ -979,10 +1218,7 @@ def main() -> None:
         for newspaper, url_newspaper in url_newspapers.items():
             logging.info("Traitement du journal: %s", newspaper)
 
-            # Chargement des articles avec session partagée
-            load_articles(engine, newspaper, url_newspaper, http_session)
-
-            # Publication automatique des posts avec session partagée
+            # load_articles(engine, newspaper, url_newspaper, http_session)
             post_auto_function(engine, newspaper, http_session)
 
             logging.info("Fin traitement du journal: %s", newspaper)

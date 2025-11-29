@@ -1,4 +1,4 @@
-"""Medpost Version 0.9"""
+"""Medpost Version 2.0"""
 
 import logging
 import os
@@ -24,27 +24,38 @@ from sqlalchemy.exc import SQLAlchemyError
 from bs4 import BeautifulSoup as bs
 from PIL import Image
 from dotenv import load_dotenv
+from pathlib import Path
+
+# ============================================
+# CHARGEMENT DES VARIABLES D'ENV
+# ============================================
+
+script_dir = Path(__file__).parent
+
+load_dotenv(dotenv_path=str(script_dir / ".env.dev"))
+
+db_path = str(script_dir.parent / os.getenv("DATABASE_PATH"))
+log_path = str(script_dir.parent / os.getenv("LOG_PATH"))
+secret_key = os.getenv("APP_SECRET_KEY")
+
+if not secret_key:
+    raise ValueError("APP_SECRET_KEY non trouvée dans .env.dev")
+
+# ============================================
+# CONFIG
+# ============================================
 
 app = Flask(
     __name__, template_folder="templates", static_folder="static", static_url_path="/"
 )
 
-# https reverse proxy
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-
-load_dotenv(dotenv_path=".env.dev")
-db_path = os.getenv("DATABASE_PATH")
-log_path = os.getenv("LOG_PATH")
-app.config["SECRET_KEY"] = os.getenv("APP_SECRET_KEY")
+app.config["SECRET_KEY"] = secret_key
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=12)
-db = SQLAlchemy(app)
-login_manager = LoginManager(app)
-login_manager.login_view = "login"
-login_manager.login_message = "Veuillez vous connecter SVP"
-login_manager.login_message_category = "error"
 
+# https reverse proxy
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 logging.basicConfig(
     filename=log_path,
@@ -54,7 +65,17 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M",
 )
 
-########### DATABASE #################
+login_manager = LoginManager(app)
+login_manager.login_view = "login"
+login_manager.login_message = "Veuillez vous connecter SVP"
+login_manager.login_message_category = "error"
+
+
+# ============================================
+# DATABASE
+# ============================================
+
+db = SQLAlchemy(app)
 
 
 class Articles_rss(db.Model):
@@ -98,6 +119,7 @@ class Networks(db.Model):
 
 
 class User(UserMixin, db.Model):
+    __tablename__ = "User"
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), unique=True, nullable=False)
     password = db.Column(db.String(20), nullable=False)
@@ -107,7 +129,9 @@ class User(UserMixin, db.Model):
         return f"User {self.username} - {self.is_admin}"
 
 
-########### FIN DATABASE ##############
+# ============================================
+# FONCTIONS
+# ============================================
 
 
 @login_manager.user_loader
@@ -277,7 +301,7 @@ def clean_and_resize_image(image_bytes, max_size=500000):
 
 def save_image(image_file):
     logging.debug("Sauvegarde de image_file : %s", image_file.filename)
-    save_path = "static/images/"
+    save_path = f"{str(script_dir)}/static/images/"
     filename = secure_filename(image_file.filename)
     image_bytes = image_file.read()
     cleaned_bytes = clean_and_resize_image(image_bytes)
@@ -466,6 +490,11 @@ def update_article(article_data) -> bool:
             e,
         )
         return False
+
+
+# ============================================
+# ROUTES
+# ============================================
 
 
 @app.route("/")
