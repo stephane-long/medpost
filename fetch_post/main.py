@@ -518,12 +518,20 @@ def post_to_threads(
         uploaded_to_bucket = True
 
     # Create media container
-    payload = {
-        "media_type": "IMAGE",
-        "image_url": post_image,
-        "text": f"{post['title']}\n➡️ {post['link']}",
-        "access_token": threads_token,
-    }
+    if post["link"] != "":
+        payload = {
+            "media_type": "IMAGE",
+            "image_url": post_image,
+            "text": f"{post['title']}\n➡️ {post['link']}",
+            "access_token": threads_token,
+        }
+    else:
+        payload = {
+            "media_type": "IMAGE",
+            "image_url": post_image,
+            "text": f"{post['title']}",
+            "access_token": threads_token,
+        }
 
     try:
         response = http_session.post(url_endpoint_media, data=payload)
@@ -558,7 +566,9 @@ def post_to_threads(
                 try:
                     delete_img_from_bucket(post["image_url"])
                 except Exception as err:
-                    logging.error("Éche lors de la suppression sur le bucket : %s", err)
+                    logging.error(
+                        "Échec lors de la suppression sur le bucket : %s", err
+                    )
 
             return threads_id
         except requests.exceptions.HTTPError as http_err:
@@ -1204,7 +1214,7 @@ def main() -> None:
     logging.basicConfig(
         filename=log_path,
         encoding="utf-8",
-        level=logging.DEBUG,
+        level=logging.INFO,
         format="%(asctime)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M",
     )

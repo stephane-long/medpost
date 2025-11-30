@@ -46,9 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const generateFormHtml = (network) => {
             return `
                 <div class="card mb-3">
-                    <div class="card-header text-white bg-${network === 'X'  network === 'Threads' ? 'dark' : network === 'Bluesky' ? 'info' : 'primary'
+                    <div class="card-header text-white bg-${network === 'X' ? 'dark' : network === 'Threads' ? 'secondary' : 'info' 
         }">
-            < strong > ${ network }</strong >
+            <strong> ${ network }</strong >
                     </div >
             <div class="card-body">
                 <form action="/new_post_image" method="post">
@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <input type="hidden" name="newspaper" value="${newspaper}">
                             <input type="hidden" name="selectedfeed" value="${selectedFeed}">
                                 <input type="hidden" name="description" value="Non utilisé">
-                                    ${network === 'X' ? generateXFields(network) : generateBlueskyFields(network)}
+                                    ${network === 'X' ? generateXFields(network) : network === 'Threads' ? generateThreadsFields(network) : generateBlueskyFields(network)}
                                 </form>
                             </div>
                         </div>
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="row">
                                 <div class="col-7 border rounded p-2">
                                     <label class="form-label fw-bold">Accroche du post</label>
-                                    <textarea class="form-control" name="tagline" rows="2" required></textarea>
+                                    <textarea class="form-control" name="tagline" rows="2" required>Accroche de l'article</textarea>
                                     <img src="${previewImageSrc}" class="w-100 mt-3 d-block rounded-3" alt="" />
                                 </div>
                                 <div class="col-5">
@@ -97,6 +97,25 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                             `;
         };
+
+        const generateThreadsFields = (network) => {
+            return `
+                        <div class="row">
+                            <div class="col-7 border rounded p-2">
+                                <label class="form-label fw-bold">Titre</label>
+                                <textarea class="form-control" name="title" rows="2" required>Titre de l'article</textarea>
+                                <div class="position-relative">
+                                    <img src="${previewImageSrc}" class="w-100 mt-3 d-block rounded-3" alt="" />
+                                </div>
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label fw-bold">Date et heure</label>
+                                <input type="datetime-local" class="form-control" name="datetime" value="${currentDatetime}" min="${currentDatetime}" style="width: 250px;" required>
+                            </div>
+                        </div>
+                        `;
+        };
+
 
         // Regénération des formulaires de saisie des posts
         const regenerateForms = () => {

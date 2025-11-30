@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             return `
                 <div class="card mb-3">
-                    <div class="card-header text-white bg-${(network === 'X' || network === 'Threads') ? 'dark' : network === 'Bluesky' ? 'info' : 'primary'}">
+                    <div class="card-header text-white bg-${network === 'X' ? 'dark' : network === 'Threads' ? 'secondary' : 'info'}">
                         <strong>${network}</strong>
                     </div>
                     <div class="card-body">
@@ -116,13 +116,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="row">
                     <div class="col-8 border rounded p-2">
                         <label for="title_${network}_${modalId}" class="form-label fw-bold">Titre du post</label>
-                        <textarea class="form-control" id="title_${network}_${modalId}" name="title" rows="2" required>${MedpostUtils.escapeHtml(data.title)}</textarea>                                                
+                        <textarea class="form-control" id="title_${network}_${modalId}" name="title" rows="2" required>${MedpostUtils.escapeHtml(data.title)}</textarea>      
+                        <a href="${data.link}" class="card-link" target="_blank">➡️ lequotidiendu...</a>
                         <div class="position-relative">
                             <img id="previewImage_${network}_${modalId}" src="${imageSrc}" class="w-100 mt-3 d-block rounded-3" alt=""/>
-                            <div id="caption_${network}_${modalId}" class="legend position-absolute start-50 translate-middle-x rounded bg-dark bg-opacity-75 text-white py-1 px-2 text-truncate">
-                                ${MedpostUtils.escapeHtml(data.title)}
-                            </div>
-                            <a href="${data.link}" class="card-link" target="_blank">De lequotidiendumedecin.fr</a>
+                            <!--<div id="caption_${network}_${modalId}" class="legend position-absolute start-50 translate-middle-x rounded bg-dark bg-opacity-75 text-white py-1 px-2 text-truncate">
+                              ${MedpostUtils.escapeHtml(data.title)}
+                            </div>-->
                         </div>
                     </div>
                     <div class="col-4">

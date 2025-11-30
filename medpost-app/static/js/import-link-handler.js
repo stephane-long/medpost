@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     return `
                         <div class="card mb-3">
-                            <div class="card-header text-white bg-${network === 'X' ? 'dark' : network === 'Bluesky' ? 'info' : 'primary'}">
+                            <div class="card-header text-white bg-${network === 'X' ? 'dark' : network === 'Threads' ? 'secondary' : 'info' }">
                                 <strong>${network}</strong>
                             </div>
                             <div class="card-body">
@@ -112,7 +112,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <input type="hidden" name="article_id" value="${importedArticle.id}">
                                     <input type="hidden" name="description" value="${MedpostUtils.escapeHtml(importedArticle.summary)}">
                                     ${network === 'X' ? generateXFields(network, imageSrc, currentDatetime) 
-                                                      : generateBlueskyFields(network, imageSrc, currentDatetime)}
+                                        : network === 'Threads' ? generateThreadsFields(network, imageSrc, currentDatetime) 
+                                        : generateBlueskyFields(network, imageSrc, currentDatetime)}
                                 </form>
                             </div>
                         </div>
@@ -124,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return `
                         <div class="row">
                             <div class="col-7 border rounded p-2">
-                                <label class="form-label fw-bold">Titre</label>
+                                <label class="form-label fw-bold">Titre du post</label>
                                 <textarea class="form-control" name="title" rows="2" required>${MedpostUtils.escapeHtml(importedArticle.title)}</textarea>
                                 <div class="position-relative">
                                     <img id="previewImage_${network}" src="${imageSrc}" class="w-100 mt-3 d-block rounded-3" alt=""/>
@@ -151,6 +152,31 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="col-7 border rounded p-2">
                                 <label class="form-label fw-bold">Accroche du post</label>
                                 <textarea class="form-control" name="tagline" rows="2" required></textarea>
+                                <img id="previewImage_${network}" src="${imageSrc}" class="w-100 mt-3 d-block rounded-3" alt=""/>
+                                <div class="legend-title">${MedpostUtils.escapeHtml(importedArticle.title)}</div>
+                                <div class="legend-chapo">${MedpostUtils.escapeHtml(truncatedSummary)}</div>
+                                <a href="${importedArticle.link}" class="card-link" target="_blank">@ www.lequotidiendupharmacien.fr</a>
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label fw-bold">Date et heure</label>
+                                <input type="datetime-local" class="form-control" name="datetime" value="${currentDatetime}" min="${currentDatetime}" style="width: 250px;" required>
+                                <label for="modifyImageFormFile_${network}" class="form-label fw-bold">Modifier l'image</label>
+                                <input type="file" class="form-control mb-3" id="modifyImageFormFile_${network}" accept="image/*">
+                                <button type="button" class="btn btn-primary" id="modifyImageBtn_${network}">Upload</button>
+                            </div>
+                        </div>
+                    `;
+                };
+
+                // Champs spécifiques Threads
+                const generateThreadsFields = (network, imageSrc, currentDatetime) => {
+                    const truncatedSummary = MedpostUtils.truncateText(importedArticle.summary, 165);
+                    return `
+                        <input type="hidden" name="title" value="${MedpostUtils.escapeHtml(importedArticle.title)}">
+                        <div class="row">
+                            <div class="col-7 border rounded p-2">
+                                <label class="form-label fw-bold">Titre du post</label>
+                                <textarea class="form-control" name="title" rows="2" required>${MedpostUtils.escapeHtml(importedArticle.title)}</textarea>
                                 <img id="previewImage_${network}" src="${imageSrc}" class="w-100 mt-3 d-block rounded-3" alt=""/>
                                 <div class="legend-title">${MedpostUtils.escapeHtml(importedArticle.title)}</div>
                                 <div class="legend-chapo">${MedpostUtils.escapeHtml(truncatedSummary)}</div>

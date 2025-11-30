@@ -6,7 +6,7 @@
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <div class="fw-bold">Articles non postés</div>
                 <div>
-                    <!-- Création post et article à partir d'un lien -->
+                    <!-- Création post et article à partir d'une image -->
                     <a class="btn btn-sm btn-outline-secondary"
                         style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;"
                         role="button" data-bs-toggle="modal" data-bs-target="#importImage">Post image</a>
@@ -51,10 +51,9 @@
                                                 </div>
                                                 <div class="form-check form-check-inline">
                                                     <input class="form-check-input network-checkbox_image"
-                                                        type="checkbox" id="linkedinCheckboxLink_image"
-                                                        value="LinkedIn">
+                                                        type="checkbox" id="linkedinCheckboxLink_image" value="Threads">
                                                     <label class="form-check-label"
-                                                        for="linkedinCheckboxLink_image">LinkedIn</label>
+                                                        for="linkedinCheckboxLink_image">Threads</label>
                                                 </div>
                                             </div>
                                         </form>
@@ -126,9 +125,9 @@
                                                 </div>
                                                 <div class="form-check form-check-inline">
                                                     <input class="form-check-input network-checkbox" type="checkbox"
-                                                        id="linkedinCheckboxLink" value="LinkedIn">
+                                                        id="linkedinCheckboxLink" value="Threads">
                                                     <label class="form-check-label"
-                                                        for="linkedin_checkbox_modal_imported">LinkedIn</label>
+                                                        for="linkedin_checkbox_modal_imported">Threads</label>
                                                 </div>
                                             </div>
                                         </form>
@@ -172,7 +171,7 @@
                 <a class="btn btn-sm mb-1 me-1  {% if selectedfeed == 'Bluesky' %}btn-info{% else %}btn-outline-info{% endif %}"
                     style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;"
                     role="button" href="{{ url_for('home', selectedfeed='Bluesky', newspaper=newspaper) }}">Bluesky</a>
-                <a class="btn btn-sm mb-1 {% if selectedfeed == 'Threads' %}btn-dark{% else %}btn-outline-dark{% endif %}"
+                <a class="btn btn-sm mb-1 {% if selectedfeed == 'Threads' %}btn-secondary{% else %}btn-outline-secondary{% endif %}"
                     style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;"
                     role="button" href="{{ url_for('home', selectedfeed='Threads', newspaper=newspaper) }}">Threads</a>
 
