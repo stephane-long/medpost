@@ -9,15 +9,12 @@ from collections.abc import Sequence
 
 import re
 
-# import io
 import requests
 import tweepy
 import feedparser
 
-# from PIL import Image
 from datetime import datetime
 
-# from xmlrpc.client import boolean
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from requests_oauthlib import OAuth1
@@ -1205,7 +1202,7 @@ def post_auto_function(
 
 
 def main() -> None:
-    load_dotenv(dotenv_path=str(script_dir / ".env.dev"))
+    # load_dotenv(dotenv_path=str(script_dir / ".env.dev"))
 
     log_path = str(script_dir.parent / os.getenv("LOG_PATH"))
     database_path = str(script_dir.parent / os.getenv("DATABASE_PATH"))

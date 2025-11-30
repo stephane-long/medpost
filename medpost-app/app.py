@@ -32,7 +32,7 @@ from pathlib import Path
 
 script_dir = Path(__file__).parent
 
-load_dotenv(dotenv_path=str(script_dir / ".env.dev"))
+# load_dotenv(dotenv_path=str(script_dir / ".env.dev"))
 
 db_path = str(script_dir.parent / os.getenv("DATABASE_PATH"))
 log_path = str(script_dir.parent / os.getenv("LOG_PATH"))
