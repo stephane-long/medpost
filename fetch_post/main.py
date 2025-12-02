@@ -25,7 +25,8 @@ from sqlalchemy.orm import Session
 from database import Articles_rss, Posts, Networks, create_db_and_tables, get_session
 from atproto import models, Client
 from bs4 import BeautifulSoup as bs
-from dotenv import load_dotenv
+
+# from dotenv import load_dotenv
 from pathlib import Path
 from paramiko import SSHClient, AutoAddPolicy
 
@@ -34,6 +35,7 @@ from paramiko import SSHClient, AutoAddPolicy
 # ============================================
 
 script_dir = Path(__file__).parent
+image_path = None
 
 # ============================================
 # SESSION HTTP
@@ -253,12 +255,13 @@ def upload_image_to_x(
     x_api_secret: str,
     x_access_token: str,
     x_access_token_secret: str,
-    image_path: str,
+    image_file: str,
 ) -> Optional[int]:
-    image_path = f"{str(script_dir.parent)}{os.getenv('IMAGES_PATH')}{image_path}"
+    #    image_file = f"{str(script_dir.parent)}{os.getenv('IMAGES_PATH')}{image_file}"
+    image_file = f"{image_path}/{image_file}"
     auth = OAuth1(x_api_key, x_api_secret, x_access_token, x_access_token_secret)
     upload_url = "https://upload.twitter.com/1.1/media/upload.json"
-    with open(image_path, "rb") as image_file:
+    with open(image_file, "rb") as image_file:
         files = {"media": image_file}
         try:
             req = http_session.post(url=upload_url, auth=auth, files=files)
@@ -281,7 +284,7 @@ def post_all_x(
     posts: Sequence[Any], engine: Engine, newspaper: str, http_session: requests.Session
 ) -> None:
     #    load_dotenv()
-    #    image_path = os.getenv('IMAGES_PATH')
+    #    image_file = os.getenv('IMAGES_PATH')
     x_api_secret = os.getenv(f"API_KEY_SECRET_{newspaper.upper()}")
     x_api_key = os.getenv(f"API_KEY_{newspaper.upper()}")
     x_access_token = os.getenv(f"ACCESS_TOKEN_{newspaper.upper()}")
@@ -359,10 +362,11 @@ def post_to_bluesky(post, client_bluesky, tag: str, http_session):
             return None
     else:
         # Récupération de l'image en local
-        image_path = f"{str(script_dir.parent)}{os.getenv('IMAGES_PATH')}{post_image}"
+        #        image_file = f"{str(script_dir.parent)}{os.getenv('IMAGES_PATH')}{post_image}"
+        image_file = f"{image_path}/{post_image}"
 
         try:
-            with open(image_path, "rb") as image_file:
+            with open(image_file, "rb") as image_file:
                 img_data = image_file.read()
         except Exception as e:
             logging.error("Erreur lors du load de l'image %s : %s", post_image, e)
@@ -442,11 +446,12 @@ def post_all_bluesky(posts, engine, newspaper: str, http_session) -> None:
 
 def upload_img_to_bucket(post_image):
     remote_path = f"{os.getenv('BUCKET_PATH')}{post_image}"
-    image_path = f"{str(script_dir.parent)}{os.getenv('IMAGES_PATH')}{post_image}"
+    #    image_file = f"{str(script_dir.parent)}{os.getenv('IMAGES_PATH')}{post_image}"
+    image_file = f"{image_path}/{post_image}"
 
-    if not os.path.isfile(image_path):
-        logging.error("Fichier introuvable pour upload: %s", image_path)
-        raise FileNotFoundError(f"Local image not found: {image_path}")
+    if not os.path.isfile(image_file):
+        logging.error("Fichier introuvable pour upload: %s", image_file)
+        raise FileNotFoundError(f"Local image not found: {image_file}")
 
     # Connexion SSH/SFTP
     hostname = os.getenv("HOSTNAME_FTP_BUCKET")
@@ -461,8 +466,8 @@ def upload_img_to_bucket(post_image):
         ssh.connect(hostname, port, username, password, timeout=10)
         logging.debug("Connexion SSH réussie")
         sftp_session = ssh.open_sftp()
-        sftp_session.put(image_path, remote_path)
-        logging.debug("Upload SFTP OK: %s -> %s", image_path, remote_path)
+        sftp_session.put(image_file, remote_path)
+        logging.debug("Upload SFTP OK: %s -> %s", image_file, remote_path)
     except Exception as err:
         logging.error("Erreur SSH/SFTP %s", err)
         raise
@@ -1202,11 +1207,17 @@ def post_auto_function(
 
 
 def main() -> None:
+    global image_path
     # load_dotenv(dotenv_path=str(script_dir / ".env.dev"))
 
-    log_path = str(script_dir.parent / os.getenv("LOG_PATH"))
-    database_path = str(script_dir.parent / os.getenv("DATABASE_PATH"))
-    url_newspapers = {"qdm": os.getenv("QDM_URL_RSS"), "qph": os.getenv("QPH_URL_RSS")}
+    if os.getenv("DOCKER_ENV"):
+        database_path = str(script_dir / os.getenv("DATABASE_PATH"))
+        log_path = str(script_dir / os.getenv("LOG_PATH"))
+        image_path = str(script_dir / os.getenv("IMAGES_PATH"))
+    else:
+        database_path = str(script_dir.parent / os.getenv("DATABASE_PATH"))
+        log_path = str(script_dir.parent / os.getenv("LOG_PATH"))
+        image_path = str(script_dir.parent / "medpost-app" / os.getenv("IMAGES_PATH"))
 
     logging.basicConfig(
         filename=log_path,
@@ -1215,6 +1226,10 @@ def main() -> None:
         format="%(asctime)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M",
     )
+
+    #    log_path = str(script_dir.parent / os.getenv("LOG_PATH"))
+    #    database_path = str(script_dir.parent / os.getenv("DATABASE_PATH"))
+    url_newspapers = {"qdm": os.getenv("QDM_URL_RSS"), "qph": os.getenv("QPH_URL_RSS")}
 
     engine = create_db_and_tables(database_path)
 
@@ -1225,7 +1240,7 @@ def main() -> None:
         for newspaper, url_newspaper in url_newspapers.items():
             logging.info("Traitement du journal: %s", newspaper)
 
-            # load_articles(engine, newspaper, url_newspaper, http_session)
+            load_articles(engine, newspaper, url_newspaper, http_session)
             post_auto_function(engine, newspaper, http_session)
 
             logging.info("Fin traitement du journal: %s", newspaper)

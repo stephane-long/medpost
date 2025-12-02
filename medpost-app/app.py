@@ -23,7 +23,8 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from sqlalchemy.exc import SQLAlchemyError
 from bs4 import BeautifulSoup as bs
 from PIL import Image
-from dotenv import load_dotenv
+
+# from dotenv import load_dotenv
 from pathlib import Path
 
 # ============================================
@@ -34,8 +35,16 @@ script_dir = Path(__file__).parent
 
 # load_dotenv(dotenv_path=str(script_dir / ".env.dev"))
 
-db_path = str(script_dir.parent / os.getenv("DATABASE_PATH"))
-log_path = str(script_dir.parent / os.getenv("LOG_PATH"))
+# En dev local : monte vers le parent ; en prod Docker : reste dans /app
+if os.getenv("DOCKER_ENV"):
+    db_path = str(script_dir / os.getenv("DATABASE_PATH"))
+    log_path = str(script_dir / os.getenv("LOG_PATH"))
+else:
+    db_path = str(script_dir.parent / os.getenv("DATABASE_PATH"))
+    log_path = str(script_dir.parent / os.getenv("LOG_PATH"))
+
+# db_path = str(script_dir.parent / os.getenv("DATABASE_PATH"))
+# log_path = str(script_dir.parent / os.getenv("LOG_PATH"))
 secret_key = os.getenv("APP_SECRET_KEY")
 
 if not secret_key:
@@ -744,5 +753,5 @@ def refresh():
 
 
 if __name__ == "__main__":
-    app.run(port=8000, debug=True)
-    # app.run(port=8000)
+    # app.run(port=8000, debug=True)
+    app.run(port=8000)

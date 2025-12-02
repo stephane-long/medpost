@@ -128,16 +128,16 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <label class="form-label fw-bold">Titre du post</label>
                                 <textarea class="form-control" name="title" rows="2" required>${MedpostUtils.escapeHtml(importedArticle.title)}</textarea>
                                 <div class="position-relative">
-                                    <img id="previewImage_${network}" src="${imageSrc}" class="w-100 mt-3 d-block rounded-3" alt=""/>
+                                    <img id="previewImage_${network}_import-link" src="${imageSrc}" class="w-100 mt-3 d-block rounded-3" alt=""/>
                                     <a href="${importedArticle.link}" class="card-link" target="_blank">De lequotidiendumedecin.fr</a>
                                 </div>
                             </div>
                             <div class="col-5">
                                 <label class="form-label fw-bold">Date et heure</label>
                                 <input type="datetime-local" class="form-control" name="datetime" value="${currentDatetime}" min="${currentDatetime}" style="width: 250px;" required>
-                                <label for="modifyImageFormFile_${network}" class="form-label fw-bold">Modifier l'image</label>
-                                <input type="file" class="form-control mb-3" id="modifyImageFormFile_${network}" accept="image/*">
-                                <button type="button" class="btn btn-primary" id="modifyImageBtn_${network}">Upload</button>
+                                <label for="modifyImageFormFile_${network}_import-link" class="form-label fw-bold">Modifier l'image</label>
+                                <input type="file" class="form-control mb-3" id="modifyImageFormFile_${network}_import-link" accept="image/*">
+                                <button type="button" class="btn btn-primary" id="modifyImageBtn_${network}_import-link">Upload</button>
                             </div>
                         </div>
                     `;
@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="col-7 border rounded p-2">
                                 <label class="form-label fw-bold">Accroche du post</label>
                                 <textarea class="form-control" name="tagline" rows="2" required></textarea>
-                                <img id="previewImage_${network}" src="${imageSrc}" class="w-100 mt-3 d-block rounded-3" alt=""/>
+                                <img id="previewImage_${network}_import-link" src="${imageSrc}" class="w-100 mt-3 d-block rounded-3" alt=""/>
                                 <div class="legend-title">${MedpostUtils.escapeHtml(importedArticle.title)}</div>
                                 <div class="legend-chapo">${MedpostUtils.escapeHtml(truncatedSummary)}</div>
                                 <a href="${importedArticle.link}" class="card-link" target="_blank">@ www.lequotidiendupharmacien.fr</a>
@@ -160,9 +160,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="col-5">
                                 <label class="form-label fw-bold">Date et heure</label>
                                 <input type="datetime-local" class="form-control" name="datetime" value="${currentDatetime}" min="${currentDatetime}" style="width: 250px;" required>
-                                <label for="modifyImageFormFile_${network}" class="form-label fw-bold">Modifier l'image</label>
-                                <input type="file" class="form-control mb-3" id="modifyImageFormFile_${network}" accept="image/*">
-                                <button type="button" class="btn btn-primary" id="modifyImageBtn_${network}">Upload</button>
+                                <label for="modifyImageFormFile_${network}_import-link" class="form-label fw-bold">Modifier l'image</label>
+                                <input type="file" class="form-control mb-3" id="modifyImageFormFile_${network}_import-link" accept="image/*">
+                                <button type="button" class="btn btn-primary" id="modifyImageBtn_${network}_import-link">Upload</button>
                             </div>
                         </div>
                     `;
@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="col-7 border rounded p-2">
                                 <label class="form-label fw-bold">Titre du post</label>
                                 <textarea class="form-control" name="title" rows="2" required>${MedpostUtils.escapeHtml(importedArticle.title)}</textarea>
-                                <img id="previewImage_${network}" src="${imageSrc}" class="w-100 mt-3 d-block rounded-3" alt=""/>
+                                <img id="previewImage_${network}_import-link" src="${imageSrc}" class="w-100 mt-3 d-block rounded-3" alt=""/>
                                 <div class="legend-title">${MedpostUtils.escapeHtml(importedArticle.title)}</div>
                                 <div class="legend-chapo">${MedpostUtils.escapeHtml(truncatedSummary)}</div>
                                 <a href="${importedArticle.link}" class="card-link" target="_blank">@ www.lequotidiendupharmacien.fr</a>
@@ -185,9 +185,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="col-5">
                                 <label class="form-label fw-bold">Date et heure</label>
                                 <input type="datetime-local" class="form-control" name="datetime" value="${currentDatetime}" min="${currentDatetime}" style="width: 250px;" required>
-                                <label for="modifyImageFormFile_${network}" class="form-label fw-bold">Modifier l'image</label>
-                                <input type="file" class="form-control mb-3" id="modifyImageFormFile_${network}" accept="image/*">
-                                <button type="button" class="btn btn-primary" id="modifyImageBtn_${network}">Upload</button>
+                                <label for="modifyImageFormFile_${network}_import-link" class="form-label fw-bold">Modifier l'image</label>
+                                <input type="file" class="form-control mb-3" id="modifyImageFormFile_${network}_import-link" accept="image/*">
+                                <button type="button" class="btn btn-primary" id="modifyImageBtn_${network}_import-link">Upload</button>
                             </div>
                         </div>
                     `;
@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             postFormContainer.insertAdjacentHTML('beforeend', formHtml);
                             
                             // Attacher les handlers d'upload d'image (sans modalId pour import-link)
-                            MedpostUtils.attachImageUploadHandlers(network, '', modifiedImages);
+                            MedpostUtils.attachImageUploadHandlers(network, 'import-link', modifiedImages);
                         }
                     });
                     
@@ -221,6 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const success = await MedpostUtils.validateAndSubmitForms(forms, {
                         spinner,
                         modifiedImages,
+                        modalId: 'import-link',
                         onSuccess: () => {
                             window.location.href = `/?selectedfeed=tous&newspaper=${newspaper}`;
                         },
