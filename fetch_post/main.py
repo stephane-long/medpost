@@ -58,8 +58,8 @@ def create_http_session() -> requests.Session:
     # Informations du bot depuis variables d'environnement (avec valeurs par défaut)
     bot_name = os.getenv("BOT_NAME", "MedpostBot")
     bot_version = os.getenv("BOT_VERSION", "1.0")
-    # bot_url = os.getenv("BOT_URL", "https://github.com/")
-    bot_contact = os.getenv("BOT_CONTACT", "perso@stephanelong.fr")
+    # bot_url = os.getenv("BOT_URL", "https://github.com/stephane-long/medpost")
+    bot_contact = os.getenv("BOT_CONTACT", "agenthttp.recognize312@passmail.net")
 
     # Construction du User-Agent
     # Format: NomBot/Version (+URL; email) Client/Version Système
@@ -524,7 +524,7 @@ def post_to_threads(
         payload = {
             "media_type": "IMAGE",
             "image_url": post_image,
-            "text": f"{post['title']}\n➡️ {post['link']}",
+            "text": f"{post['title']}\n\n➡️ {post['link']}{tag or ''}",
             "access_token": threads_token,
         }
     else:
