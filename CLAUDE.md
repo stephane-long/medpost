@@ -1,0 +1,240 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+Medpost is a Flask-based social media automation platform for managing and scheduling posts to multiple social networks (X/Twitter, Bluesky, Threads) for French medical journals (Le Quotidien du Médecin and Le Quotidien du Pharmacien). The system consists of two main components:
+
+1. **medpost-app**: Flask web application for managing posts, articles, and user authentication
+2. **fetch_post**: Background service for RSS feed retrieval and automated post publishing
+
+## Architecture
+
+### Two-Service Architecture
+
+The application runs as two separate Docker containers that share data via Docker volumes:
+
+- **medpost-app** (Flask web UI): User-facing interface for creating, editing, and scheduling posts
+- **fetcher-app** (Background processor): Automated RSS feed ingestion and social media publishing
+- **sqlite-cli** (Utility): Alpine container for direct database access
+
+### Shared Resources (Docker Volumes)
+
+- `data_volume`: SQLite database (`rss_qdm.db`)
+- `logs_volume`: Application logs (`medpost.log`)
+- `images_volume`: Post images and default placeholder
+
+### Database Schema
+
+The application uses SQLAlchemy with SQLite. Key models:
+
+- **Articles_rss**: RSS feed articles with metadata (title, link, summary, image_url, pubdate, nid, newspaper)
+- **Posts**: Scheduled/published posts with status tracking (plan/pub), linked to articles and networks
+- **Networks**: Social media platforms with custom tags (X, Bluesky, Threads)
+- **User**: Authentication with admin flag (Flask-Login)
+
+**Critical**: The `nid` field in Articles_rss is the Drupal node ID from the source website. It's used to identify and deduplicate articles.
+
+### Environment Configuration
+
+The application uses different `.env` files for dev/prod environments:
+
+- Development: `.env.dev` (local testing with mounted volumes)
+- Production: `.env.prod` (Docker deployment with named volumes)
+
+Environment detection via `DOCKER_ENV` variable determines path resolution (script_dir vs script_dir.parent).
+
+## Common Development Commands
+
+### Docker Development
+
+```bash
+# Build and start all services (from medpost-app directory)
+cd medpost-app
+docker compose up --build -d
+
+# View logs
+docker logs medpost
+docker logs fetcher
+
+# Stop services
+docker compose down
+
+# Access SQLite database directly
+docker exec -it sqlite-cli sqlite3 /data/rss_qdm.db
+```
+
+### Local Development (without Docker)
+
+```bash
+# Create/activate virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run Flask app (from medpost-app directory)
+cd medpost-app
+python app.py  # Runs on port 8000
+
+# Run fetcher manually (from fetch_post directory)
+cd fetch_post
+python main.py
+```
+
+### Database Operations
+
+```bash
+# Access database via Docker
+docker exec -it sqlite-cli sh
+sqlite3 /data/rss_qdm.db
+
+# Common queries
+SELECT * FROM networks;
+SELECT * FROM posts WHERE status='plan' ORDER BY date_pub;
+SELECT COUNT(*) FROM articles_rss WHERE newspaper='qdm';
+```
+
+## Key Implementation Details
+
+### Image Processing
+
+The application implements custom image handling in `app.py`:
+
+- `clean_and_resize_image()`: Strips metadata and compresses images to meet platform requirements (max 500KB for X, 1MB for Bluesky)
+- `save_image()`: Processes uploaded images and saves to `static/images/`
+- Default fallback: `images/no_picture.jpg` for missing images
+
+### Social Media Publishing (fetch_post/main.py)
+
+Each platform has distinct requirements:
+
+**X (Twitter)**:
+- Requires OAuth1 authentication with 4 credentials
+- Image upload via separate media endpoint, returns media_id
+- Posts can include media_ids or link cards
+
+**Bluesky**:
+- Uses atproto SDK with login/password
+- Creates embedded cards with thumb images for links
+- Direct image posts for non-link content
+- Images downloaded from URLs or loaded from local files
+
+**Threads**:
+- Two-step process: create media container, then publish
+- Local images must be uploaded to external bucket (SFTP) before posting
+- Requires permalink retrieval after posting for URL storage
+- Images automatically deleted from bucket after successful post
+
+### Article Import Workflow
+
+1. User pastes article URL in web UI (`/import` route)
+2. System fetches HTML and extracts Twitter card metadata (title, description, image)
+3. Extracts Drupal `nid` from `data-history-node-id` attribute
+4. Checks if article exists in database by NID
+5. Creates new article or returns existing one
+6. User can then create scheduled posts for different networks
+
+### Status Flow
+
+Articles and posts follow this lifecycle:
+
+1. **Article**: RSS import or manual URL import → `online=1` (visible) or `online=0` (hidden/deleted)
+2. **Post**: Created with `status='plan'` → Published to network → `status='pub'` + `network_post_id` stored
+
+### Authentication
+
+Flask-Login with hashed passwords (Werkzeug). Admin users can manage users via `/admin` route. Session lifetime: 12 hours.
+
+## Critical Configuration Notes
+
+### Path Resolution Logic
+
+Both `app.py` and `main.py` use conditional path resolution:
+
+```python
+if os.getenv("DOCKER_ENV"):
+    db_path = str(script_dir / os.getenv("DATABASE_PATH"))
+else:
+    db_path = str(script_dir.parent / os.getenv("DATABASE_PATH"))
+```
+
+This allows running locally (parent directory) or in Docker (current directory).
+
+### Network Tags
+
+Each social network can have custom UTM tags or tracking parameters stored in the Networks table. These are appended to article URLs when posting. Managed via `/tags` route.
+
+### RSS Feed Processing
+
+The fetcher processes up to 25 articles per feed run with:
+- Configurable crawl delay between requests (default 1.5s)
+- Automatic retry logic with exponential backoff
+- Rate limit handling (429 responses)
+- Article validation to skip unwanted content (e.g., "Votre journal au format numérique")
+
+### Dual Newspaper Support
+
+The system handles two newspapers (qdm/qph) with separate:
+- Social media credentials (suffixed with `_QDM` or `_QPH`)
+- RSS feed URLs
+- Post scheduling
+
+All database operations filter by the `newspaper` field to maintain separation.
+
+## Production Deployment Notes
+
+### Volume Initialization
+
+External volumes must be created and populated before first run:
+
+```bash
+# Create database volume and copy initial DB
+docker run --rm -v data_volume:/data -v /host/path/data:/host alpine cp /host/rss_qdm.db /data/
+
+# Create logs volume and copy initial log file
+docker run --rm -v logs_volume:/data -v /host/path/logs:/host alpine cp /host/medpost.log /data/
+
+# Create images volume and copy default image
+docker run --rm -v images_volume:/data -v /host/path/images:/host alpine cp /host/no_picture.jpg /data/
+```
+
+### Docker Compose Configuration
+
+For production, modify `docker-compose.yml`:
+- Change `env_file` to `.env.prod`
+- Comment out development volume mounts (`.:/app`)
+- Ensure external volumes are declared
+
+### Scheduled Publishing
+
+The fetcher container should be run periodically (cron/scheduler) rather than continuously:
+
+```bash
+# Example cron job to run every 2 hours
+0 */2 * * * docker start fetcher
+```
+
+## Technology Stack
+
+- **Backend**: Flask 3.1.0 with Flask-Login, Flask-SQLAlchemy
+- **Database**: SQLite 3 with SQLAlchemy ORM
+- **Social Media APIs**:
+  - Tweepy 4.15.0 (X/Twitter API v2)
+  - atproto 0.0.59 (Bluesky)
+  - Meta Graph API (Threads)
+- **HTTP**: Requests with retry strategy and connection pooling
+- **HTML Parsing**: BeautifulSoup4
+- **RSS**: feedparser
+- **Image Processing**: Pillow
+- **Deployment**: Docker with Gunicorn (4 workers)
+
+## Common Troubleshooting
+
+- **Import fails**: Check that article has Twitter card metadata and data-history-node-id attribute
+- **Image upload fails**: Verify image is under size limits, check file permissions in static/images/
+- **Posts not publishing**: Check date_pub is in the past, status is 'plan', verify API credentials
+- **Database locked**: Ensure only one process writes to SQLite at a time, check volume permissions
+- **Threads posts fail**: Verify bucket SFTP credentials, check image URL accessibility
