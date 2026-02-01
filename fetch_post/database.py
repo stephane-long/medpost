@@ -1,5 +1,5 @@
 # /Users/stephanelong/Documents/DEV/Medpost/fetch_post/database.py
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 
@@ -48,6 +48,23 @@ class Networks(Base):
 
     def __repr__(self):
         return f"Network {self.id} : {self.name}"
+
+
+class TokensMetadata(Base):
+    __tablename__ = "tokens_metadata"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    network = Column(String(50), nullable=False)
+    newspaper = Column(String(10), nullable=False)
+    access_token = Column(String(500), nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, nullable=False)
+    updated_at = Column(DateTime, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    previous_token = Column(String(500), nullable=True)
+    last_refresh_date = Column(DateTime, nullable=True)
+
+    def __repr__(self):
+        return f"Token {self.network} - {self.newspaper} - expires: {self.expires_at}"
 
 
 # Function to create the engine and the session

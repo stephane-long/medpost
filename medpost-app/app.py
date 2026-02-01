@@ -138,6 +138,23 @@ class User(UserMixin, db.Model):
         return f"User {self.username} - {self.is_admin}"
 
 
+class TokensMetadata(db.Model):
+    __tablename__ = "tokens_metadata"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    network = db.Column(db.String(50), nullable=False)
+    newspaper = db.Column(db.String(10), nullable=False)
+    access_token = db.Column(db.String(500), nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False)
+    updated_at = db.Column(db.DateTime, nullable=True)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    previous_token = db.Column(db.String(500), nullable=True)
+    last_refresh_date = db.Column(db.DateTime, nullable=True)
+
+    def __repr__(self):
+        return f"Token {self.network} - {self.newspaper} - expires: {self.expires_at}"
+
+
 # ============================================
 # FONCTIONS
 # ============================================

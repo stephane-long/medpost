@@ -22,7 +22,7 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import SQLAlchemyError, NoResultFound, MultipleResultsFound
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
-from database import Articles_rss, Posts, Networks, create_db_and_tables, get_session
+from database import Articles_rss, Posts, Networks, TokensMetadata, create_db_and_tables, get_session
 from atproto import models, Client
 from bs4 import BeautifulSoup as bs
 
@@ -444,6 +444,274 @@ def post_all_bluesky(posts, engine, newspaper: str, http_session) -> None:
 # ===== Threads =====
 
 
+def get_threads_token(engine: Engine, newspaper: str) -> Optional[str]:
+    """
+    Récupère le token Threads depuis la base de données.
+    Utilise le .env comme fallback si le token n'existe pas en DB.
+
+    Args:
+        engine: Moteur SQLAlchemy
+        newspaper: Nom du journal (qdm/qph)
+
+    Returns:
+        str | None: Le token d'accès ou None si non trouvé
+    """
+    try:
+        with get_session(engine) as session:
+            token_metadata = session.execute(
+                select(TokensMetadata)
+                .where(TokensMetadata.network == "threads")
+                .where(TokensMetadata.newspaper == newspaper)
+                .where(TokensMetadata.is_active == True)
+            ).scalar_one_or_none()
+
+            if token_metadata:
+                logging.debug(
+                    "Token Threads récupéré depuis DB pour %s (expire: %s)",
+                    newspaper,
+                    token_metadata.expires_at,
+                )
+                return token_metadata.access_token
+            else:
+                # Fallback vers .env si pas en DB
+                token = os.getenv(f"THREADS_TOKEN_{newspaper.upper()}")
+                if token:
+                    logging.warning(
+                        "Token Threads lu depuis .env pour %s (migration vers DB recommandée)",
+                        newspaper,
+                    )
+                else:
+                    logging.error("Token Threads introuvable pour %s", newspaper)
+                return token
+
+    except SQLAlchemyError as err:
+        logging.error("Erreur DB lors de la lecture du token Threads: %s", err)
+        # Fallback vers .env en cas d'erreur DB
+        return os.getenv(f"THREADS_TOKEN_{newspaper.upper()}")
+    except Exception as err:
+        logging.error("Erreur inattendue lors de la lecture du token: %s", err)
+        return None
+
+
+def check_and_refresh_threads_token(
+    engine: Engine, newspaper: str, http_session: requests.Session
+) -> bool:
+    """
+    Vérifie l'expiration du token Threads et le renouvelle si nécessaire.
+
+    Args:
+        engine: Moteur SQLAlchemy
+        newspaper: Nom du journal (qdm/qph)
+        http_session: Session HTTP pour les requêtes
+
+    Returns:
+        bool: True si le token est valide (ou renouvelé avec succès), False sinon
+    """
+    try:
+        with get_session(engine) as session:
+            token_metadata = session.execute(
+                select(TokensMetadata)
+                .where(TokensMetadata.network == "threads")
+                .where(TokensMetadata.newspaper == newspaper)
+                .where(TokensMetadata.is_active == True)
+            ).scalar_one_or_none()
+
+            if not token_metadata:
+                logging.warning(
+                    "Aucun token Threads en DB pour %s - vérification ignorée", newspaper
+                )
+                return True  # Pas de token en DB, utilisation du .env
+
+            # Calculer le nombre de jours avant expiration
+            now = datetime.now()
+            days_until_expiration = (token_metadata.expires_at - now).days
+
+            logging.info(
+                "Token Threads %s expire dans %d jours",
+                newspaper,
+                days_until_expiration,
+            )
+
+            # Renouveler si moins de 7 jours avant expiration
+            if days_until_expiration < 7:
+                logging.info(
+                    "Renouvellement du token Threads pour %s (expire le %s)",
+                    newspaper,
+                    token_metadata.expires_at.strftime("%Y-%m-%d"),
+                )
+
+                # Appel API avec retry strategy
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        refresh_url = "https://graph.threads.net/refresh_access_token"
+                        params = {
+                            "grant_type": "th_refresh_token",
+                            "access_token": token_metadata.access_token,
+                        }
+
+                        response = http_session.get(
+                            refresh_url, params=params, timeout=10
+                        )
+                        response.raise_for_status()
+
+                        data = response.json()
+                        new_token = data.get("access_token")
+                        expires_in = data.get("expires_in", 5184000)  # 60 jours par défaut
+
+                        if not new_token:
+                            logging.error(
+                                "Réponse API invalide (pas de access_token): %s", data
+                            )
+                            continue
+
+                        # Validation basique du nouveau token
+                        if len(new_token) < 50:
+                            logging.error(
+                                "Token reçu invalide (trop court): %s...",
+                                new_token[:8],
+                            )
+                            continue
+
+                        # Mise à jour en DB
+                        token_metadata.previous_token = token_metadata.access_token
+                        token_metadata.access_token = new_token
+                        token_metadata.expires_at = now + timedelta(
+                            seconds=expires_in
+                        )
+                        token_metadata.last_refresh_date = now
+                        token_metadata.updated_at = now
+
+                        session.commit()
+
+                        logging.info(
+                            "✓ Token Threads renouvelé avec succès pour %s (expire le %s)",
+                            newspaper,
+                            token_metadata.expires_at.strftime("%Y-%m-%d"),
+                        )
+                        return True
+
+                    except requests.exceptions.HTTPError as http_err:
+                        logging.error(
+                            "Erreur HTTP lors du renouvellement (tentative %d/%d): %s",
+                            attempt + 1,
+                            max_retries,
+                            http_err,
+                        )
+                        if attempt < max_retries - 1:
+                            time.sleep(2**attempt)  # Backoff exponentiel
+                    except Exception as err:
+                        logging.error(
+                            "Erreur lors du renouvellement (tentative %d/%d): %s",
+                            attempt + 1,
+                            max_retries,
+                            err,
+                        )
+                        if attempt < max_retries - 1:
+                            time.sleep(2**attempt)
+
+                # Toutes les tentatives ont échoué
+                logging.error(
+                    "✗ ÉCHEC du renouvellement du token Threads pour %s après %d tentatives",
+                    newspaper,
+                    max_retries,
+                )
+                logging.error(
+                    "⚠ ALERTE: Utilisation de l'ancien token - intervention manuelle recommandée"
+                )
+                return False  # On continue avec l'ancien token
+
+            else:
+                logging.debug(
+                    "Token Threads %s valide encore %d jours",
+                    newspaper,
+                    days_until_expiration,
+                )
+                return True
+
+    except SQLAlchemyError as err:
+        logging.error(
+            "Erreur DB lors de la vérification du token Threads: %s", err
+        )
+        return True  # Continuer en cas d'erreur DB
+    except Exception as err:
+        logging.error("Erreur inattendue lors de la vérification du token: %s", err)
+        return True
+
+
+def migrate_tokens_to_db(engine: Engine) -> None:
+    """
+    Migration one-time : transfère les tokens Threads du .env vers la base de données.
+
+    Cette fonction doit être appelée une seule fois lors du premier déploiement
+    de la nouvelle architecture. Elle crée les entrées TokensMetadata en DB.
+
+    Args:
+        engine: Moteur SQLAlchemy
+    """
+    newspapers = ["qdm", "qph"]
+
+    try:
+        with get_session(engine) as session:
+            migrated = 0
+            skipped = 0
+
+            for newspaper in newspapers:
+                # Vérifier si un token existe déjà en DB
+                existing = session.execute(
+                    select(TokensMetadata)
+                    .where(TokensMetadata.network == "threads")
+                    .where(TokensMetadata.newspaper == newspaper)
+                ).scalar_one_or_none()
+
+                if existing:
+                    logging.info(
+                        "Token Threads déjà migré pour %s - ignoré", newspaper
+                    )
+                    skipped += 1
+                    continue
+
+                # Récupérer le token depuis .env
+                token = os.getenv(f"THREADS_TOKEN_{newspaper.upper()}")
+
+                if not token:
+                    logging.warning(
+                        "Aucun token Threads trouvé dans .env pour %s", newspaper
+                    )
+                    continue
+
+                # Créer l'entrée en DB
+                now = datetime.now()
+                new_token_metadata = TokensMetadata(
+                    network="threads",
+                    newspaper=newspaper,
+                    access_token=token,
+                    expires_at=now + timedelta(days=60),  # 60 jours par défaut
+                    created_at=now,
+                    is_active=True,
+                )
+
+                session.add(new_token_metadata)
+                logging.info(
+                    "Token Threads migré pour %s (expire: %s)",
+                    newspaper,
+                    new_token_metadata.expires_at.strftime("%Y-%m-%d"),
+                )
+                migrated += 1
+
+            session.commit()
+            logging.info(
+                "Migration terminée - %d token(s) migré(s), %d ignoré(s)",
+                migrated,
+                skipped,
+            )
+
+    except SQLAlchemyError as err:
+        logging.error("Erreur DB lors de la migration des tokens: %s", err)
+    except Exception as err:
+        logging.error("Erreur inattendue lors de la migration: %s", err)
+
+
 def upload_img_to_bucket(post_image):
     remote_path = f"{os.getenv('BUCKET_PATH')}{post_image}"
     #    image_file = f"{str(script_dir.parent)}{os.getenv('IMAGES_PATH')}{post_image}"
@@ -620,7 +888,12 @@ def get_threads_permalink(threads_id, threads_token, http_session):
 
 def post_all_threads(posts, engine, newspaper, http_session):
     logging.debug("Début publication sur Threads")
-    threads_token = os.getenv(f"THREADS_TOKEN_{newspaper.upper()}")
+
+    # Vérifier et renouveler le token si nécessaire
+    check_and_refresh_threads_token(engine, newspaper, http_session)
+
+    # Récupérer le token depuis la DB (avec fallback vers .env)
+    threads_token = get_threads_token(engine, newspaper)
     if not threads_token:
         logging.error("THREADS_TOKEN manquant pour %s", newspaper)
         return
@@ -1232,6 +1505,9 @@ def main() -> None:
     url_newspapers = {"qdm": os.getenv("QDM_URL_RSS"), "qph": os.getenv("QPH_URL_RSS")}
 
     engine = create_db_and_tables(database_path)
+
+    # Migration des tokens du .env vers la DB (one-time, idempotent)
+    migrate_tokens_to_db(engine)
 
     # Utilisation de la session HTTP optimisée
     with create_http_session() as http_session:
