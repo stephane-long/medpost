@@ -13,7 +13,7 @@ import requests
 import tweepy
 import feedparser
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -22,7 +22,14 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import SQLAlchemyError, NoResultFound, MultipleResultsFound
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
-from database import Articles_rss, Posts, Networks, TokensMetadata, create_db_and_tables, get_session
+from database import (
+    Articles_rss,
+    Posts,
+    Networks,
+    TokensMetadata,
+    create_db_and_tables,
+    get_session,
+)
 from atproto import models, Client
 from bs4 import BeautifulSoup as bs
 
@@ -462,7 +469,7 @@ def get_threads_token(engine: Engine, newspaper: str) -> Optional[str]:
                 select(TokensMetadata)
                 .where(TokensMetadata.network == "threads")
                 .where(TokensMetadata.newspaper == newspaper)
-                .where(TokensMetadata.is_active == True)
+                .where(TokensMetadata.is_active)
             ).scalar_one_or_none()
 
             if token_metadata:
@@ -493,16 +500,13 @@ def get_threads_token(engine: Engine, newspaper: str) -> Optional[str]:
         return None
 
 
-def check_and_refresh_threads_token(
-    engine: Engine, newspaper: str, http_session: requests.Session
-) -> bool:
+def check_and_refresh_threads_token(engine: Engine, newspaper: str) -> bool:
     """
     Vérifie l'expiration du token Threads et le renouvelle si nécessaire.
 
     Args:
         engine: Moteur SQLAlchemy
         newspaper: Nom du journal (qdm/qph)
-        http_session: Session HTTP pour les requêtes
 
     Returns:
         bool: True si le token est valide (ou renouvelé avec succès), False sinon
@@ -513,12 +517,13 @@ def check_and_refresh_threads_token(
                 select(TokensMetadata)
                 .where(TokensMetadata.network == "threads")
                 .where(TokensMetadata.newspaper == newspaper)
-                .where(TokensMetadata.is_active == True)
+                .where(TokensMetadata.is_active)
             ).scalar_one_or_none()
 
             if not token_metadata:
                 logging.warning(
-                    "Aucun token Threads en DB pour %s - vérification ignorée", newspaper
+                    "Aucun token Threads en DB pour %s - vérification ignorée",
+                    newspaper,
                 )
                 return True  # Pas de token en DB, utilisation du .env
 
@@ -550,14 +555,14 @@ def check_and_refresh_threads_token(
                             "access_token": token_metadata.access_token,
                         }
 
-                        response = http_session.get(
-                            refresh_url, params=params, timeout=10
-                        )
+                        response = requests.get(refresh_url, params=params, timeout=10)
                         response.raise_for_status()
 
                         data = response.json()
                         new_token = data.get("access_token")
-                        expires_in = data.get("expires_in", 5184000)  # 60 jours par défaut
+                        expires_in = data.get(
+                            "expires_in", 5184000
+                        )  # 60 jours par défaut
 
                         if not new_token:
                             logging.error(
@@ -576,9 +581,7 @@ def check_and_refresh_threads_token(
                         # Mise à jour en DB
                         token_metadata.previous_token = token_metadata.access_token
                         token_metadata.access_token = new_token
-                        token_metadata.expires_at = now + timedelta(
-                            seconds=expires_in
-                        )
+                        token_metadata.expires_at = now + timedelta(seconds=expires_in)
                         token_metadata.last_refresh_date = now
                         token_metadata.updated_at = now
 
@@ -630,13 +633,44 @@ def check_and_refresh_threads_token(
                 return True
 
     except SQLAlchemyError as err:
-        logging.error(
-            "Erreur DB lors de la vérification du token Threads: %s", err
-        )
+        logging.error("Erreur DB lors de la vérification du token Threads: %s", err)
         return True  # Continuer en cas d'erreur DB
     except Exception as err:
         logging.error("Erreur inattendue lors de la vérification du token: %s", err)
         return True
+
+
+def get_token_dates(access_token):
+    endpoint_url = "https://graph.threads.net/v1.0/debug_token"
+    params = {"input_token": access_token, "access_token": access_token}
+    logging.debug("Fetching des dates de token")
+    try:
+        response = requests.get(endpoint_url, params=params, timeout=10)
+        response.raise_for_status()
+        logging.debug("Réponse brute : %s", response.text[:200])
+        data = response.json()
+        token_data = data.get("data", {})
+        expires_at_ts = token_data.get("expires_at")
+        issued_at_ts = token_data.get("issued_at")
+        if expires_at_ts and issued_at_ts:
+            expires_at = datetime.fromtimestamp(expires_at_ts)
+            issued_at = datetime.fromtimestamp(issued_at_ts)
+            logging.info("Date émission/expiration : %s/%s", issued_at, expires_at)
+            return expires_at, issued_at
+        else:
+            logging.error("Dates manquantes dans la réponse API")
+            raise ValueError("Invalid API response")
+    except requests.exceptions.HTTPError as http_err:
+        logging.error("Erreur HTTP lors de la lecture des dates token: %s", http_err)
+    except ValueError as json_err:
+        logging.error("Réponse non-JSON ou invalide de l'API Threads: %s", json_err)
+    except Exception as err:
+        logging.error("Erreur inattendue lors de la récupération des dates: %s", err)
+
+    # Fallback en cas d'erreur
+    logging.warning("Utilisation dates par défaut suite à erreur API")
+    now = datetime.now()
+    return now + timedelta(days=60), now
 
 
 def migrate_tokens_to_db(engine: Engine) -> None:
@@ -663,11 +697,10 @@ def migrate_tokens_to_db(engine: Engine) -> None:
                     .where(TokensMetadata.network == "threads")
                     .where(TokensMetadata.newspaper == newspaper)
                 ).scalar_one_or_none()
+                logging.debug("Token dans la base ? %s", existing)
 
                 if existing:
-                    logging.info(
-                        "Token Threads déjà migré pour %s - ignoré", newspaper
-                    )
+                    logging.info("Token Threads déjà migré pour %s - ignoré", newspaper)
                     skipped += 1
                     continue
 
@@ -679,15 +712,25 @@ def migrate_tokens_to_db(engine: Engine) -> None:
                         "Aucun token Threads trouvé dans .env pour %s", newspaper
                     )
                     continue
+                logging.debug("Token trouvé dans .env : %s", token)
 
                 # Créer l'entrée en DB
-                now = datetime.now()
+                expires_at, issued_at = get_token_dates(token)
+                logging.info(
+                    "Dates renvoyés par l'API converties Iss/Exp: %s/%s",
+                    issued_at,
+                    expires_at,
+                )
+                if expires_at is None or issued_at is None:
+                    logging.info("Pas de dates de token pour %s", newspaper)
+                    continue
+
                 new_token_metadata = TokensMetadata(
                     network="threads",
                     newspaper=newspaper,
                     access_token=token,
-                    expires_at=now + timedelta(days=60),  # 60 jours par défaut
-                    created_at=now,
+                    expires_at=expires_at,
+                    created_at=issued_at,
                     is_active=True,
                 )
 
@@ -888,9 +931,6 @@ def get_threads_permalink(threads_id, threads_token, http_session):
 
 def post_all_threads(posts, engine, newspaper, http_session):
     logging.debug("Début publication sur Threads")
-
-    # Vérifier et renouveler le token si nécessaire
-    check_and_refresh_threads_token(engine, newspaper, http_session)
 
     # Récupérer le token depuis la DB (avec fallback vers .env)
     threads_token = get_threads_token(engine, newspaper)
@@ -1254,48 +1294,6 @@ def update_article_in_db(session: Session, new_article: dict[str, Any]) -> bool:
         return False
 
 
-def login_qdm(session: requests.Session) -> bool:
-    username = os.getenv("USERNAME")
-    password = os.getenv("PASSWORD")
-    login_url = os.getenv("LOGIN_URL")
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Referer": login_url,
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
-    }
-    payload = {
-        "name": username,
-        "pass": password,
-        "form_build_id": "form-P-mW6y9GQx_muaK48sJ7fg1LxJi1TIjfr6utScmKBzs",
-        "form_id": "user_login_form",
-        "destination": "/homepage",
-        "op": "Se connecter",
-    }
-    try:
-        logging.info(f"Tentative de connexion pour l'utilisateur {username}...")
-        response = session.post(
-            login_url, data=payload, headers=headers, allow_redirects=False
-        )
-        if response.status_code == 303:
-            logging.info(
-                "Connexion réussie (redirection 303 reçue). La session est authentifiée."
-            )
-            return True
-        else:
-            logging.error(
-                "Échec de la connexion. Le serveur n'a pas renvoyé de redirection (code 303)."
-            )
-            logging.error(f"Statut reçu : {response.status_code}")
-            return False
-
-    except requests.RequestException as e:
-        logging.error(
-            f"Une erreur de connexion est survenue lors de la tentative de login : {e}"
-        )
-        return False
-
-
 def load_articles(
     engine: Engine, newspaper: str, url_rss: str, http_session: requests.Session
 ) -> None:
@@ -1495,26 +1493,27 @@ def main() -> None:
     logging.basicConfig(
         filename=log_path,
         encoding="utf-8",
-        level=logging.INFO,
+        level=logging.DEBUG,
         format="%(asctime)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M",
     )
 
-    #    log_path = str(script_dir.parent / os.getenv("LOG_PATH"))
-    #    database_path = str(script_dir.parent / os.getenv("DATABASE_PATH"))
     url_newspapers = {"qdm": os.getenv("QDM_URL_RSS"), "qph": os.getenv("QPH_URL_RSS")}
 
     engine = create_db_and_tables(database_path)
 
-    # Migration des tokens du .env vers la DB (one-time, idempotent)
-    migrate_tokens_to_db(engine)
-
     # Utilisation de la session HTTP optimisée
     with create_http_session() as http_session:
-        logging.info("=== Début du traitement ===")
+        # Migration des tokens du .env vers la DB (one-time, idempotent)
+        logging.info("=== Vérification des tokens Threads ===")
+        migrate_tokens_to_db(engine)
 
+        logging.info("=== Début du traitement ===")
         for newspaper, url_newspaper in url_newspapers.items():
             logging.info("Traitement du journal: %s", newspaper)
+
+            # Vérifier et renouveler le token si nécessaire
+            check_and_refresh_threads_token(engine, newspaper)
 
             load_articles(engine, newspaper, url_newspaper, http_session)
             post_auto_function(engine, newspaper, http_session)
