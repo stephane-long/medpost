@@ -40,6 +40,40 @@ Le système de gestion des tokens Threads a été refactorisé pour assurer un r
 | previous_token     | String   | Backup du token précédent (rollback)           |
 | last_refresh_date  | DateTime | Date du dernier renouvellement                 |
 
+## Nouveau modèle de données (suite)
+
+### Fonction utilitaire : `get_token_dates(access_token)`
+
+Recherche les dates réelles d'émission et d'expiration d'un token Threads via l'API Meta.
+
+**Usage:**
+```python
+expires_at, issued_at = get_token_dates(token)
+```
+
+**Comportement:**
+1. Appelle l'API `/debug_token` de Threads
+2. Extrait les timestamps Unix `expires_at` et `issued_at`
+3. Convertit les timestamps en objets `datetime` Python
+4. **Fallback** : En cas d'erreur API → retourne `now + 60 jours` et `now`
+
+**API Endpoint :**
+```
+GET https://graph.threads.net/v1.0/debug_token
+  ?input_token={TOKEN}
+  &access_token={TOKEN}
+```
+
+**Réponse attendue:**
+```json
+{
+  "data": {
+    "issued_at": 1706000000,
+    "expires_at": 1713779200
+  }
+}
+```
+
 ## Fonctions implémentées
 
 ### 1. `get_threads_token(engine, newspaper)`
@@ -57,26 +91,30 @@ token = get_threads_token(engine, "qdm")
 - Si absent → fallback vers `THREADS_TOKEN_{NEWSPAPER}` dans .env
 - Log un warning si le fallback est utilisé (migration recommandée)
 
-### 2. `check_and_refresh_threads_token(engine, newspaper, http_session)`
+### 2. `check_and_refresh_threads_token(engine, newspaper)`
 
 Vérifie l'expiration du token et le renouvelle automatiquement si nécessaire.
 
 **Usage:**
 ```python
-success = check_and_refresh_threads_token(engine, "qdm", http_session)
+success = check_and_refresh_threads_token(engine, "qdm")
 ```
 
 **Comportement:**
-1. Récupère les métadonnées du token en DB
+1. Recherche le token actif en DB pour le journal spécifié
 2. Calcule le nombre de jours avant expiration
-3. Si < 7 jours :
-   - Appelle l'API Graph Threads pour renouveler
-   - Valide le nouveau token
+3. **Si ≥ 7 jours** : log informatif et retour (pas de renouvellement)
+4. **Si < 7 jours** : lance le processus de renouvellement
+   - Appelle l'API Graph Threads pour renouveler (3 tentatives max)
+   - Valide le nouveau token (longueur minimum 50 caractères)
    - Sauvegarde l'ancien token dans `previous_token`
-   - Met à jour la DB avec le nouveau token
-   - Log le succès
-4. Retry strategy : 3 tentatives avec backoff exponentiel (1s, 2s, 4s)
-5. En cas d'échec : log une alerte critique et continue avec l'ancien token
+   - Met à jour la DB avec : `access_token`, `expires_at`, `last_refresh_date`, `updated_at`
+   - Log le succès avec la nouvelle date d'expiration
+5. **En cas d'erreur** :
+   - Retry automatique avec backoff exponentiel (1s, 2s, 4s)
+   - Log d'erreur HTTP si échec définitif
+   - Continue avec l'ancien token
+   - Recommande une intervention manuelle
 
 **API Endpoint utilisé:**
 ```
@@ -111,7 +149,7 @@ migrate_tokens_to_db(engine)
 
 ### 4. Modification de `post_all_threads()`
 
-La fonction de publication a été refactorisée :
+La fonction de publication a été refactorisée pour utiliser la BD :
 
 **Avant:**
 ```python
@@ -123,13 +161,15 @@ def post_all_threads(posts, engine, newspaper, http_session):
 **Après:**
 ```python
 def post_all_threads(posts, engine, newspaper, http_session):
-    # Vérifier et renouveler le token si nécessaire
-    check_and_refresh_threads_token(engine, newspaper, http_session)
-
     # Récupérer le token depuis la DB (avec fallback vers .env)
     threads_token = get_threads_token(engine, newspaper)
-    # ...
+    if not threads_token:
+        logging.error("THREADS_TOKEN manquant pour %s", newspaper)
+        return
+    # ... publication
 ```
+
+**Note:** Le renouvellement des tokens se fait dans `main()` via `check_and_refresh_threads_token()` **avant** chaque cycle de publication, pas dans `post_all_threads()`.
 
 ## Workflow de démarrage
 
@@ -141,16 +181,25 @@ def post_all_threads(posts, engine, newspaper, http_session):
 
 2. migrate_tokens_to_db(engine)
    ├─ Lit THREADS_TOKEN_QDM depuis .env
+   ├─ Appelle get_token_dates(THREADS_TOKEN_QDM)
+   │  └─ Récupère les vraies dates d'émission/expiration via API
    ├─ Lit THREADS_TOKEN_QPH depuis .env
+   ├─ Appelle get_token_dates(THREADS_TOKEN_QPH)
+   │  └─ Récupère les vraies dates
    ├─ Crée 2 entrées TokensMetadata en DB
    └─ Log: "Migration terminée - 2 token(s) migré(s), 0 ignoré(s)"
 
-3. post_all_threads(...)
-   ├─ check_and_refresh_threads_token()
-   │  └─ "Token Threads qdm expire dans 60 jours" (pas de renouvellement)
-   ├─ get_threads_token()
-   │  └─ Retourne le token depuis la DB
-   └─ Publication normale
+3. check_and_refresh_threads_token(engine, "qdm")
+   ├─ Récupère token_metadata depuis DB
+   ├─ Calcule days_until_expiration
+   └─ Log: "Token Threads qdm expire dans 60 jours" (pas de renouvellement < 7j)
+
+4. load_articles(engine, newspaper, url_newspaper, http_session)
+   └─ Récupère et stocke les articles RSS
+
+5. post_auto_function(engine, newspaper, http_session)
+   └─ Récupère le token via get_threads_token()
+   └─ Publie sur Threads
 ```
 
 ### Aux lancements suivants
@@ -158,12 +207,14 @@ def post_all_threads(posts, engine, newspaper, http_session):
 ```
 1. migrate_tokens_to_db(engine)
    └─ Log: "Migration terminée - 0 token(s) migré(s), 2 ignoré(s)"
-   (Les tokens existent déjà, rien à faire)
+   (Les tokens existent déjà en DB, idempotent)
 
-2. post_all_threads(...)
-   ├─ check_and_refresh_threads_token()
-   │  └─ Si < 7 jours avant expiration → renouvellement
-   └─ get_threads_token() → token depuis DB
+2. check_and_refresh_threads_token(engine, "qdm")
+   ├─ Si >= 7 jours → Log informatif, continue
+   └─ Si < 7 jours → Renouvellement automatique
+
+3. load_articles() et post_auto_function()
+   └─ Utilisent le token renouvelé ou l'ancien si renouvellement échoue
 ```
 
 ### Workflow de renouvellement (< 7 jours avant expiration)
@@ -189,8 +240,12 @@ check_and_refresh_threads_token():
 ### Logs de succès
 
 ```
-INFO - Token Threads récupéré depuis DB pour qdm (expire: 2026-03-15)
+DEBUG - Token Threads récupéré depuis DB pour qdm (expire: 2026-03-15)
 INFO - Token Threads qdm expire dans 45 jours
+INFO - Migration terminée - 2 token(s) migré(s), 0 ignoré(s)
+DEBUG - Token trouvé dans .env : THAA8gRy88Lk...
+DEBUG - Dates renvoyés par l'API converties Iss/Exp: 2026-01-01 12:00:00/2026-03-01 12:00:00
+INFO - Token Threads migré pour qdm (expire: 2026-03-01)
 INFO - ✓ Token Threads renouvelé avec succès pour qdm (expire le 2026-05-01)
 ```
 
@@ -198,12 +253,21 @@ INFO - ✓ Token Threads renouvelé avec succès pour qdm (expire le 2026-05-01)
 
 ```
 WARNING - Token Threads lu depuis .env pour qdm (migration vers DB recommandée)
+WARNING - Aucun token Threads en DB pour qdm - vérification ignorée
+WARNING - Aucun token Threads trouvé dans .env pour qdm
+WARNING - Utilisation dates par défaut suite à erreur API
 ```
 
 ### Logs d'erreur
 
 ```
+ERROR - Token Threads introuvable pour qdm
+ERROR - THREADS_TOKEN manquant pour qdm
+ERROR - Erreur DB lors de la lecture du token Threads: ...
+ERROR - Erreur inattendue lors de la lecture du token: ...
 ERROR - Erreur HTTP lors du renouvellement (tentative 1/3): 429 Too Many Requests
+ERROR - Réponse API invalide (pas de access_token): {...}
+ERROR - Token reçu invalide (trop court): THAA8gRy...
 ERROR - ✗ ÉCHEC du renouvellement du token Threads pour qdm après 3 tentatives
 ERROR - ⚠ ALERTE: Utilisation de l'ancien token - intervention manuelle recommandée
 ```

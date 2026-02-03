@@ -1,115 +1,377 @@
-# Medpost
+# Medpost 🚀
 
-Medpost est une application basée sur Flask conçue pour gérer et automatiser la publication d'articles et de contenu sur diverses plateformes de médias sociaux. Elle inclut des fonctionnalités pour programmer des publications, gérer les tags pour les réseaux, et récupérer des flux RSS.
+Medpost est une **plateforme d'automatisation de publications sur les réseaux sociaux** basée sur Flask et Docker. Elle est conçue pour automatiser la récupération d'articles RSS des journaux médicaux français (Le Quotidien du Médecin et Le Quotidien du Pharmacien) et leur publication automatique sur plusieurs plateformes (X, Bluesky, Threads).
 
-## Fonctionnalités
+## Fonctionnalités principales
 
-- **Authentification utilisateur** : Connexion et déconnexion sécurisées avec gestion des utilisateurs et des administrateurs.
-- **Gestion des publications** : Créer, modifier, supprimer et programmer des publications pour différents réseaux sociaux.
-- **Intégration des flux RSS** : Récupérer des articles à partir de flux RSS et les gérer dans l'application.
-- **Tags des réseaux** : Gérer les tags spécifiques pour chaque réseau social.
-- **Support multi-réseaux** : Supporte des plateformes comme X (anciennement Twitter), Bluesky et LinkedIn.
-- **Interface dynamique** : Interface réactive et interactive utilisant Bootstrap.
-- **Automatisation des publications** : Publier automatiquement les articles planifiés sur les réseaux sociaux.
-- **Gestion des logs** : Centralisation des logs pour le suivi des activités et des erreurs.
-- **Base de données SQLite** : Gestion des articles, publications et réseaux via SQLAlchemy.
+### 📰 Gestion du contenu
+- **Récupération RSS automatisée** : Ingestion continue des flux RSS des journaux médicaux
+- **Gestion des articles** : Stockage, indexation et déduplication des articles via l'ID Drupal (`nid`)
+- **Création de publications** : Interface pour créer et programmer des publications vers plusieurs réseaux sociaux
+- **Upload d'images** : Support des images personnalisées pour chaque publication
 
-## Structure du projet
+### 🔐 Authentification & Sécurité
+- **Gestion des utilisateurs** : Connexion/déconnexion sécurisées avec hachage de mots de passe
+- **Rôles administrateur** : Distinction entre utilisateurs standards et administrateurs
+- **Gestion des tokens** : Système automatisé de renouvellement des tokens d'accès (notamment pour Threads)
+- **Environnements distincts** : Configuration séparée pour développement et production
 
-- **`medpost-app/`** : Contient l'application Flask.
-  - **`app.py`** : Logique principale de l'application et routes.
-  - **`templates/`** : Modèles HTML pour l'interface utilisateur.
-  - **`static/`** : Fichiers statiques comme CSS et JavaScript.
-  - **`docker-compose.yml`** : Configuration Docker Compose pour orchestrer les services.
-  - **`Dockerfile`** : Dockerfile pour construire l'image de l'application Flask.
-- **`fetch_post/`** : Contient les scripts pour récupérer les flux RSS et automatiser les publications.
-  - **`main.py`** : Script principal pour récupérer et publier du contenu.
-  - **`database.py`** : Modèles de base de données et utilitaires pour la gestion des articles et des publications.
-  - **`Dockerfile`** : Dockerfile pour construire l'image du service de récupération des flux RSS.
-- **`data/`** : Contient les fichiers de base de données SQLite.
-- **`logs/`** : Contient les fichiers de logs générés par l'application.
-- **`images/`** : Contient les images et no_picture.jpg.
+### 📡 Intégration multi-réseaux
+- **X (Twitter)** : Publication via API Tweepy avec authentification OAuth1
+- **Bluesky** : Publication native via AT Protocol
+- **Threads** : Publication avec gestion automatisée des tokens 60j
+- **Tags personnalisés** : Configuration de tags spécifiques par réseau social
+
+### ⚙️ Automatisation
+- **Tâches planifiées** : Publication automatique des articles programmés
+- **Renouvellement tokens** : Système de renouvellement proactif des tokens d'accès (7j avant expiration)
+- **Retry automatique** : Stratégie de retry avec backoff exponentiel pour les requêtes réseau
+- **Logging centralisé** : Suivi complet des activités et erreurs dans `medpost.log`
+
+### 💾 Gestion des données
+- **Base de données SQLite** : Stockage persistent via SQLAlchemy
+- **Modèles principaux** : Articles_rss, Posts, Networks, Users, TokensMetadata
+- **Volumes Docker** : Partage des données entre conteneurs pour persistence
+
+## Architecture
+
+### Architecture à deux services
+
+L'application s'exécute sous **Docker Compose** avec trois conteneurs principaux :
+
+```
+┌─────────────────────────────────────────────────────┐
+│               Docker Compose                         │
+├─────────────────────────────────────────────────────┤
+│                                                      │
+│  ┌──────────────────┐  ┌──────────────────┐         │
+│  │   medpost-app    │  │   fetcher-app    │         │
+│  │   (Flask Web UI) │  │  (Background)    │         │
+│  │                  │  │                  │         │
+│  │ - Routes HTTP    │  │ - RSS Fetching   │         │
+│  │ - DB Management  │  │ - Auto Publishing│         │
+│  │ - User Auth      │  │ - Token Mgmt     │         │
+│  └──────────────────┘  └──────────────────┘         │
+│          ▲                      ▲                     │
+│          └──────────┬───────────┘                     │
+│                     │ (Shared Volumes)               │
+│          ┌──────────▼──────────┐                     │
+│          │  Volumes Docker     │                     │
+│          │ ───────────────     │                     │
+│          │ data_volume         │                     │
+│          │  (rss_qdm.db)       │                     │
+│          │ logs_volume         │                     │
+│          │  (medpost.log)      │                     │
+│          │ images_volume       │                     │
+│          │  (pictures)         │                     │
+│          └─────────────────────┘                     │
+│                                                      │
+└─────────────────────────────────────────────────────┘
+```
+
+### Services
+
+#### 1. **medpost-app** (Flask Web UI)
+- Interface web pour créer, éditer et programmer les publications
+- Gestion des utilisateurs et authentification
+- Visualisation des articles RSS
+- Upload d'images
+- Configuration des réseaux sociaux et tags
+
+#### 2. **fetcher-app** (Background Service)
+- Récupération automatique des flux RSS
+- Publication automatisée sur les réseaux sociaux
+- Gestion et renouvellement des tokens d'accès
+- Gestion des erreurs et retry automatique
+
+#### 3. **Volumes partagés**
+- `data_volume` : Base de données SQLite (`rss_qdm.db`)
+- `logs_volume` : Logs centralisés (`medpost.log`)
+- `images_volume` : Images des publications
+
+## Structure de la base de données
+
+### Modèles principaux (SQLAlchemy)
+
+#### **Articles_rss**
+Articles récupérés via les flux RSS avec métadonnées complètes.
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| id | Integer | Clé primaire |
+| nid | Integer | **ID Drupal du journal** (clé pour déduplication) |
+| title | Text | Titre de l'article |
+| link | Text | URL vers l'article original |
+| summary | Text | Résumé/description |
+| image_url | Text | URL de l'image |
+| pubdate | DateTime | Date de publication |
+| online | Integer | Statut publication |
+| newspaper | Text | Journal source (QDM/QPH) |
+
+#### **Posts**
+Publications programmées/publiées sur les réseaux sociaux.
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| id | Integer | Clé primaire |
+| article_id | Integer | Référence vers Articles_rss |
+| network | Text | Réseau social (x/bluesky/threads) |
+| status | String | État (plan/pub) |
+| scheduled_at | DateTime | Date de publication prévue |
+| published_at | DateTime | Date de publication réelle |
+| content | Text | Contenu de la publication |
+
+#### **Networks**
+Configuration des réseaux sociaux avec tags personnalisés.
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| id | Integer | Clé primaire |
+| name | String | Nom du réseau |
+| tags | String | Tags spécifiques |
+| is_active | Boolean | Réseau actif |
+
+#### **TokensMetadata** *(nouveau)*
+Gestion centralisée et automatisée des tokens d'accès.
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| id | Integer | Clé primaire |
+| network | String | Réseau (threads) |
+| newspaper | String | Journal (qdm/qph) |
+| access_token | String | Token actuel |
+| expires_at | DateTime | Expiration du token |
+| is_active | Boolean | Token actif |
+| last_refresh_date | DateTime | Dernier renouvellement |
 
 ## Prérequis
 
-- Python 3.9 ou supérieur
-- Flask
-- SQLAlchemy
-- Tweepy (pour l'API X)
-- Requests
-- Feedparser
-- Dotenv
-- Docker et Docker Compose
--...
+### Environnement
+- **Python** 3.9+ (pour développement local)
+- **Docker** 20.10+
+- **Docker Compose** 2.0+
 
-## Instructions d'installation
+### Dépendances principales
 
-1. **Cloner le dépôt** :
-   ```bash
-   git clone https://github.com/stephane-long/medpost.git
-   cd Medpost
-   ```
+**Backend (fetch_post) :**
+- SQLAlchemy 2.0.38 - ORM de base de données
+- Tweepy 4.15.0 - API X (Twitter)
+- atproto 0.0.59 - API Bluesky (AT Protocol)
+- Feedparser 6.0.11 - Parsing RSS/Atom
+- Requests 2.32.3 - Requêtes HTTP
+- BeautifulSoup4 4.14.3 - Web scraping
+- Paramiko 4.0.0 - SSH (gestion distante)
 
-2. **Configurer les variables d'environnement** :
-   Créez un fichier `.env.prod` dans le répertoire `medpost-app` avec les variables suivantes :
-   ```
-   DATABASE_PATH=/app/data/rss_qdm.db
-   LOG_PATH=/app/logs/medpost.log
-   TZ=Europe/Paris
-   APP_SECRET_KEY=<secret Flask API key>
-   ```
+**Frontend (medpost-app) :**
+- Flask 2.0.3 - Framework web
+- Flask-Login 0.5.0 - Gestion sessions
+- Flask-SQLAlchemy 2.5.1 - Intégration BD
+- SQLAlchemy 1.4.27 - ORM
+- Pillow 11.2.1 - Traitement images
+- Gunicorn 20.1.0 - Serveur WSGI production
 
-   Créez un fichier `.env.prod` dans le répertoire `fetch_post` avec les variables suivantes :
-   ```
-   DATABASE_PATH=/app/data/rss_qdm.db
-   LOG_PATH=/app/logs/medpost.log
-   IMAGES_PATH=/app/images/
-   TZ=Europe/Paris
-   QDM_URL_RSS=https://www.lequotidiendumedecin.fr/rss.xml
-   QPH_URL_RSS=https://www.lequotidiendupharmacien.fr/rss.xml
-   #### QDM ####
-   # Paramètres X QDM
-   API_KEY_SECRET_QDM=
-   API_KEY_QDM=
-   ACCESS_TOKEN_QDM=
-   ACCESS_TOKEN_SECRET_QDM=
-   X_URL_QDM=https://x.com/leQdM/status/
-   # Paramètres Bluesky QDM
-   BLUESKY_LOGIN_QDM=lequotidiendumedecin.fr
-   BLUESKY_PASSWORD_QDM=
-   BLUESKY_URL_QDM=https://bsky.app/profile/lequotidiendumedecin.fr/post/
-   #### QPH ####
-   # Paramètres X QPH
-   API_KEY_SECRET_QPH=
-   API_KEY_QPH=
-   ACCESS_TOKEN_QPH=
-   ACCESS_TOKEN_SECRET_QPH=
-   X_URL_QPH=https://x.com/leQPH_fr/status/
-   # Paramètres Bluesky QPH
-   BLUESKY_LOGIN_QPH=reseauxgps@gmail.com
-   BLUESKY_PASSWORD_QPH=
-   BLUESKY_URL_QPH=https://bsky.app/profile/leqph.bsky.social/post/
-   ```
-3. **docker-compose** :
-   Vérifier le nom des fichiers des variables d'environnement : .env.prod
-   Mettre en commentaire la copie .:/app et ../fetch_post/:/app
+## Installation et démarrage
 
-4. **Création des volumes persistants et copie des fichiers nécessaires** :
-   Créer les répertoires sur host et copier les fichiers
+### 1. Préparation du projet
 
-   1/ Base de données rss_qdm.db stocké dans /medpost/data/
-      docker run --rm -v data_volume:/data -v /repertoire_host_absolu[ex.: %cd%\data]/:/host alpine cp /host/rss_qdm.db /data/
-   
-   2/ Fichier de log medpost.log stocké dans /medpost/logs/
-   docker run --rm -v logs_volume:/data -v /repertoire_host_absolu[ex.: %cd%\logs]/:/host alpine cp /host/medpost.log /data/
+```bash
+# Cloner le dépôt
+git clone https://github.com/stephane-long/medpost.git
+cd Medpost
 
-   3/ Image par défaut no_picture.jpg stocké dans /medpost/images/
-   docker run --rm -v images_volume:/data -v /repertoire_host_absolu[ex.: %cd%\images]/:/host alpine cp /host/no_picture.jpg /data/
+# Créer les répertoires nécessaires
+mkdir -p data logs images
+```
 
-5. **Création des images docker et lancement des containers** :
-   Se placer dans le répertoire medpost-app
-   docker compose up --build -d
+### 2. Configuration des variables d'environnement
 
-5. **Programmer tâche automatique de lancement de lecteure du flux et publication post** :
-   Lancer à intervalle régulier le container fetch_post
+**Fichier : `.env.prod` (medpost-app/)**
+```bash
+# Chemins et configuration de base
+DATABASE_PATH=/app/data/rss_qdm.db
+LOG_PATH=/app/logs/medpost.log
+TZ=Europe/Paris
+APP_SECRET_KEY=your-secret-key-here
+
+# Docker
+DOCKER_ENV=true
+```
+
+**Fichier : `.env.prod` (fetch_post/)**
+```bash
+# Chemins
+DATABASE_PATH=/app/data/rss_qdm.db
+LOG_PATH=/app/logs/medpost.log
+IMAGES_PATH=/app/images/
+TZ=Europe/Paris
+
+# Flux RSS
+QDM_URL_RSS=https://www.lequotidiendumedecin.fr/rss.xml
+QPH_URL_RSS=https://www.lequotidiendupharmacien.fr/rss.xml
+
+# === QUOTIDIEN DU MEDECIN (QDM) ===
+# Paramètres X/Twitter
+API_KEY_QDM=your_api_key
+API_KEY_SECRET_QDM=your_api_secret
+ACCESS_TOKEN_QDM=your_access_token
+ACCESS_TOKEN_SECRET_QDM=your_access_token_secret
+X_URL_QDM=https://x.com/leQdM/status/
+
+# Paramètres Bluesky
+BLUESKY_LOGIN_QDM=medecin@bsky.social
+BLUESKY_PASSWORD_QDM=your_password
+BLUESKY_URL_QDM=https://bsky.app/profile/medecin.bsky.social/post/
+
+# Paramètres Threads
+THREADS_TOKEN_QDM=your_threads_token
+THREADS_URL_QDM=https://threads.net/...
+
+# === QUOTIDIEN DU PHARMACIEN (QPH) ===
+# Configuration similaire pour QPH
+API_KEY_QPH=...
+# ... etc
+```
+
+### 3. Initialisation des volumes et données
+
+```bash
+# Initialiser les volumes Docker
+docker volume create data_volume
+docker volume create logs_volume
+docker volume create images_volume
+
+# Copier les fichiers initiaux si existants
+docker run --rm -v data_volume:/data \
+  -v $(pwd)/data:/host alpine cp /host/rss_qdm.db /data/ 2>/dev/null || true
+
+docker run --rm -v logs_volume:/data \
+  -v $(pwd)/logs:/host alpine touch /data/medpost.log
+
+docker run --rm -v images_volume:/data \
+  -v $(pwd)/images:/host alpine cp /host/no_picture.jpg /data/ 2>/dev/null || true
+```
+
+### 4. Lancer l'application
+
+```bash
+# De préférence, se placer dans medpost-app/
+cd medpost-app
+
+# Construire et démarrer les services
+docker-compose up --build -d
+
+# Vérifier les logs
+docker-compose logs -f
+
+# Arrêter les services
+docker-compose down
+```
+
+### 5. Accès à l'application
+
+- **Interface web** : http://localhost:5000
+- **Identifiants par défaut** : À configurer via la BD
+
+## Utilisation
+
+### Interface web (medpost-app)
+
+1. **Se connecter** avec ses identifiants
+2. **Visualiser les articles** récupérés des flux RSS
+3. **Créer une publication** : 
+   - Sélectionner un article
+   - Ajouter un titre personnalisé (optionnel)
+   - Choisir les réseaux de destination
+   - Programmer la date/heure de publication
+   - Importer une image (optionnel)
+4. **Programmer les publications** pour les réseaux sélectionnés
+
+### Service d'automatisation (fetcher-app)
+
+Le service tourne continuellement en arrière-plan et :
+
+1. **Récupère les flux RSS** à intervalle régulier (configurable)
+2. **Déduplique les articles** via l'ID Drupal (`nid`)
+3. **Renouvelle les tokens** expirés (notamment Threads) proactivement
+4. **Publie automatiquement** les posts programmés sur les réseaux
+5. **Gère les erreurs** avec retry automatique et backoff exponentiel
+6. **Enregistre les activités** dans les logs centralisés
+
+### Logs
+
+Les logs sont centralisés dans `/logs/medpost.log` et conteneur les informations de :
+- Récupération RSS
+- Publication sur les réseaux
+- Renouvellement de tokens
+- Erreurs et debugging
+
+```bash
+# Consulter les logs en temps réel
+docker-compose logs -f fetcher-app
+
+# Ou directement le fichier
+tail -f logs/medpost.log
+```
+
+## Gestion des tokens
+
+Voir la documentation complète : [TOKENS_MANAGEMENT.md](TOKENS_MANAGEMENT.md)
+
+### Renouvellement automatique
+
+Les tokens (notamment Threads avec durée de vie 60j) sont **renouvelés automatiquement** 7 jours avant expiration :
+
+```
+✅ Pas d'intervention manuelle requise
+✅ Historique complet dans la base de données
+✅ Fallback sur .env en cas de problème
+```
+
+## Dépannage
+
+### L'application ne démarre pas
+
+```bash
+# Vérifier les logs
+docker-compose logs medpost-app
+
+# S'assurer que les ports ne sont pas utilisés
+lsof -i :5000
+
+# Vérifier la configuration .env
+cat medpost-app/.env.prod
+```
+
+### Les articles ne sont pas récupérés
+
+```bash
+# Vérifier les logs du fetcher
+docker-compose logs fetcher-app
+
+# Vérifier que les URLs RSS sont correctes
+curl https://www.lequotidiendumedecin.fr/rss.xml
+
+# Vérifier la base de données
+docker run --rm -v data_volume:/data -it sqlite:latest sqlite3 /data/rss_qdm.db ".tables"
+```
+
+### Les publications ne s'envoient pas
+
+1. Vérifier les **tokens d'authentification** dans `.env.prod`
+2. Vérifier les **permissions** sur les comptes sociaux
+3. Consulter les **logs** du fetcher pour les messages d'erreur
+4. Vérifier que la **publication est programmée** avec une date future
+
+## Documentation additionnelle
+
+- **[CLAUDE.md](CLAUDE.md)** - Directives pour Claude (architecture détaillée)
+- **[TOKENS_MANAGEMENT.md](TOKENS_MANAGEMENT.md)** - Gestion des tokens d'accès
+
+## Contribution
+
+Les contributions sont bienvenues ! Pour des changements majeurs, ouvrez d'abord une issue pour discuter des modifications proposées.
+
+## Licence
+
+Ce projet est licensié sous [LICENSE](LICENSE)
 
