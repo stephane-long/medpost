@@ -643,11 +643,9 @@ def check_and_refresh_threads_token(engine: Engine, newspaper: str) -> bool:
 def get_token_dates(access_token):
     endpoint_url = "https://graph.threads.net/v1.0/debug_token"
     params = {"input_token": access_token, "access_token": access_token}
-    logging.debug("Fetching des dates de token")
     try:
         response = requests.get(endpoint_url, params=params, timeout=10)
         response.raise_for_status()
-        logging.debug("Réponse brute : %s", response.text[:200])
         data = response.json()
         token_data = data.get("data", {})
         expires_at_ts = token_data.get("expires_at")
@@ -655,7 +653,6 @@ def get_token_dates(access_token):
         if expires_at_ts and issued_at_ts:
             expires_at = datetime.fromtimestamp(expires_at_ts)
             issued_at = datetime.fromtimestamp(issued_at_ts)
-            logging.info("Date émission/expiration : %s/%s", issued_at, expires_at)
             return expires_at, issued_at
         else:
             logging.error("Dates manquantes dans la réponse API")
@@ -697,7 +694,6 @@ def migrate_tokens_to_db(engine: Engine) -> None:
                     .where(TokensMetadata.network == "threads")
                     .where(TokensMetadata.newspaper == newspaper)
                 ).scalar_one_or_none()
-                logging.debug("Token dans la base ? %s", existing)
 
                 if existing:
                     logging.info("Token Threads déjà migré pour %s - ignoré", newspaper)
@@ -716,11 +712,6 @@ def migrate_tokens_to_db(engine: Engine) -> None:
 
                 # Créer l'entrée en DB
                 expires_at, issued_at = get_token_dates(token)
-                logging.info(
-                    "Dates renvoyés par l'API converties Iss/Exp: %s/%s",
-                    issued_at,
-                    expires_at,
-                )
                 if expires_at is None or issued_at is None:
                     logging.info("Pas de dates de token pour %s", newspaper)
                     continue
@@ -1493,7 +1484,7 @@ def main() -> None:
     logging.basicConfig(
         filename=log_path,
         encoding="utf-8",
-        level=logging.DEBUG,
+        level=logging.INFO,
         format="%(asctime)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M",
     )
