@@ -1,0 +1,14 @@
+LOAD DATABASE
+    FROM sqlite://data/rss_qdm.db
+    INTO postgresql://medpost_user:your_password@localhost:5432/medpost_db
+
+WITH include drop, create tables, create indexes, reset sequences
+
+SET work_mem to '64MB', maintenance_work_mem to '128MB'
+
+CAST type datetime to timestamptz drop default drop not null using zero-dates-to-null,
+     type integer when (= precision 1) to boolean drop typemod
+
+BEFORE LOAD DO
+    $$ DROP SCHEMA IF EXISTS public CASCADE; $$,
+    $$ CREATE SCHEMA public; $$;

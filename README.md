@@ -366,6 +366,7 @@ docker run --rm -v data_volume:/data -it sqlite:latest sqlite3 /data/rss_qdm.db 
 
 - **[CLAUDE.md](CLAUDE.md)** - Directives pour Claude (architecture détaillée)
 - **[TOKENS_MANAGEMENT.md](TOKENS_MANAGEMENT.md)** - Gestion des tokens d'accès
+- **[MIGRATION_SQLITE_TO_POSTGRESQL.md](MIGRATION_SQLITE_TO_POSTGRESQL.md)** - Guide de migration de SQLite vers PostgreSQL
 
 ## Contribution
 
