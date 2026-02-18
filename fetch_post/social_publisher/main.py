@@ -21,7 +21,7 @@ from bs4 import BeautifulSoup as bs
 import re
 
 # Import des modèles de la base de données
-from database import (
+from shared.database import (
     Articles_rss,
     Posts,
     Networks,
@@ -989,7 +989,9 @@ def main() -> None:
     else:
         database_path = str(script_dir.parent.parent / os.getenv("DATABASE_PATH"))
         log_path = str(script_dir.parent.parent / os.getenv("LOG_PATH"))
-        image_path = str(script_dir.parent.parent / "medpost-app" / os.getenv("IMAGES_PATH"))
+        image_path = str(
+            script_dir.parent.parent / "medpost-app" / os.getenv("IMAGES_PATH")
+        )
 
     logging.basicConfig(
         filename=log_path,
@@ -1030,4 +1032,5 @@ if __name__ == "__main__":
     from datetime import datetime
     from datetime import timedelta
     from paramiko import SSHClient, AutoAddPolicy
+
     main()

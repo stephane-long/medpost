@@ -93,6 +93,15 @@ L'application s'exécute sous **Docker Compose** avec quatre conteneurs principa
 - `logs_volume` : Logs centralisés (`medpost.log`)
 - `images_volume` : Images des publications
 
+### Package partagé
+
+Les services `rss-fetcher` et `social-publisher` partagent un package Python commun (`shared/`) qui contient :
+
+- **Modèles de base de données** : Définitions SQLAlchemy (Articles_rss, Posts, Networks, etc.)
+- **Fonctions utilitaires** : Gestion de la connexion DB, création des tables
+
+Cette architecture évite la duplication de code et garantit la cohérence entre les services. Le package est installé automatiquement lors du build Docker via `setup.py`.
+
 ## Structure de la base de données
 
 ### Modèles principaux (SQLAlchemy)
@@ -165,6 +174,7 @@ Gestion centralisée et automatisée des tokens d'accès.
 - Requests 2.32.3 - Requêtes HTTP
 - BeautifulSoup4 4.14.3 - Web scraping
 - Paramiko 4.0.0 - SSH (gestion distante)
+- Setuptools - Gestion du package partagé
 
 **Frontend (medpost-app) :**
 - Flask 2.0.3 - Framework web

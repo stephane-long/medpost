@@ -2,20 +2,44 @@
 
 ## Structure
 
-Le service `fetch_post` a été divisé en deux services distincts pour améliorer la maintenabilité, la scalabilité et la résilience.
+Le service `fetch_post` a été divisé en deux services distincts pour améliorer la maintenabilité, la scalabilité et la résilience. Les services partagent un package Python commun pour éviter la duplication de code.
 
 ```
 fetch_post/
+├── setup.py              # Configuration du package partagé
+├── shared/               # Package Python partagé
+│   ├── __init__.py      # Exports publics du package
+│   └── database.py      # Modèles SQLAlchemy et configuration DB
 ├── rss_fetcher/          # Service de lecture des flux RSS
-│   ├── Dockerfile
+│   ├── Dockerfile       # Installe le package shared
 │   ├── requirements.txt
-│   ├── main.py
-│   └── database.py      # Lien symbolique vers ../database.py
+│   └── main.py          # Import: from shared.database import ...
 └── social_publisher/     # Service de publication sur les réseaux sociaux
-    ├── Dockerfile
+    ├── Dockerfile       # Installe le package shared
     ├── requirements.txt
-    ├── main.py
-    └── database.py      # Lien symbolique vers ../database.py
+    └── main.py          # Import: from shared.database import ...
+```
+
+### Package partagé (`shared/`)
+
+Le package `shared` contient le code commun aux deux services :
+
+- **database.py** : Modèles SQLAlchemy (Articles_rss, Posts, Networks, TokensMetadata, User)
+- **Fonctions utilitaires** : `create_db_and_tables()`, `get_session()`
+
+**Avantages** :
+- ✅ **Une seule source de vérité** : Pas de duplication de code
+- ✅ **Versioning** : Le package est versionné via setup.py
+- ✅ **Testable indépendamment** : Peut être testé séparément
+- ✅ **Pattern standard Python** : Respecte les bonnes pratiques
+- ✅ **Compatible Docker** : Plus de problèmes avec les liens symboliques
+
+**Installation** :
+Le package est automatiquement installé dans chaque service via les Dockerfiles :
+```dockerfile
+COPY setup.py /shared/setup.py
+COPY shared /shared/shared
+RUN pip install --no-cache-dir /shared
 ```
 
 ## Services
@@ -76,6 +100,22 @@ python main.py
 ## Configuration Docker
 
 Les deux services sont orchestrés via le fichier `docker-compose.yml` situé dans `medpost-app/`.
+
+### Build Context
+
+Les Dockerfiles utilisent le répertoire `fetch_post/` comme contexte de build pour accéder au package `shared/` :
+
+```yaml
+rss-fetcher:
+  build:
+    context: ../fetch_post          # Contexte depuis fetch_post/
+    dockerfile: rss_fetcher/Dockerfile
+
+social-publisher:
+  build:
+    context: ../fetch_post          # Contexte depuis fetch_post/
+    dockerfile: social_publisher/Dockerfile
+```
 
 ### Commandes Docker
 

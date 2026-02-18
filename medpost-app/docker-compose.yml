@@ -14,7 +14,8 @@ services:
   rss-fetcher:
     container_name: rss-fetcher
     build: 
-      context: ../fetch_post/rss_fetcher
+      context: ../fetch_post
+      dockerfile: rss_fetcher/Dockerfile
     env_file: ../fetch_post/.env.dev
     volumes:
       - ../fetch_post/rss_fetcher/:/app
@@ -24,7 +25,8 @@ services:
   social-publisher:
     container_name: social-publisher
     build: 
-      context: ../fetch_post/social_publisher
+      context: ../fetch_post
+      dockerfile: social_publisher/Dockerfile
     env_file: ../fetch_post/.env.dev
     volumes:
       - ../fetch_post/social_publisher/:/app
