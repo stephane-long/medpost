@@ -11,13 +11,23 @@ services:
       - images_volume:/app/static/images
       - data_volume:/app/data
       - logs_volume:/app/logs
-  fetcher-app:
-    container_name: fetcher
+  rss-fetcher:
+    container_name: rss-fetcher
     build: 
-      context: ../fetch_post
+      context: ../fetch_post/rss_fetcher
     env_file: ../fetch_post/.env.dev
     volumes:
-      - ../fetch_post/:/app
+      - ../fetch_post/rss_fetcher/:/app
+      - images_volume:/app/static/images
+      - data_volume:/app/data
+      - logs_volume:/app/logs
+  social-publisher:
+    container_name: social-publisher
+    build: 
+      context: ../fetch_post/social_publisher
+    env_file: ../fetch_post/.env.dev
+    volumes:
+      - ../fetch_post/social_publisher/:/app
       - images_volume:/app/static/images
       - data_volume:/app/data
       - logs_volume:/app/logs

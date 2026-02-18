@@ -35,38 +35,34 @@ Medpost est une **plateforme d'automatisation de publications sur les réseaux s
 
 ## Architecture
 
-### Architecture à deux services
+### Architecture à trois services
 
-L'application s'exécute sous **Docker Compose** avec trois conteneurs principaux :
+L'application s'exécute sous **Docker Compose** avec quatre conteneurs principaux :
 
 ```
-┌─────────────────────────────────────────────────────┐
-│               Docker Compose                         │
-├─────────────────────────────────────────────────────┤
-│                                                      │
-│  ┌──────────────────┐  ┌──────────────────┐         │
-│  │   medpost-app    │  │   fetcher-app    │         │
-│  │   (Flask Web UI) │  │  (Background)    │         │
-│  │                  │  │                  │         │
-│  │ - Routes HTTP    │  │ - RSS Fetching   │         │
-│  │ - DB Management  │  │ - Auto Publishing│         │
-│  │ - User Auth      │  │ - Token Mgmt     │         │
-│  └──────────────────┘  └──────────────────┘         │
-│          ▲                      ▲                     │
-│          └──────────┬───────────┘                     │
-│                     │ (Shared Volumes)               │
-│          ┌──────────▼──────────┐                     │
-│          │  Volumes Docker     │                     │
-│          │ ───────────────     │                     │
-│          │ data_volume         │                     │
-│          │  (rss_qdm.db)       │                     │
-│          │ logs_volume         │                     │
-│          │  (medpost.log)      │                     │
-│          │ images_volume       │                     │
-│          │  (pictures)         │                     │
-│          └─────────────────────┘                     │
-│                                                      │
-└─────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        Docker Compose                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌─────────────────────────┐  │
+│  │   medpost-app    │  │  rss-fetcher     │  │  social-publisher       │  │
+│  │   (Flask Web UI) │  │  (RSS Fetching)  │  │  (Social Publishing)     │  │
+│  │                  │  │                  │  │                             │  │
+│  │ - Routes HTTP    │  │ - RSS Parsing    │  │ - Network API Calls      │  │
+│  │ - DB Management  │  │ - Article Storage│  │ - Token Management        │  │
+│  │ - User Auth      │  │ - Error Handling │  │ - Image Upload           │  │
+│  └──────────────────┘  └──────────────────┘  └─────────────────────────┘  │
+│          ▲                      ▲                          ▲                  │
+│          └──────────────────────┼──────────────────────────┘                  │
+│                               │ (Shared Volumes)                              │
+│          ┌──────────────────────▼────────────────────────────────────────┐  │
+│          │                     Volumes Docker                            │  │
+│          │ ─────────────────────────────────────────────────────────────│  │
+│          │ data_volume         │ logs_volume         │ images_volume     │  │
+│          │  (rss_qdm.db)       │  (medpost.log)      │  (pictures)       │  │
+│          └─────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Services
@@ -78,11 +74,19 @@ L'application s'exécute sous **Docker Compose** avec trois conteneurs principau
 - Upload d'images
 - Configuration des réseaux sociaux et tags
 
-#### 2. **fetcher-app** (Background Service)
-- Récupération automatique des flux RSS
-- Publication automatisée sur les réseaux sociaux
-- Gestion et renouvellement des tokens d'accès
+#### 2. **rss-fetcher** (RSS Fetching Service)
+- Récupération automatique des flux RSS depuis QDM et QPH
+- Extraction des métadonnées des articles (titre, lien, résumé, image)
+- Stockage en base de données SQLite
 - Gestion des erreurs et retry automatique
+- Respect des délais entre requêtes (crawl delay)
+
+#### 3. **social-publisher** (Social Publishing Service)
+- Récupération des posts planifiés depuis la base de données
+- Publication sur X (Twitter), Bluesky et Threads
+- Gestion des tokens d'accès (avec renouvellement automatique pour Threads)
+- Upload des images sur les réseaux sociaux
+- Mise à jour du statut des posts après publication
 
 #### 3. **Volumes partagés**
 - `data_volume` : Base de données SQLite (`rss_qdm.db`)
@@ -263,6 +267,10 @@ docker-compose up --build -d
 # Vérifier les logs
 docker-compose logs -f
 
+# Vérifier les logs d'un service spécifique
+docker-compose logs -f rss-fetcher
+docker-compose logs -f social-publisher
+
 # Arrêter les services
 docker-compose down
 ```
@@ -286,15 +294,28 @@ docker-compose down
    - Importer une image (optionnel)
 4. **Programmer les publications** pour les réseaux sélectionnés
 
-### Service d'automatisation (fetcher-app)
+### Services d'automatisation
 
-Le service tourne continuellement en arrière-plan et :
+#### Service RSS Fetcher (rss-fetcher)
+
+Le service tourne en arrière-plan et :
 
 1. **Récupère les flux RSS** à intervalle régulier (configurable)
 2. **Déduplique les articles** via l'ID Drupal (`nid`)
-3. **Renouvelle les tokens** expirés (notamment Threads) proactivement
-4. **Publie automatiquement** les posts programmés sur les réseaux
+3. **Extrait les métadonnées** des articles
+4. **Stocke les articles** en base de données
 5. **Gère les erreurs** avec retry automatique et backoff exponentiel
+6. **Enregistre les activités** dans les logs centralisés
+
+#### Service Social Publisher (social-publisher)
+
+Le service tourne en arrière-plan et :
+
+1. **Récupère les posts planifiés** depuis la base de données
+2. **Renouvelle les tokens** expirés (notamment Threads) proactivement
+3. **Publie automatiquement** les posts programmés sur les réseaux
+4. **Gère les erreurs** avec retry automatique et backoff exponentiel
+5. **Met à jour le statut** des posts après publication
 6. **Enregistre les activités** dans les logs centralisés
 
 ### Logs
@@ -345,8 +366,8 @@ cat medpost-app/.env.prod
 ### Les articles ne sont pas récupérés
 
 ```bash
-# Vérifier les logs du fetcher
-docker-compose logs fetcher-app
+# Vérifier les logs du RSS Fetcher
+docker-compose logs rss-fetcher
 
 # Vérifier que les URLs RSS sont correctes
 curl https://www.lequotidiendumedecin.fr/rss.xml
@@ -359,13 +380,18 @@ docker run --rm -v data_volume:/data -it sqlite:latest sqlite3 /data/rss_qdm.db 
 
 1. Vérifier les **tokens d'authentification** dans `.env.prod`
 2. Vérifier les **permissions** sur les comptes sociaux
-3. Consulter les **logs** du fetcher pour les messages d'erreur
+3. Consulter les **logs** du Social Publisher pour les messages d'erreur
+   ```bash
+   docker-compose logs social-publisher
+   ```
 4. Vérifier que la **publication est programmée** avec une date future
+5. Vérifier que les **tokens sont valides** et renouvelés si nécessaire
 
 ## Documentation additionnelle
 
 - **[CLAUDE.md](CLAUDE.md)** - Directives pour Claude (architecture détaillée)
 - **[TOKENS_MANAGEMENT.md](TOKENS_MANAGEMENT.md)** - Gestion des tokens d'accès
+- **[fetch_post/README.md](fetch_post/README.md)** - Documentation détaillée des services RSS Fetcher et Social Publisher
 
 ## Contribution
 
