@@ -41,26 +41,26 @@ L'application s'exécute sous **Docker Compose** avec quatre conteneurs principa
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                        Docker Compose                                    │
+│                        Docker Compose                                       │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌─────────────────────────┐  │
-│  │   medpost-app    │  │  rss-fetcher     │  │  social-publisher       │  │
-│  │   (Flask Web UI) │  │  (RSS Fetching)  │  │  (Social Publishing)     │  │
-│  │                  │  │                  │  │                             │  │
-│  │ - Routes HTTP    │  │ - RSS Parsing    │  │ - Network API Calls      │  │
-│  │ - DB Management  │  │ - Article Storage│  │ - Token Management        │  │
-│  │ - User Auth      │  │ - Error Handling │  │ - Image Upload           │  │
-│  └──────────────────┘  └──────────────────┘  └─────────────────────────┘  │
-│          ▲                      ▲                          ▲                  │
-│          └──────────────────────┼──────────────────────────┘                  │
-│                               │ (Shared Volumes)                              │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌─────────────────────────┐    │
+│  │   medpost-app    │  │  rss-fetcher     │  │  social-publisher       │    │
+│  │   (Flask Web UI) │  │  (RSS Fetching)  │  │  (Social Publishing)    │    │
+│  │                  │  │                  │  │                         │    │
+│  │ - Routes HTTP    │  │ - RSS Parsing    │  │ - Network API Calls     │    │
+│  │ - DB Management  │  │ - Article Storage│  │ - Token Management      │    │
+│  │ - User Auth      │  │ - Error Handling │  │ - Image Upload          │    │
+│  └──────────────────┘  └──────────────────┘  └─────────────────────────┘    │
+│          ▲                      ▲                          ▲                │
+│          └──────────────────────┼──────────────────────────┘                │
+│                               │ (Shared Volumes)                            │
 │          ┌──────────────────────▼────────────────────────────────────────┐  │
 │          │                     Volumes Docker                            │  │
-│          │ ─────────────────────────────────────────────────────────────│  │
+│          │ ───────────────────────────────────────────────────────────── │  │
 │          │ data_volume         │ logs_volume         │ images_volume     │  │
 │          │  (rss_qdm.db)       │  (medpost.log)      │  (pictures)       │  │
-│          └─────────────────────────────────────────────────────────────┘  │
+│          └─────────────────────────────────────────────────────────────┘    │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -149,7 +149,7 @@ Gestion centralisée et automatisée des tokens d'accès.
 
 | Champ | Type | Description |
 |-------|------|-------------|
-| id | Integer | Clé primaire |
+| id    | Integer | Clé primaire |
 | network | String | Réseau (threads) |
 | newspaper | String | Journal (qdm/qph) |
 | access_token | String | Token actuel |
@@ -287,8 +287,7 @@ docker-compose down
 
 ### 5. Accès à l'application
 
-- **Interface web** : http://localhost:5000
-- **Identifiants par défaut** : À configurer via la BD
+- **Interface web** : http://localhost:8000
 
 ## Utilisation
 
@@ -409,5 +408,5 @@ Les contributions sont bienvenues ! Pour des changements majeurs, ouvrez d'abord
 
 ## Licence
 
-Ce projet est licensié sous [LICENSE](LICENSE)
+Ce projet est licensié sous MIT License - Copyright (c) 2025 Stéphane Long
 
