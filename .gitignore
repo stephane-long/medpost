@@ -6,5 +6,6 @@
 .env.*
 *.pyc
 *.db
-/data
-/logs
+data
+logs
+medpost.log
