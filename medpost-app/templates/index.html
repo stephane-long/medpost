@@ -238,7 +238,7 @@
     <div class="col-5">
         <!-- Posts planifiés -->
         <div class="mp-side-section">
-            <div class="d-flex align-items-center justify-content-between mb-2 pb-2" style="border-bottom:1px solid var(--color-border);">
+            <div class="d-flex align-items-center gap-2 mb-2 pb-2" style="border-bottom:1px solid var(--color-border);">
                 <h2 class="mp-side-title">Posts planifiés</h2>
                 <span class="badge {% if newspaper == 'qdm' %}text-dark{% else %}text-white{% endif %}"
                     style="background-color:{% if newspaper == 'qdm' %}var(--color-qdm){% else %}var(--color-qph){% endif %}; font-size:0.65rem;">
@@ -247,7 +247,7 @@
             </div>
             {% for post in posts_planned %}
             <div class="mb-1">
-                <div class="d-flex align-items-center justify-content-between mb-1">
+                <div class="d-flex align-items-center gap-2 mb-1">
                     <span class="mp-post-date-badge mp-post-date-badge--{{ newspaper }}">{{ post.date_pub }}</span>
                     <span class="mp-post-network">{{ post.name }}</span>
                 </div>
