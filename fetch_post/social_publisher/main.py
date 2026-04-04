@@ -849,6 +849,7 @@ def post_to_threads(
             # Suppression de l'image uploadée sur le bucket
             if threads_id and uploaded_to_bucket:
                 try:
+                    pass
                     delete_img_from_bucket(post["image_url"])
                 except Exception as err:
                     logging.error(
