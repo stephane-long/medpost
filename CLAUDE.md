@@ -80,8 +80,9 @@ cd medpost-app
 python app.py  # Runs on port 8000
 
 # Run fetcher manually (from fetch_post directory)
+# The fetcher now has modular architecture with separate RSS and publisher services
 cd fetch_post
-python main.py
+python main.py  # Orchestrates both RSS fetching and social media publishing
 ```
 
 ### Database Operations
@@ -107,7 +108,22 @@ The application implements custom image handling in `app.py`:
 - `save_image()`: Processes uploaded images and saves to `static/images/`
 - Default fallback: `images/no_picture.jpg` for missing images
 
-### Social Media Publishing (fetch_post/main.py)
+### Fetcher Service Architecture (fetch_post/)
+
+The fetcher has been refactored into modular components:
+
+**Module Organization**:
+- `main.py`: Orchestrator that coordinates RSS fetching and social media publishing
+- `rss_fetcher/main.py`: Dedicated RSS feed processing and article import
+- `social_publisher/main.py`: Social media publication service
+- `shared/database.py`: Shared database models and utilities (Articles_rss, Posts, Networks, TokensMetadata)
+
+**Key Functions**:
+- **RSS Fetching**: `load_articles()` retrieves feeds, validates articles, extracts metadata, stores in database
+- **Social Publishing**: `post_auto_function()` publishes queued posts across networks
+- **Token Management**: `get_threads_token()`, `check_and_refresh_threads_token()`, `migrate_tokens_to_db()` handle Threads token lifecycle
+
+### Social Media Publishing Implementation
 
 Each platform has distinct requirements:
 
@@ -152,8 +168,7 @@ Flask-Login with hashed passwords (Werkzeug). Admin users can manage users via `
 
 ### Path Resolution Logic
 
-Both `app.py` and `main.py` use conditional path resolution:
-
+**Flask app (medpost-app/app.py)**:
 ```python
 if os.getenv("DOCKER_ENV"):
     db_path = str(script_dir / os.getenv("DATABASE_PATH"))
@@ -161,7 +176,19 @@ else:
     db_path = str(script_dir.parent / os.getenv("DATABASE_PATH"))
 ```
 
-This allows running locally (parent directory) or in Docker (current directory).
+**Fetcher modules (fetch_post/main.py, rss_fetcher/main.py, social_publisher/main.py)**:
+```python
+if os.getenv("DOCKER_ENV"):
+    db_path = str(script_dir / os.getenv("DATABASE_PATH"))
+else:
+    # Note: script_dir.parent.parent accounts for module depth (rss_fetcher/ or social_publisher/)
+    db_path = str(script_dir.parent.parent / os.getenv("DATABASE_PATH"))
+```
+
+The extra `.parent` in fetcher modules is necessary because:
+- `rss_fetcher/main.py` is one level deeper than the root
+- `social_publisher/main.py` is also one level deeper than the root
+- Path resolution must account for this additional directory depth
 
 ### Network Tags
 
@@ -174,6 +201,16 @@ The fetcher processes up to 25 articles per feed run with:
 - Automatic retry logic with exponential backoff
 - Rate limit handling (429 responses)
 - Article validation to skip unwanted content (e.g., "Votre journal au format numérique")
+
+### Shared Database Module (fetch_post/shared/database.py)
+
+All SQLAlchemy models are centralized in `shared/database.py`:
+- **Articles_rss**: RSS articles with NID, newspaper, metadata
+- **Posts**: Scheduled/published posts with status tracking
+- **Networks**: Social media platforms with tags
+- **TokensMetadata**: Threads token management with expiration tracking
+
+This module is imported by both `rss_fetcher/main.py` and `social_publisher/main.py` to ensure consistency.
 
 ### Dual Newspaper Support
 
