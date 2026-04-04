@@ -2,14 +2,16 @@
 {% block content %}
 <div class="row" data-selectedfeed="{{ selectedfeed }}" data-newspaper="{{ newspaper }}">
     <div class="col-7">
-        <div class="content-menu">
+        <!-- En-tête section articles -->
+        <div class="mp-content-header">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <div class="fw-bold">Articles non postés</div>
-                <div>
-                    <!-- Création post et article à partir d'une image -->
-                    <a class="btn btn-sm btn-outline-secondary"
-                        style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;"
-                        role="button" data-bs-toggle="modal" data-bs-target="#importImage">Post image</a>
+                <h1 class="mp-section-title">Articles non postés</h1>
+                <div class="d-flex align-items-center gap-2">
+                    <!-- Création post à partir d'une image -->
+                    <a class="mp-btn-primary px-3 py-1 d-inline-flex align-items-center gap-1"
+                        role="button" data-bs-toggle="modal" data-bs-target="#importImage">
+                        <span class="material-symbols-outlined">add_photo_alternate</span> Post image
+                    </a>
                     <div class="modal fade" id="importImage" tabindex="-1">
                         <div class="modal-dialog modal-xl">
                             <div class="modal-content">
@@ -17,71 +19,56 @@
                                     <h1 class="modal-title fs-5 fw-bold">Importer une image</h1>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
-                                <!-- Formulaire de saisie de l'image à charger -->
                                 <div class="modal-body">
                                     <form id="importFileForm" style="display: block;">
                                         <div class="mb-3">
-                                            <label for="selectImageFile" class="form-label fw-bold">Sélectionner un
-                                                fichier</label>
-                                            <input type="file" class="form-control mb-3" id="selectImageFile"
-                                                accept="image/*">
+                                            <label for="selectImageFile" class="form-label fw-bold">Sélectionner un fichier</label>
+                                            <input type="file" class="form-control mb-3" id="selectImageFile" accept="image/*">
                                         </div>
                                         <div id="fileBtnsContainer" class="modal-footer">
-                                            <button type="submit" class="btn btn-primary"
-                                                id="submitFileBtn">Importer</button>
-                                            <button type="button" class="btn btn-secondary"
-                                                data-bs-dismiss="modal">Annuler</button>
+                                            <button type="submit" class="btn btn-primary" id="submitFileBtn">Importer</button>
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
                                         </div>
                                     </form>
-                                    <!-- Conteneur pour le formulaire de création de posts à patir d'une image -->
                                     <div id="networkForm_image" style="display: none;">
                                         <form id="networkForm_image">
                                             <div class="mb-3 d-flex align-items-center flex-wrap">
                                                 <label class="form-label me-3 fw-bold">Sélectionnez les réseaux</label>
                                                 <div class="form-check form-check-inline me-2">
-                                                    <input class="form-check-input network-checkbox_image"
-                                                        type="checkbox" id="xCheckboxLink_image" value="X">
+                                                    <input class="form-check-input network-checkbox_image" type="checkbox" id="xCheckboxLink_image" value="X">
                                                     <label class="form-check-label" for="xCheckboxLink_image">X</label>
                                                 </div>
                                                 <div class="form-check form-check-inline me-2">
-                                                    <input class="form-check-input network-checkbox_image"
-                                                        type="checkbox" id="blueskyCheckboxLink_image" value="Bluesky">
-                                                    <label class="form-check-label"
-                                                        for="blueskyCheckboxLink_image">Bluesky</label>
+                                                    <input class="form-check-input network-checkbox_image" type="checkbox" id="blueskyCheckboxLink_image" value="Bluesky">
+                                                    <label class="form-check-label" for="blueskyCheckboxLink_image">Bluesky</label>
                                                 </div>
                                                 <div class="form-check form-check-inline">
-                                                    <input class="form-check-input network-checkbox_image"
-                                                        type="checkbox" id="linkedinCheckboxLink_image" value="Threads">
-                                                    <label class="form-check-label"
-                                                        for="linkedinCheckboxLink_image">Threads</label>
+                                                    <input class="form-check-input network-checkbox_image" type="checkbox" id="linkedinCheckboxLink_image" value="Threads">
+                                                    <label class="form-check-label" for="linkedinCheckboxLink_image">Threads</label>
                                                 </div>
                                             </div>
                                         </form>
                                     </div>
-                                    <!-- Conteneur formulaire dynamique posts à partir d'une image-->
                                     <div id="postImageFormContainer" style="display: none;"></div>
                                     <div id="postImageFormBtns" class="modal-footer" style="display: none;">
-                                        <button type="button" class="btn btn-primary"
-                                            id="postImageProgrammerBtn">Programmer</button>
-                                        <button type="button" class="btn btn-secondary"
-                                            data-bs-dismiss="modal">Annuler</button>
+                                        <button type="button" class="btn btn-primary" id="postImageProgrammerBtn">Programmer</button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
                                     </div>
-                                    <!-- Spinner -->
                                     <div id="imageProcessingSpinner" class="text-center my-3" style="display: none;">
                                         <div class="spinner-border text-primary" role="status">
                                             <span class="visually-hidden">Traitement de l'image...</span>
                                         </div>
                                         <div>Traitement de l'image...</div>
                                     </div>
-                                    <!-- Fin Spinner -->
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <!-- Création post et article à partir d'un lien -->
-                    <a class="btn btn-sm me-3 btn-outline-secondary"
-                        style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;"
-                        role="button" data-bs-toggle="modal" data-bs-target="#importLinkModal">Importer lien</a>
+                    <!-- Création post à partir d'un lien -->
+                    <a class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+                        role="button" data-bs-toggle="modal" data-bs-target="#importLinkModal">
+                        <span class="material-symbols-outlined">link</span> Importer lien
+                    </a>
                     <div class="modal fade" id="importLinkModal" tabindex="-1">
                         <div id="current-datetime" data-current-datetime="{{ current_datetime() }}"></div>
                         <div class="modal-dialog modal-xl">
@@ -90,7 +77,6 @@
                                     <h1 class="modal-title fs-5 fw-bold" id="importModalHeader">Importer un article</h1>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
-                                <!-- Formulaire de saisie du lien à importer -->
                                 <div class="modal-body">
                                     <form id="importLinkForm" data-newspaper="{{ newspaper }}" style="display: block;">
                                         <div class="mb-3">
@@ -100,316 +86,277 @@
                                         </div>
                                         <div id="responseMessage" class="text-muted mt-3" style="display: none;"></div>
                                         <div id="importButtonsContainer" class="modal-footer">
-                                            <button type="submit" class="btn btn-primary"
-                                                id="submitLinkBtn">Importer</button>
-                                            <button type="button" class="btn btn-secondary"
-                                                data-bs-dismiss="modal">Annuler</button>
+                                            <button type="submit" class="btn btn-primary" id="submitLinkBtn">Importer</button>
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
                                         </div>
                                     </form>
-                                    <!-- Conteneur pour le formulaire de création de posts à partir d'un lien -->
                                     <div id="networkFormContainer" style="display: none;">
                                         <form id="networkForm">
                                             <div class="mb-3 d-flex align-items-center flex-wrap">
                                                 <label class="form-label me-3 fw-bold">Sélectionnez les réseaux</label>
                                                 <div class="form-check form-check-inline me-2">
-                                                    <input class="form-check-input network-checkbox" type="checkbox"
-                                                        id="xCheckboxLink" value="X">
-                                                    <label class="form-check-label"
-                                                        for="x_checkbox_modal_imported">X</label>
+                                                    <input class="form-check-input network-checkbox" type="checkbox" id="xCheckboxLink" value="X">
+                                                    <label class="form-check-label" for="x_checkbox_modal_imported">X</label>
                                                 </div>
                                                 <div class="form-check form-check-inline me-2">
-                                                    <input class="form-check-input network-checkbox" type="checkbox"
-                                                        id="blueskyCheckboxLink" value="Bluesky">
-                                                    <label class="form-check-label"
-                                                        for="bluesky_checkbox_modal_imported">Bluesky</label>
+                                                    <input class="form-check-input network-checkbox" type="checkbox" id="blueskyCheckboxLink" value="Bluesky">
+                                                    <label class="form-check-label" for="bluesky_checkbox_modal_imported">Bluesky</label>
                                                 </div>
                                                 <div class="form-check form-check-inline">
-                                                    <input class="form-check-input network-checkbox" type="checkbox"
-                                                        id="linkedinCheckboxLink" value="Threads">
-                                                    <label class="form-check-label"
-                                                        for="linkedin_checkbox_modal_imported">Threads</label>
+                                                    <input class="form-check-input network-checkbox" type="checkbox" id="linkedinCheckboxLink" value="Threads">
+                                                    <label class="form-check-label" for="linkedin_checkbox_modal_imported">Threads</label>
                                                 </div>
                                             </div>
                                         </form>
                                     </div>
-                                    <!-- Conteneur formulaire dynamique posts-->
                                     <div id="postFormContainer" style="display: none;"></div>
                                     <div id="postFormButtons" class="modal-footer" style="display: none;">
-                                        <button type="button" class="btn btn-primary"
-                                            id="postProgrammerBtn">Programmer</button>
-                                        <button type="button" class="btn btn-secondary"
-                                            data-bs-dismiss="modal">Annuler</button>
+                                        <button type="button" class="btn btn-primary" id="postProgrammerBtn">Programmer</button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
                                     </div>
-                                    <!-- Spinner -->
                                     <div id="linkProcessingSpinner" class="text-center my-3" style="display: none;">
                                         <div class="spinner-border text-primary" role="status">
                                             <span class="visually-hidden">Traitement de l'image...</span>
                                         </div>
                                         <div>Traitement de l'image...</div>
                                     </div>
-                                    <!-- Fin Spinner -->
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <!-- Fin import lien création post -->
-                    <a class="btn button-shadow me-2 btn-sm {% if newspaper =='qdm' %}btn-warning{% else %}btn-outline-warning{% endif %}"
-                        style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;"
-                        role="button" href="{{ url_for('home', selectedfeed='tous', newspaper='qdm') }}">QDM</a>
-                    <a class="btn button-shadow btn-sm {% if newspaper == 'qph' %}btn-success{% else %}btn-outline-success{% endif %}"
-                        style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;"
-                        role="button" href="{{ url_for('home', selectedfeed='tous', newspaper='qph') }}">QPH</a>
+                    <!-- Sélecteur journal QDM / QPH -->
+                    <a class="mp-btn-newspaper {% if newspaper == 'qdm' %}mp-btn-newspaper--qdm-active{% else %}mp-btn-newspaper--qdm-inactive{% endif %}"
+                        href="{{ url_for('home', selectedfeed='tous', newspaper='qdm') }}">QDM</a>
+                    <a class="mp-btn-newspaper {% if newspaper == 'qph' %}mp-btn-newspaper--qph-active{% else %}mp-btn-newspaper--qph-inactive{% endif %}"
+                        href="{{ url_for('home', selectedfeed='tous', newspaper='qph') }}">QPH</a>
                 </div>
             </div>
-            <div class="d-flex justify-content-start align-items-center">
-                <a class="btn btn-sm mb-1 me-1 {% if selectedfeed == 'tous' %}btn-warning{% else %}btn-outline-warning{% endif %}"
-                    style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;"
-                    role="button" href="{{ url_for('home', selectedfeed='tous', newspaper=newspaper) }}">TOUS</a>
-                <a class="btn btn-sm mb-1 me-1  {% if selectedfeed == 'X' %}btn-dark{% else %}btn-outline-dark{% endif %}"
-                    style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;"
-                    role="button" href="{{ url_for('home', selectedfeed='X', newspaper=newspaper) }}">X (Twitter)</a>
-                <a class="btn btn-sm mb-1 me-1  {% if selectedfeed == 'Bluesky' %}btn-info{% else %}btn-outline-info{% endif %}"
-                    style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;"
-                    role="button" href="{{ url_for('home', selectedfeed='Bluesky', newspaper=newspaper) }}">Bluesky</a>
-                <a class="btn btn-sm mb-1 {% if selectedfeed == 'Threads' %}btn-secondary{% else %}btn-outline-secondary{% endif %}"
-                    style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .7rem;"
-                    role="button" href="{{ url_for('home', selectedfeed='Threads', newspaper=newspaper) }}">Threads</a>
-
+            <!-- Filtres réseau -->
+            <div class="mp-filters-separator"></div>
+            <div class="d-flex align-items-center">
+                <span class="me-2" style="font-size:0.65rem; font-weight:700; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:0.08em;">Filtres</span>
+                <a class="mp-filter-tab {% if selectedfeed == 'tous' %}active{% endif %}"
+                    href="{{ url_for('home', selectedfeed='tous', newspaper=newspaper) }}">Tous</a>
+                <a class="mp-filter-tab {% if selectedfeed == 'X' %}active{% endif %}"
+                    href="{{ url_for('home', selectedfeed='X', newspaper=newspaper) }}">X</a>
+                <a class="mp-filter-tab {% if selectedfeed == 'Bluesky' %}active{% endif %}"
+                    href="{{ url_for('home', selectedfeed='Bluesky', newspaper=newspaper) }}">Bluesky</a>
+                <a class="mp-filter-tab {% if selectedfeed == 'Threads' %}active{% endif %}"
+                    href="{{ url_for('home', selectedfeed='Threads', newspaper=newspaper) }}">Threads</a>
             </div>
         </div>
+
+        <!-- Liste des articles -->
         {% for article in articles.items %}
-        <article class="content-section">
-            <div class="article-metadata d-flex justify-content-between align-items-center">
-                <small class="text-muted">Publié le {{ article.pubdate }}</small>
-                <a class="btn btn-sm btn-outline-secondary ms-auto"
-                    style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;"
-                    role="button"
-                    href="{{ url_for('refresh', article_id=article.id, link=article.link, selectedfeed='tous', newspaper='qdm') }}">Refresh</a>
-                <a class="btn btn-sm btn-outline-success ms-4"
-                    style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;"
-                    role="button" data-bs-toggle="modal" data-bs-target="#newpost{{ article.id }}">Partager</a>
-                <a class="btn btn-sm btn-outline-danger ms-2"
-                    style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;"
-                    role="button"
-                    href="{{ url_for('delete_article', article_id=article.id, selectedfeed=selectedfeed, newspaper=newspaper) }}">Supprimer</a>
-                <!-- Formulaire d'édition partage-->
-                <div class="modal fade" id="newpost{{ article.id }}" tabindex="-1" data-title="{{ article.title }}"
-                    data-description="{{ article.summary | truncate(250) }}" data-link="{{ article.link }}"
-                    data-min-datetime="{{ current_datetime() }}" data-image-url="{{ article.image_url }}">
-                    <div class="modal-dialog modal-xl">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h1 class="modal-title fs-5 fw-bold" id="newpostLabel{{ article.id }}">Nouveau post</h1>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <!-- Sélection des réseaux à éditer -->
-                                <div class="mb-3 d-flex align-items-center flex-wrap">
-                                    <label class="form-label me-3 fw-bold">Sélectionnez les réseaux</label>
-                                    <div class="form-check form-check-inline me-2">
-                                        <input class="form-check-input network-checkbox" type="checkbox"
-                                            id="x_checkbox_modal{{ article.id }}" value="X">
-                                        <label class="form-check-label" for="x_checkbox_modal{{ article.id }}">X</label>
-                                    </div>
-                                    <div class="form-check form-check-inline me-2">
-                                        <input class="form-check-input network-checkbox" type="checkbox"
-                                            id="bluesky_checkbox_modal{{ article.id }}" value="Bluesky">
-                                        <label class="form-check-label"
-                                            for="bluesky_checkbox_modal{{ article.id }}">Bluesky</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input network-checkbox" type="checkbox"
-                                            id="threads_checkbox_modal{{ article.id }}" value="Threads">
-                                        <label class="form-check-label"
-                                            for="threads_checkbox_modal{{ article.id }}">Threads</label>
-                                    </div>
+        <article class="mp-card mp-card--{{ newspaper }}">
+            <!-- Modal partager (inchangé) -->
+            <div class="modal fade" id="newpost{{ article.id }}" tabindex="-1" data-title="{{ article.title }}"
+                data-description="{{ article.summary | truncate(250) }}" data-link="{{ article.link }}"
+                data-min-datetime="{{ current_datetime() }}" data-image-url="{{ article.image_url }}">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5 fw-bold" id="newpostLabel{{ article.id }}">Nouveau post</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3 d-flex align-items-center flex-wrap">
+                                <label class="form-label me-3 fw-bold">Sélectionnez les réseaux</label>
+                                <div class="form-check form-check-inline me-2">
+                                    <input class="form-check-input network-checkbox" type="checkbox"
+                                        id="x_checkbox_modal{{ article.id }}" value="X">
+                                    <label class="form-check-label" for="x_checkbox_modal{{ article.id }}">X</label>
                                 </div>
-                                <!-- Formulaire dynamique -->
-                                <div id="dynamic-forms-container{{ article.id }}"></div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-primary"
-                                    id="programmer-btn-{{ article.id }}">Programmer</button>
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                            </div>
-                            <!-- Spinner -->
-                            <div id="newPostProcessingSpinner" class="text-center my-3" style="display: none;">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Traitement de l'image...</span>
+                                <div class="form-check form-check-inline me-2">
+                                    <input class="form-check-input network-checkbox" type="checkbox"
+                                        id="bluesky_checkbox_modal{{ article.id }}" value="Bluesky">
+                                    <label class="form-check-label" for="bluesky_checkbox_modal{{ article.id }}">Bluesky</label>
                                 </div>
-                                <div>Traitement de l'image...</div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input network-checkbox" type="checkbox"
+                                        id="threads_checkbox_modal{{ article.id }}" value="Threads">
+                                    <label class="form-check-label" for="threads_checkbox_modal{{ article.id }}">Threads</label>
+                                </div>
                             </div>
-                            <!-- Fin Spinner -->
+                            <div id="dynamic-forms-container{{ article.id }}"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" id="programmer-btn-{{ article.id }}">Programmer</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        </div>
+                        <div id="newPostProcessingSpinner" class="text-center my-3" style="display: none;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Traitement de l'image...</span>
+                            </div>
+                            <div>Traitement de l'image...</div>
                         </div>
                     </div>
                 </div>
-                <!-- Fin formulaire-->
             </div>
-            <div class="d-flex align-items-center">
+            <!-- Contenu de la carte -->
+            <div class="d-flex align-items-start gap-3">
                 <img src="{% if article.image_url.startswith('http') %}{{ article.image_url }}{% else %}{{ url_for('static', filename=article.image_url) }}{% endif %}"
-                    class="img-fluid me-3" style="max-width: 50px;" alt="" />
-                <!--                            <img src="{{ article.image_url }}" class="img-fluid me-3" style="max-width: 50px;" alt=""/> -->
-                <a class="article-title flex-grow-1" href="{{ article.link }}" target="_blank">{{ article.title }}</a>
-                <!--                        <p class="article-content">{{ article.summary[:100] }}...</p> -->
+                    class="mp-article-img" alt="" />
+                <div class="flex-grow-1">
+                    <div class="mp-article-date">Publié le {{ article.pubdate }}</div>
+                    <a class="mp-article-title d-block" href="{{ article.link }}" target="_blank">{{ article.title }}</a>
+                    <div class="d-flex align-items-center justify-content-between mt-2">
+                        <div class="d-flex gap-3">
+                            <a class="mp-btn-icon mp-btn-icon--muted"
+                                href="{{ url_for('refresh', article_id=article.id, link=article.link, selectedfeed='tous', newspaper='qdm') }}">
+                                <span class="material-symbols-outlined">refresh</span> Refresh
+                            </a>
+                            <a class="mp-btn-icon mp-btn-icon--danger"
+                                href="{{ url_for('delete_article', article_id=article.id, selectedfeed=selectedfeed, newspaper=newspaper) }}">
+                                <span class="material-symbols-outlined">delete</span> Supprimer
+                            </a>
+                        </div>
+                        <a class="mp-btn-primary px-3 py-1 d-inline-flex align-items-center gap-1"
+                            role="button" data-bs-toggle="modal" data-bs-target="#newpost{{ article.id }}">
+                            <span class="material-symbols-outlined">share</span> Partager
+                        </a>
+                    </div>
+                </div>
             </div>
         </article>
         {% endfor %}
-        <div class="d-flex mt-2 justify-content-left flex-wrap">
+
+        <!-- Pagination -->
+        <div class="d-flex mt-3 mb-4 gap-1 flex-wrap">
             {% for page_num in articles.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
             {% if page_num %}
-            <a class="btn {% if articles.page == page_num %}btn-warning{% else %}btn-outline-warning{% endif %} me-2 mb-4"
-                href="{{ url_for('home', page=page_num, selectedfeed=selectedfeed, newspaper=newspaper) }}">{{ page_num
-                }}</a>
+            <a class="mp-page-btn {% if articles.page == page_num %}active{% endif %}"
+                href="{{ url_for('home', page=page_num, selectedfeed=selectedfeed, newspaper=newspaper) }}">{{ page_num }}</a>
             {% else %}
-            <span class='me-2'>...</span>
+            <span class="mp-page-btn" style="border:none;background:none;cursor:default;">…</span>
             {% endif %}
             {% endfor %}
         </div>
     </div>
-    <!-- Fils de droite : posts planifiés et posts publiés -->
+
+    <!-- Colonne droite : posts planifiés et posts publiés -->
     <div class="col-5">
-        <div class="content-section">
-            <div class="border-bottom border-bottom-5 mb-2 fw-bold d-flex align-items-center">
-                Posts planifiés
-                {% if newspaper == 'qdm' %}
-                <span class="badge bg-warning ms-2 align-middle" style="font-size:0.5rem;">{{ nb_posts_planned }}</span>
-                {% else %}
-                <span class="badge bg-success ms-2 align-middle" style="font-size:0.5rem;">{{ nb_posts_planned }}</span>
-                {% endif %}
+        <!-- Posts planifiés -->
+        <div class="mp-side-section">
+            <div class="d-flex align-items-center justify-content-between mb-2 pb-2" style="border-bottom:1px solid var(--color-border);">
+                <h2 class="mp-side-title">Posts planifiés</h2>
+                <span class="badge {% if newspaper == 'qdm' %}text-dark{% else %}text-white{% endif %}"
+                    style="background-color:{% if newspaper == 'qdm' %}var(--color-qdm){% else %}var(--color-qph){% endif %}; font-size:0.65rem;">
+                    {{ nb_posts_planned }}
+                </span>
             </div>
             {% for post in posts_planned %}
-            <div class="post-metadata d-flex mb-1">
-                <div class="{% if newspaper == 'qdm'%}bg-warning{% else %}bg-success{% endif %} text-dark me-2 px-1"> {{
-                    post.date_pub }}</div>
-                <div> {{ post.name }} </div>
-            </div>
-            <div class="d-flex align-items-center">
-                <img src="{% if post.image_url.startswith('http') %}{{ post.image_url }}{% else %}{{ url_for('static', filename=post.image_url) }}{% endif %}"
-                    class="img-fluid me-3" style="max-width: 50px;" alt="" />
-                <!-- <img src="{{ post.image_url }}" class="img-fluid me-3" style="max-width: 50px;" alt=""/> -->
-                <div class="post-title flex-grow-1">{% if post.name == 'Bluesky' %}{{ post.tagline}}
-                    {% else %}{{ post.title}}{% endif %}
+            <div class="mb-1">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <span class="mp-post-date-badge mp-post-date-badge--{{ newspaper }}">{{ post.date_pub }}</span>
+                    <span class="mp-post-network">{{ post.name }}</span>
                 </div>
-            </div>
-            <div class="d-flex border-bottom pb-1 my-2">
-                <a class="btn btn-outline-success me-2"
-                    style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;"
-                    role="button" data-bs-toggle="modal" data-bs-target="#editpost{{ post.id }}">Éditer</a>
-                <!-- Formulaire édition de post planifié -->
-                <div class="modal fade" id="editpost{{ post.id }}" tabindex="-1">
-                    <div class="modal-dialog modal-xl">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h1 class="modal-title fs-5" id="editpostLabel{{ post.id }}">Modifier le post planifié
-                                </h1>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <form
-                                    action="{{ url_for('edit_post', selectedfeed=selectedfeed, newspaper=newspaper) }}"
-                                    method='post'>
-                                    <input type="hidden" name="post_id" value="{{ post.id }}">
-                                    <input type="hidden" name="post_network" value="{{ post.name }}">
-                                    {% if post.name == 'X' or post.name == 'Threads' %}
-                                    <!-- Edition post X -->
-                                    <div class="row">
-                                        <div class="col-8 border rounded p-2">
-                                            <label for="title_post{{ post.id }}" class="form-label fw-bold">Titre du
-                                                post</label>
-                                            <textarea class="form-control" id="title_post{{ post.id }}"
-                                                name="post_title" rows="3" required>{{ post.title }}</textarea>
-                                            <div class="position-relative">
-                                                <img src="{{ post.image_url }}" class="w-100 mt-3 d-block rounded-3"
-                                                    alt="" />
-                                                <!-- <img src="{{ url_for('static', filename='images/no_picture.jpg') }}" class="w-100 mt-3 d-block rounded-3" alt=""/> -->
-                                                <div
-                                                    class="legend position-absolute start-50 translate-middle-x rounded bg-dark bg-opacity-75 text-white py-1 px-2 text-truncate">
-                                                    {{ post.title }}
+                <div class="d-flex align-items-center gap-2">
+                    <img src="{% if post.image_url.startswith('http') %}{{ post.image_url }}{% else %}{{ url_for('static', filename=post.image_url) }}{% endif %}"
+                        class="rounded" style="width:44px;height:44px;object-fit:cover;flex-shrink:0;" alt="" />
+                    <div class="mp-post-title flex-grow-1">{% if post.name == 'Bluesky' %}{{ post.tagline }}{% else %}{{ post.title }}{% endif %}</div>
+                </div>
+                <div class="d-flex gap-2 mt-1">
+                    <a class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+                        style="--bs-btn-padding-y:.15rem;--bs-btn-padding-x:.5rem;--bs-btn-font-size:.7rem;"
+                        role="button" data-bs-toggle="modal" data-bs-target="#editpost{{ post.id }}">
+                        <span class="material-symbols-outlined">edit</span> Éditer
+                    </a>
+                    <!-- Modal édition de post planifié (inchangé) -->
+                    <div class="modal fade" id="editpost{{ post.id }}" tabindex="-1">
+                        <div class="modal-dialog modal-xl">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h1 class="modal-title fs-5" id="editpostLabel{{ post.id }}">Modifier le post planifié</h1>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form action="{{ url_for('edit_post', selectedfeed=selectedfeed, newspaper=newspaper) }}" method='post'>
+                                        <input type="hidden" name="post_id" value="{{ post.id }}">
+                                        <input type="hidden" name="post_network" value="{{ post.name }}">
+                                        {% if post.name == 'X' or post.name == 'Threads' %}
+                                        <div class="row">
+                                            <div class="col-8 border rounded p-2">
+                                                <label for="title_post{{ post.id }}" class="form-label fw-bold">Titre du post</label>
+                                                <textarea class="form-control" id="title_post{{ post.id }}" name="post_title" rows="3" required>{{ post.title }}</textarea>
+                                                <div class="position-relative">
+                                                    <img src="{{ post.image_url }}" class="w-100 mt-3 d-block rounded-3" alt="" />
+                                                    <div class="legend position-absolute start-50 translate-middle-x rounded bg-dark bg-opacity-75 text-white py-1 px-2 text-truncate">
+                                                        {{ post.title }}
+                                                    </div>
+                                                    <a href="{{ post.link }}" class="card-link" target="_blank">De lequotidiendumedecin.fr</a>
                                                 </div>
-                                                <a href="{{ post.link }}" class="card-link" target="_blank">De
-                                                    lequotidiendumedecin.fr</a>
+                                            </div>
+                                            <div class="col-4">
+                                                <label for="date_post{{ post.id }}" class="form-label fw-bold">Date et heure</label>
+                                                <input type="datetime-local" class="form-control" id="date_post{{ post.id }}" name="post_datetime"
+                                                    value="{{ post.date_pub }}" min="{{ current_datetime() }}" style="width: 250px;" required>
                                             </div>
                                         </div>
-                                        <div class="col-4">
-                                            <label for="date_post{{ post.id }}" class="form-label fw-bold">Date et
-                                                heure</label>
-                                            <input type="datetime-local" class="form-control"
-                                                id="date_post{{ post.id }}" name="post_datetime"
-                                                value="{{ post.date_pub }}" min="{{ current_datetime() }}"
-                                                style="width: 250px;" required>
-                                        </div>
-                                    </div>
-                                    {% else %}
-                                    <!-- Edition post Bluesky -->
-                                    <div class="row">
-                                        <div class="col-8 border rounded p-2">
-                                            <label for="tagline_post{{ post.id }}" class="form-label fw-bold">Accroche
-                                                du post</label>
-                                            <textarea class="form-control" id="tagline_post{{ post.id }}"
-                                                name="post_tagline" rows="2" required>{{ post.tagline }}</textarea>
-                                            <img src="{{ post.image_url }}" class="w-100 mt-3 rounded-3">
-                                            <div class="mb-3">
-                                                <label for="title_post{{ post.id }}" class="form-label fw-bold">Titre du
-                                                    post</label>
-                                                <textarea class="form-control" id="title_post{{ post.id }}"
-                                                    name="post_title" rows="3" required>{{ post.title }}</textarea>
+                                        {% else %}
+                                        <div class="row">
+                                            <div class="col-8 border rounded p-2">
+                                                <label for="tagline_post{{ post.id }}" class="form-label fw-bold">Accroche du post</label>
+                                                <textarea class="form-control" id="tagline_post{{ post.id }}" name="post_tagline" rows="2" required>{{ post.tagline }}</textarea>
+                                                <img src="{{ post.image_url }}" class="w-100 mt-3 rounded-3">
+                                                <div class="mb-3">
+                                                    <label for="title_post{{ post.id }}" class="form-label fw-bold">Titre du post</label>
+                                                    <textarea class="form-control" id="title_post{{ post.id }}" name="post_title" rows="3" required>{{ post.title }}</textarea>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="description_post{{ post.id }}" class="form-label fw-bold">Description du post</label>
+                                                    <textarea class="form-control" id="description_post{{ post.id }}" name="post_description" rows="3" required>{{ post.description }}</textarea>
+                                                </div>
                                             </div>
-                                            <div class="mb-3">
-                                                <label for="description_post{{ post.id }}"
-                                                    class="form-label fw-bold">Description du post</label>
-                                                <textarea class="form-control" id="description_post{{ post.id }}"
-                                                    name="post_description" rows="3"
-                                                    required>{{ post.description }}</textarea>
+                                            <div class="col-4">
+                                                <label for="date_post{{ post.id }}" class="form-label fw-bold">Date et heure</label>
+                                                <input type="datetime-local" class="form-control" id="date_post{{ post.id }}" name="post_datetime"
+                                                    value="{{ post.date_pub }}" min="{{ current_datetime() }}" style="width: 250px;" required>
                                             </div>
                                         </div>
-                                        <div class="col-4">
-                                            <label for="date_post{{ post.id }}" class="form-label fw-bold">Date et
-                                                heure</label>
-                                            <input type="datetime-local" class="form-control"
-                                                id="date_post{{ post.id }}" name="post_datetime"
-                                                value="{{ post.date_pub }}" min="{{ current_datetime() }}"
-                                                style="width: 250px;" required>
+                                        {% endif %}
+                                        <div class="d-flex justify-content-end mt-3">
+                                            <button type="submit" class="btn btn-primary">Enregistrer</button>
                                         </div>
-                                    </div>
-
-                                    {% endif %}
-                                    <div class="d-flex justify-content-end">
-                                        <button type="submit" class="btn btn-primary btn-right">Enregistrer</button>
-                                    </div>
-                                </form>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                                </div>
                             </div>
                         </div>
                     </div>
+                    <!-- Fin modal édition -->
+                    <a class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1"
+                        style="--bs-btn-padding-y:.15rem;--bs-btn-padding-x:.5rem;--bs-btn-font-size:.7rem;"
+                        href="{{ url_for('delete_post', post_id=post.id, selectedfeed=selectedfeed, newspaper=newspaper) }}">
+                        <span class="material-symbols-outlined">delete</span> Supprimer
+                    </a>
                 </div>
-                <!-- Fin formulaire édition de post planifié -->
-                <a class="btn btn-outline-secondary me-5 disabled"
-                    style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;"
-                    role="button" href="#">Repartager</a>
-                <a class="btn btn-outline-danger"
-                    style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;"
-                    role="button"
-                    href="{{ url_for('delete_post', post_id=post.id, selectedfeed=selectedfeed, newspaper=newspaper) }}">Supprimer</a>
             </div>
+            {% if not loop.last %}<div class="mp-divider"></div>{% endif %}
             {% endfor %}
         </div>
+
         <!-- Derniers posts publiés -->
-        <div class="content-section">
-            <div class="border-bottom border-bottom-5 mb-2 fw-bold">Derniers posts</div>
+        <div class="mp-side-section">
+            <h2 class="mp-side-title mb-2 pb-2" style="border-bottom:1px solid var(--color-border);">Derniers posts</h2>
             {% for post in posts_pub %}
-            <div class="post-metadata d-flex">
-                <div class="bg-secondary-subtle text-secondary-emphasis me-2 px-1"> {{ post.date_pub }}</div>
-                <div> {{ post.name }} </div>
+            <div class="d-flex align-items-start justify-content-between gap-3">
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="mp-post-date-badge" style="background:var(--color-border);color:var(--color-text-muted);">{{ post.date_pub }}</span>
+                        <span class="mp-post-network">{{ post.name }}</span>
+                    </div>
+                    <a class="mp-post-title" href="{{ post.network_post_id }}" target="_blank">
+                        {% if post.name == "Bluesky" %}{{ post.tagline }}{% else %}{{ post.title }}{% endif %}
+                    </a>
+                </div>
+                <a class="mp-btn-icon mp-btn-icon--muted flex-shrink-0 mt-1" href="{{ post.network_post_id }}" target="_blank" title="Voir le post">
+                    <span class="material-symbols-outlined">open_in_new</span>
+                </a>
             </div>
-            <a class="post-title" href="{{ post.network_post_id }}" target="_blank">{% if post.name == "Bluesky" %}{{
-                post.tagline }}{% else %}{{ post.title }}{% endif %}</a>
-            <div class="d-flex border-bottom pb-1 my-2">
-                <a class="btn btn-outline-secondary disabled"
-                    style="--bs-btn-padding-y: .1rem; --bs-btn-padding-x: .2rem; --bs-btn-font-size: .5rem;"
-                    role="button" href="#">Repartager</a>
-            </div>
+            {% if not loop.last %}<div class="mp-divider"></div>{% endif %}
             {% endfor %}
         </div>
     </div>
@@ -417,5 +364,4 @@
 <script src="{{ url_for('static', filename='js/import-link-handler.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modal-handler.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modal-post-image.js') }}"></script>
-<!--        <script src="{{ url_for('static', filename='js/character-counter.js') }}"></script>-->
 {% endblock content %}

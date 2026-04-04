@@ -11,12 +11,13 @@ Medpost is a Flask-based social media automation platform for managing and sched
 
 ## Architecture
 
-### Two-Service Architecture
+### Docker Services (medpost-app/docker-compose.yml)
 
-The application runs as two separate Docker containers that share data via Docker volumes:
+The application runs as three Docker containers sharing data via Docker volumes:
 
-- **medpost-app** (Flask web UI): User-facing interface for creating, editing, and scheduling posts
-- **fetcher-app** (Background processor): Automated RSS feed ingestion and social media publishing
+- **medpost-app** (container: `medpost`): Flask web UI for creating, editing, and scheduling posts
+- **rss-fetcher** (container: `rss-fetcher`): RSS feed ingestion — runs `rss_fetcher/main.py`
+- **social-publisher** (container: `social-publisher`): Social media publishing — runs `social_publisher/main.py`
 - **sqlite-cli** (Utility): Alpine container for direct database access
 
 ### Shared Resources (Docker Volumes)
@@ -38,10 +39,13 @@ The application uses SQLAlchemy with SQLite. Key models:
 
 ### Environment Configuration
 
-The application uses different `.env` files for dev/prod environments:
+Each service has its own `.env` file (`medpost-app/.env.dev` and `fetch_post/.env.dev`). The `.env.dev` files default to Docker mode (`DOCKER_ENV=1` uncommented). For local development without Docker, swap the commented sections in each file:
 
-- Development: `.env.dev` (local testing with mounted volumes)
-- Production: `.env.prod` (Docker deployment with named volumes)
+```bash
+# Comment out DOCKER section, uncomment LOCAL section:
+# DOCKER_ENV=1  ← comment this
+# DATABASE_PATH=data/rss_qdm.db  ← swap this with the local path variant
+```
 
 Environment detection via `DOCKER_ENV` variable determines path resolution (script_dir vs script_dir.parent).
 
@@ -56,7 +60,8 @@ docker compose up --build -d
 
 # View logs
 docker logs medpost
-docker logs fetcher
+docker logs rss-fetcher
+docker logs social-publisher
 
 # Stop services
 docker compose down
@@ -79,10 +84,12 @@ pip install -r requirements.txt
 cd medpost-app
 python app.py  # Runs on port 8000
 
-# Run fetcher manually (from fetch_post directory)
-# The fetcher now has modular architecture with separate RSS and publisher services
+# Run RSS fetcher manually (from fetch_post directory)
 cd fetch_post
-python main.py  # Orchestrates both RSS fetching and social media publishing
+python -m rss_fetcher.main
+
+# Run social publisher manually
+python -m social_publisher.main
 ```
 
 ### Database Operations
@@ -110,13 +117,17 @@ The application implements custom image handling in `app.py`:
 
 ### Fetcher Service Architecture (fetch_post/)
 
-The fetcher has been refactored into modular components:
+The fetcher is split into two independent services, each running in its own Docker container:
 
 **Module Organization**:
-- `main.py`: Orchestrator that coordinates RSS fetching and social media publishing
-- `rss_fetcher/main.py`: Dedicated RSS feed processing and article import
-- `social_publisher/main.py`: Social media publication service
-- `shared/database.py`: Shared database models and utilities (Articles_rss, Posts, Networks, TokensMetadata)
+- `rss_fetcher/main.py`: RSS feed processing and article import (runs as `rss-fetcher` container)
+- `social_publisher/main.py`: Social media publication (runs as `social-publisher` container)
+- `shared/database.py`: Shared SQLAlchemy models (Articles_rss, Posts, Networks, TokensMetadata)
+- `setup.py`: Package setup for the `shared` module (installed in both containers)
+
+**Legacy files** (kept for reference, no longer used in production):
+- `main.py`: Old monolithic orchestrator (imports from legacy `database.py`)
+- `database.py`: Old database module, superseded by `shared/database.py`
 
 **Key Functions**:
 - **RSS Fetching**: `load_articles()` retrieves feeds, validates articles, extracts metadata, stores in database
@@ -176,7 +187,7 @@ else:
     db_path = str(script_dir.parent / os.getenv("DATABASE_PATH"))
 ```
 
-**Fetcher modules (fetch_post/main.py, rss_fetcher/main.py, social_publisher/main.py)**:
+**Fetcher modules (fetch_post/rss_fetcher/main.py, fetch_post/social_publisher/main.py)**:
 ```python
 if os.getenv("DOCKER_ENV"):
     db_path = str(script_dir / os.getenv("DATABASE_PATH"))
@@ -247,11 +258,12 @@ For production, modify `docker-compose.yml`:
 
 ### Scheduled Publishing
 
-The fetcher container should be run periodically (cron/scheduler) rather than continuously:
+The fetcher containers should be run periodically (cron/scheduler) rather than continuously:
 
 ```bash
-# Example cron job to run every 2 hours
-0 */2 * * * docker start fetcher
+# Example cron jobs to run every 2 hours
+0 */2 * * * docker start rss-fetcher
+0 */2 * * * docker start social-publisher
 ```
 
 ## Technology Stack

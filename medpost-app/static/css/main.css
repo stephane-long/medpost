@@ -1,111 +1,426 @@
+/* ============================================
+   Variables
+   ============================================ */
+:root {
+  --color-primary: #1d2b3e;
+  --color-primary-hover: #2d3f57;
+  --color-qdm: #FDCB15;
+  --color-qdm-text: #b8950e;
+  --color-qph: #008A3C;
+  --color-surface: #f7f9fb;
+  --color-card: #ffffff;
+  --color-border: #e2e5e9;
+  --color-text: #191c1e;
+  --color-text-muted: #6b7280;
+}
+
+/* ============================================
+   Typographie
+   ============================================ */
 body {
-    background: #fafafa;
-    color: #333333;
-    margin-top: 5rem;
-  }
-  
-  h1, h2, h3, h4, h5, h6 {
-    color: #444444;
-  }
+  font-family: 'Inter', sans-serif;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
 
-  h2.badge {
-    font-size: 0.5rem;
-  }
+h1, h2, h3, h4, h5, h6,
+.mp-section-title,
+.font-headline {
+  font-family: 'Manrope', sans-serif;
+  color: var(--color-primary);
+}
 
-  .bg-steel {
-    background-color: #5f788a;
-  }
-  .content-menu {
-    background: #ffffff;
-    padding: 10px 15px 5px 15px;
-    border: 2px solid #dddddd;
-    border-radius: 5px;
-    box-shadow: 0 .125rem .5rem rgba(0,0,0,.15);
-    margin: 0px 0px 10px 0px;
-  }
+/* ============================================
+   Material Symbols
+   ============================================ */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+  vertical-align: middle;
+  font-size: 15px;
+  line-height: 1;
+}
 
-  .content-section {
-    background: #ffffff;
-    padding: 5px 15px 5px 15px;
-    border: 2px solid #dddddd;
-    border-radius: 5px;
-    margin-bottom: 5px;
-    box-shadow: 0 .125rem .5rem rgba(0,0,0,.15);
-  }
-  
-  .article-title {
-    font-size: 0.9rem;
-    color: #444444;
-  }
-  
-  a.article-title:hover {
-    color: #428bca;
-    text-decoration: none;
-  }
-  
-  .article-content {
-    font-size: 0.7rem;
-    white-space: pre-line;
-  }
-  
-  .article-metadata {
-    padding-bottom: 5px;
-    margin-bottom: 4px;
-    border-bottom: 1px solid #e3e3e3;
-  }
-  
-  .article-metadata a:hover {
-    color: #333;
-    text-decoration: none;
-  }
-  
-  .post-title {
-    font-size: 0.7rem;
-  }
-  
-  a.post-content:hover {
-    color: #428bca;
-    text-decoration: none;
-  }
-  
-  .post-metadata {
-    font-size: 0.6em;
-    padding-bottom: 0px;
-    margin-bottom: 0px;
-   }
+/* ============================================
+   Navbar frosted glass
+   ============================================ */
+.mp-navbar {
+  background: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
+}
 
-  .network-tag {
-    border: 2px solid #ced4da; /* Light grey border */
-    min-height: 48px; /* Adjust this value as needed */
-    display: flex;
-    align-items: center;
-    word-break: break-word;
-  }
+.mp-navbar-brand {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--color-primary) !important;
+  letter-spacing: -0.02em;
+}
 
-  .legend {
-    font-size: 0.9rem;
-    bottom: 10%;
-    max-width: 96%; 
-  }
+.mp-nav-link {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-muted) !important;
+  transition: color 0.15s ease;
+  padding-bottom: 0.2rem !important;
+}
 
-  .legend-title {
-    font-size: 0.8rem;
-    font-weight: bold;
-  }
+.mp-nav-link:hover:not(.disabled) {
+  color: var(--color-primary) !important;
+}
 
-  .legend-chapo {
-    font-size: 0.7rem;
-  }
+.mp-nav-link.active {
+  color: var(--color-primary) !important;
+  font-weight: 600;
+  border-bottom: 2px solid var(--color-primary);
+}
 
-  .card-link {
-    font-size: 0.6rem;
-  }
+/* ============================================
+   Boutons
+   ============================================ */
+.mp-btn-primary {
+  background-color: var(--color-primary);
+  color: #ffffff !important;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: background-color 0.15s ease;
+  text-decoration: none;
+  display: inline-block;
+  line-height: 1.5;
+}
 
-  .card-link:hover {
-    color: #428bca;
-    text-decoration: none;
-  }
+.mp-btn-primary:hover {
+  background-color: var(--color-primary-hover);
+  color: #ffffff !important;
+  text-decoration: none;
+}
 
-  .button-shadow {
-    box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
-  }
+.mp-btn-icon {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.mp-btn-icon:hover {
+  opacity: 0.7;
+  text-decoration: none;
+}
+
+.mp-btn-icon--muted {
+  color: var(--color-text-muted);
+}
+
+.mp-btn-icon--danger {
+  color: #ba1a1a;
+}
+
+/* ============================================
+   Boutons journal (QDM / QPH)
+   ============================================ */
+.mp-btn-newspaper {
+  display: inline-block;
+  padding: 0.25rem 0.9rem;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-decoration: none;
+  border: 2px solid transparent;
+  transition: all 0.15s ease;
+  line-height: 1.5;
+}
+
+.mp-btn-newspaper--qdm-active {
+  background-color: var(--color-qdm);
+  border-color: var(--color-qdm);
+  color: #1a1a1a;
+}
+
+.mp-btn-newspaper--qdm-inactive {
+  background-color: transparent;
+  border-color: var(--color-qdm);
+  color: var(--color-qdm-text);
+}
+
+.mp-btn-newspaper--qdm-inactive:hover {
+  background-color: rgba(253, 203, 21, 0.1);
+  color: var(--color-qdm-text);
+  text-decoration: none;
+}
+
+.mp-btn-newspaper--qph-active {
+  background-color: var(--color-qph);
+  border-color: var(--color-qph);
+  color: #ffffff;
+}
+
+.mp-btn-newspaper--qph-inactive {
+  background-color: transparent;
+  border-color: var(--color-qph);
+  color: var(--color-qph);
+}
+
+.mp-btn-newspaper--qph-inactive:hover {
+  background-color: rgba(0, 138, 60, 0.08);
+  color: var(--color-qph);
+  text-decoration: none;
+}
+
+/* ============================================
+   Filtres réseau (TOUS / X / Bluesky / Threads)
+   ============================================ */
+.mp-filter-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.2rem 0;
+  margin-right: 1.1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  display: inline-block;
+}
+
+.mp-filter-tab:hover {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.mp-filter-tab.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* ============================================
+   En-tête section articles
+   ============================================ */
+.mp-content-header {
+  background: var(--color-card);
+  padding: 12px 16px 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  margin-bottom: 10px;
+}
+
+.mp-section-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  margin-bottom: 0;
+}
+
+.mp-filters-separator {
+  height: 1px;
+  background: var(--color-border);
+  margin: 8px 0 6px 0;
+}
+
+/* ============================================
+   Cartes articles
+   ============================================ */
+.mp-card {
+  background: var(--color-card);
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-border);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: box-shadow 0.15s ease;
+}
+
+.mp-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.09);
+}
+
+.mp-card--qdm {
+  border-left-color: var(--color-qdm);
+}
+
+.mp-card--qph {
+  border-left-color: var(--color-qph);
+}
+
+.mp-article-img {
+  width: 52px;
+  height: 52px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.mp-article-date {
+  font-size: 0.67rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 2px;
+}
+
+.mp-article-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+.mp-article-title:hover {
+  color: var(--color-primary-hover);
+  text-decoration: none;
+}
+
+/* ============================================
+   Pagination
+   ============================================ */
+.mp-page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-text-muted);
+  transition: all 0.15s ease;
+}
+
+.mp-page-btn:hover {
+  background: #eef0f3;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.mp-page-btn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #ffffff;
+}
+
+/* ============================================
+   Colonne droite
+   ============================================ */
+.mp-side-section {
+  background: var(--color-card);
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.mp-side-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  margin-bottom: 0;
+}
+
+.mp-post-date-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mp-post-date-badge--qdm {
+  background-color: var(--color-qdm);
+  color: #1a1a1a;
+}
+
+.mp-post-date-badge--qph {
+  background-color: var(--color-qph);
+  color: #ffffff;
+}
+
+.mp-post-network {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mp-post-title {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+a.mp-post-title {
+  color: var(--color-text-muted);
+}
+
+a.mp-post-title:hover {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.mp-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 8px 0;
+}
+
+/* ============================================
+   Classes conservées pour les modals Bootstrap
+   ============================================ */
+.network-tag {
+  border: 2px solid #ced4da;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  word-break: break-word;
+}
+
+.legend {
+  font-size: 0.9rem;
+  bottom: 10%;
+  max-width: 96%;
+}
+
+.legend-title {
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.legend-chapo {
+  font-size: 0.7rem;
+}
+
+.card-link {
+  font-size: 0.6rem;
+}
+
+.card-link:hover {
+  color: #428bca;
+  text-decoration: none;
+}
