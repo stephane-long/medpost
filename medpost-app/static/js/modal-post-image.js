@@ -44,23 +44,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Génération du HTML des formulaires
         const generateFormHtml = (network) => {
+            const headerColor = network === 'X' ? 'dark' : network === 'Threads' ? 'secondary' : network === 'Facebook' ? 'primary' : 'info';
+            let networkFields;
+            if (network === 'X') {
+                networkFields = generateXFields(network);
+            } else if (network === 'Threads') {
+                networkFields = generateThreadsFields(network);
+            } else if (network === 'Facebook') {
+                networkFields = generateFacebookFields(network);
+            } else {
+                networkFields = generateBlueskyFields(network);
+            }
             return `
                 <div class="card mb-3">
-                    <div class="card-header text-white bg-${network === 'X' ? 'dark' : network === 'Threads' ? 'secondary' : 'info' 
-        }">
-            <strong> ${ network }</strong >
-                    </div >
-            <div class="card-body">
-                <form action="/new_post_image" method="post">
-                    <input type="hidden" name="network" value="${network}">
-                        <input type="hidden" name="newspaper" value="${newspaper}">
+                    <div class="card-header text-white bg-${headerColor}">
+                        <strong>${network}</strong>
+                    </div>
+                    <div class="card-body">
+                        <form action="/new_post_image" method="post">
+                            <input type="hidden" name="network" value="${network}">
+                            <input type="hidden" name="newspaper" value="${newspaper}">
                             <input type="hidden" name="selectedfeed" value="${selectedFeed}">
-                                <input type="hidden" name="description" value="Non utilisé">
-                                    ${network === 'X' ? generateXFields(network) : network === 'Threads' ? generateThreadsFields(network) : generateBlueskyFields(network)}
-                                </form>
-                            </div>
-                        </div>
-                        `;
+                            <input type="hidden" name="description" value="Non utilisé">
+                            ${networkFields}
+                        </form>
+                    </div>
+                </div>
+            `;
         };
 
         const generateXFields = (network) => {
@@ -96,6 +106,24 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                             </div>
                             `;
+        };
+
+        const generateFacebookFields = (network) => {
+            return `
+                <div class="row">
+                    <div class="col-7 border rounded p-2">
+                        <label class="form-label fw-bold">Texte du post</label>
+                        <textarea class="form-control" name="title" rows="3" maxlength="63206" required>Titre de l'article</textarea>
+                        <div class="position-relative">
+                            <img src="${previewImageSrc}" class="w-100 mt-3 d-block rounded-3" alt="" />
+                        </div>
+                    </div>
+                    <div class="col-5">
+                        <label class="form-label fw-bold">Date et heure</label>
+                        <input type="datetime-local" class="form-control" name="datetime" value="${currentDatetime}" min="${currentDatetime}" style="width: 250px;" required>
+                    </div>
+                </div>
+            `;
         };
 
         const generateThreadsFields = (network) => {

@@ -362,8 +362,8 @@ def record_new_post(form_data, image_file):
     else:
         image_url = form_data["image_url"]
     title = form_data["title"].rstrip()
-    if network == "X" or network == "Threads":
-        tagline = None  # Pas de tagline fourni par le fomulaire X
+    if network in ("X", "Threads", "Facebook"):
+        tagline = None  # Pas de tagline fourni par le formulaire X/Threads/Facebook
         if title[-1] not in [".", "!", "?"]:
             title += "."
     else:

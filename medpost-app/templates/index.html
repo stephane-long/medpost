@@ -46,6 +46,10 @@
                                                     <input class="form-check-input network-checkbox_image" type="checkbox" id="linkedinCheckboxLink_image" value="Threads">
                                                     <label class="form-check-label" for="linkedinCheckboxLink_image">Threads</label>
                                                 </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input network-checkbox_image" type="checkbox" id="facebookCheckboxLink_image" value="Facebook">
+                                                    <label class="form-check-label" for="facebookCheckboxLink_image">Facebook</label>
+                                                </div>
                                             </div>
                                         </form>
                                     </div>
@@ -106,6 +110,10 @@
                                                     <input class="form-check-input network-checkbox" type="checkbox" id="linkedinCheckboxLink" value="Threads">
                                                     <label class="form-check-label" for="linkedin_checkbox_modal_imported">Threads</label>
                                                 </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input network-checkbox" type="checkbox" id="facebookCheckboxLink" value="Facebook">
+                                                    <label class="form-check-label" for="facebookCheckboxLink">Facebook</label>
+                                                </div>
                                             </div>
                                         </form>
                                     </div>
@@ -143,6 +151,8 @@
                     href="{{ url_for('home', selectedfeed='Bluesky', newspaper=newspaper) }}">Bluesky</a>
                 <a class="mp-filter-tab {% if selectedfeed == 'Threads' %}active{% endif %}"
                     href="{{ url_for('home', selectedfeed='Threads', newspaper=newspaper) }}">Threads</a>
+                <a class="mp-filter-tab {% if selectedfeed == 'Facebook' %}active{% endif %}"
+                    href="{{ url_for('home', selectedfeed='Facebook', newspaper=newspaper) }}">Facebook</a>
             </div>
         </div>
 
@@ -176,6 +186,11 @@
                                     <input class="form-check-input network-checkbox" type="checkbox"
                                         id="threads_checkbox_modal{{ article.id }}" value="Threads">
                                     <label class="form-check-label" for="threads_checkbox_modal{{ article.id }}">Threads</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input network-checkbox" type="checkbox"
+                                        id="facebook_checkbox_modal{{ article.id }}" value="Facebook">
+                                    <label class="form-check-label" for="facebook_checkbox_modal{{ article.id }}">Facebook</label>
                                 </div>
                             </div>
                             <div id="dynamic-forms-container{{ article.id }}"></div>
