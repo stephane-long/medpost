@@ -951,26 +951,32 @@ def post_all_facebook(posts, engine, newspaper, http_session):
         return
 
     tag = get_network_tag(engine, "Facebook")
-    url = f"https://graph.facebook.com/v21.0/{fb_page_id}/feed"
+    url = f"https://graph.facebook.com/v25.0/{fb_page_id}/feed"
 
     for post in posts:
         link = post["link"] + (tag if tag else "")
-        message = f"{post['title']}\n\n{link}"
+        message = f"{post['title']}"
         payload = {
             "message": message,
+            "link": link,
+            "published": "true",
             "access_token": fb_token,
         }
         try:
             response = http_session.post(url, data=payload)
             response.raise_for_status()
             fb_post_id = response.json().get("id", "")
-            post_id_part = fb_post_id.split("_")[-1] if "_" in fb_post_id else fb_post_id
+            post_id_part = (
+                fb_post_id.split("_")[-1] if "_" in fb_post_id else fb_post_id
+            )
             post_url = f"https://www.facebook.com/{fb_page_id}/posts/{post_id_part}"
             update_network_post_id(engine, post["post_id"], post_url)
             modify_status(engine, post["post_id"], post["title"])
             logging.info("[Facebook] Post publié : %s", post_url)
         except Exception as e:
-            logging.error("[Facebook] Erreur publication post %s : %s", post["post_id"], e)
+            logging.error(
+                "[Facebook] Erreur publication post %s : %s", post["post_id"], e
+            )
 
 
 # ================================================
@@ -989,19 +995,12 @@ def post_auto_function(
         newspaper: Nom du journal (qdm, qph)
         http_session: Session HTTP réutilisable pour les requêtes
     """
-#    NETWORK_FUNCTIONS = {
-#        "X": post_all_x,
-#        "Bluesky": post_all_bluesky,
-#        "Threads": post_all_threads,
-#        "Facebook": post_all_facebook,
-    }
-
     NETWORK_FUNCTIONS = {
         "X": post_all_x,
         "Bluesky": post_all_bluesky,
-        "Threads": post_all_threads
+        "Threads": post_all_threads,
+        "Facebook": post_all_facebook,
     }
-
 
     logging.info("Traitement de posts %s", newspaper)
 
