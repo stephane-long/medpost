@@ -1,7 +1,7 @@
 atproto==0.0.59
-feedparser==6.0.11
 paramiko==4.0.0
 requests==2.32.3
+requests-oauthlib==2.0.0
 SQLAlchemy==2.0.38
 tweepy==4.15.0
 urllib3==1.26.15

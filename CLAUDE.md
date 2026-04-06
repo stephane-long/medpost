@@ -125,10 +125,6 @@ The fetcher is split into two independent services, each running in its own Dock
 - `shared/database.py`: Shared SQLAlchemy models (Articles_rss, Posts, Networks, TokensMetadata)
 - `setup.py`: Package setup for the `shared` module (installed in both containers)
 
-**Legacy files** (kept for reference, no longer used in production):
-- `main.py`: Old monolithic orchestrator (imports from legacy `database.py`)
-- `database.py`: Old database module, superseded by `shared/database.py`
-
 **Key Functions**:
 - **RSS Fetching**: `load_articles()` retrieves feeds, validates articles, extracts metadata, stores in database
 - **Social Publishing**: `post_auto_function()` publishes queued posts across networks
