@@ -3,22 +3,22 @@
 import logging
 import os
 import platform
+import re
 import time
-from typing import Any, Optional
 from collections.abc import Sequence
+from datetime import datetime
 from pathlib import Path
+from typing import Any, Optional
 
 import requests
 import tweepy
+from atproto import Client, models
 from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 from requests_oauthlib import OAuth1
 from sqlalchemy import select, update
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.engine import Engine
-from atproto import models, Client
-from bs4 import BeautifulSoup as bs
-import re
+from sqlalchemy.exc import SQLAlchemyError
+from urllib3.util.retry import Retry
 
 # Import des modèles de la base de données
 from shared.database import (
@@ -940,6 +940,58 @@ def post_all_threads(posts, engine, newspaper, http_session):
             modify_status(engine, post["post_id"], post["title"])
 
 
+def post_all_facebook(posts, engine, newspaper, http_session):
+    logging.info("[FACEBOOK] Début de publication des posts sur %s", newspaper)
+
+    fb_token = os.getenv(f"FACEBOOK_TOKEN_{newspaper.upper()}")
+    fb_page_id = os.getenv(f"FACEBOOK_PAGE_ID_{newspaper.upper()}")
+
+    if not fb_token or not fb_page_id:
+        logging.warning("[Facebook] Credentials manquants pour %s", newspaper)
+        return
+
+    tag = get_network_tag(engine, "Facebook")
+    BASE_URL = f"https://graph.facebook.com/v25.0/{fb_page_id}"
+
+    for post in posts:
+        raw_link = post.get("link") or ""
+        link = raw_link + (tag or "") if raw_link else ""
+        message = f"{post['title']}"
+
+        post_image = post["image_url"]
+
+        payload = {
+            "message": message,
+            "published": "true",
+            "access_token": fb_token,
+        }
+        try:
+            if post_image and not re.search("^https?://", post_image):
+                url = f"{BASE_URL}/photos"
+                with open(f"{image_path}/{post_image}", "rb") as f:
+                    files = {"source": f}
+                    response = http_session.post(url, data=payload, files=files)
+            else:
+                payload["link"] = link
+                url = f"{BASE_URL}/feed"
+                response = http_session.post(url, data=payload)
+
+            response.raise_for_status()
+            fb_post_id = response.json().get("id", "")
+            post_id_part = (
+                fb_post_id.split("_")[-1] if "_" in fb_post_id else fb_post_id
+            )
+            post_url = f"https://www.facebook.com/{fb_page_id}/posts/{post_id_part}"
+            update_network_post_id(engine, post["post_id"], post_url)
+            modify_status(engine, post["post_id"], post["title"])
+            logging.info("[Facebook] Post publié : %s", post_url)
+
+        except Exception as e:
+            logging.error(
+                "[Facebook] Erreur publication post %s : %s", post["post_id"], e
+            )
+
+
 # ================================================
 # Publication des posts sur le journal sélectionné
 # ================================================
@@ -960,6 +1012,7 @@ def post_auto_function(
         "X": post_all_x,
         "Bluesky": post_all_bluesky,
         "Threads": post_all_threads,
+        "Facebook": post_all_facebook,
     }
 
     logging.info("Traitement de posts %s", newspaper)

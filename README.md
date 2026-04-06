@@ -1,11 +1,11 @@
-# Medpost 🚀
+# Medpost 🚀 v2.0
 
-Medpost est une **plateforme d'automatisation de publications sur les réseaux sociaux** basée sur Flask et Docker. Elle est conçue pour automatiser la récupération d'articles RSS des journaux médicaux français (Le Quotidien du Médecin et Le Quotidien du Pharmacien) et leur publication automatique sur plusieurs plateformes (X, Bluesky, Threads).
+Medpost est une **plateforme d'automatisation de publications sur les réseaux sociaux** basée sur Flask et Docker. Elle est conçue pour automatiser la récupération d'articles RSS des journaux médicaux français (Le Quotidien du Médecin et Le Quotidien du Pharmacien) et leur publication automatique sur plusieurs plateformes (X, Bluesky, Threads, Facebook).
 
 ## Fonctionnalités principales
 
 ### 📰 Gestion du contenu
-- **Récupération RSS automatisée** : Ingestion continue des flux RSS des journaux médicaux
+- **Récupération RSS automatisée** : Ingestion périodique des flux RSS des journaux médicaux
 - **Gestion des articles** : Stockage, indexation et déduplication des articles via l'ID Drupal (`nid`)
 - **Création de publications** : Interface pour créer et programmer des publications vers plusieurs réseaux sociaux
 - **Upload d'images** : Support des images personnalisées pour chaque publication
@@ -14,17 +14,17 @@ Medpost est une **plateforme d'automatisation de publications sur les réseaux s
 - **Gestion des utilisateurs** : Connexion/déconnexion sécurisées avec hachage de mots de passe
 - **Rôles administrateur** : Distinction entre utilisateurs standards et administrateurs
 - **Gestion des tokens** : Système automatisé de renouvellement des tokens d'accès (notamment pour Threads)
-- **Environnements distincts** : Configuration séparée pour développement et production
 
 ### 📡 Intégration multi-réseaux
 - **X (Twitter)** : Publication via API Tweepy avec authentification OAuth1
 - **Bluesky** : Publication native via AT Protocol
 - **Threads** : Publication avec gestion automatisée des tokens 60j
+- **Facebook** : Publication sur pages Facebook via l'API Graph (v25.0), avec support images locales et liens
 - **Tags personnalisés** : Configuration de tags spécifiques par réseau social
 
 ### ⚙️ Automatisation
 - **Tâches planifiées** : Publication automatique des articles programmés
-- **Renouvellement tokens** : Système de renouvellement proactif des tokens d'accès (7j avant expiration)
+- **Renouvellement tokens** : Système de renouvellement proactif des tokens d'accès pour Threads (7j avant expiration)
 - **Retry automatique** : Stratégie de retry avec backoff exponentiel pour les requêtes réseau
 - **Logging centralisé** : Suivi complet des activités et erreurs dans `medpost.log`
 
@@ -83,7 +83,7 @@ L'application s'exécute sous **Docker Compose** avec quatre conteneurs principa
 
 #### 3. **social-publisher** (Social Publishing Service)
 - Récupération des posts planifiés depuis la base de données
-- Publication sur X (Twitter), Bluesky et Threads
+- Publication sur X (Twitter), Bluesky, Facebook et Threads
 - Gestion des tokens d'accès (avec renouvellement automatique pour Threads)
 - Upload des images sur les réseaux sociaux
 - Mise à jour du statut des posts après publication
@@ -166,23 +166,37 @@ Gestion centralisée et automatisée des tokens d'accès.
 
 ### Dépendances principales
 
-**Backend (fetch_post) :**
-- SQLAlchemy 2.0.38 - ORM de base de données
-- Tweepy 4.15.0 - API X (Twitter)
-- atproto 0.0.59 - API Bluesky (AT Protocol)
-- Feedparser 6.0.11 - Parsing RSS/Atom
-- Requests 2.32.3 - Requêtes HTTP
-- BeautifulSoup4 4.14.3 - Web scraping
-- Paramiko 4.0.0 - SSH (gestion distante)
-- Setuptools - Gestion du package partagé
+Les versions exactes sont définies dans les fichiers `requirements.txt` de chaque service.
 
-**Frontend (medpost-app) :**
-- Flask 2.0.3 - Framework web
-- Flask-Login 0.5.0 - Gestion sessions
-- Flask-SQLAlchemy 2.5.1 - Intégration BD
-- SQLAlchemy 1.4.27 - ORM
-- Pillow 11.2.1 - Traitement images
-- Gunicorn 20.1.0 - Serveur WSGI production
+**[rss-fetcher](fetch_post/rss_fetcher/requirements.txt) :**
+| Bibliothèque | Rôle |
+|---|---|
+| feedparser | Parsing des flux RSS/Atom |
+| beautifulsoup4 | Extraction de métadonnées HTML |
+| requests | Requêtes HTTP |
+| SQLAlchemy | ORM base de données |
+| urllib3 | Transport HTTP bas niveau |
+
+**[social-publisher](fetch_post/social_publisher/requirements.txt) :**
+| Bibliothèque | Rôle |
+|---|---|
+| tweepy | API X (Twitter) |
+| atproto | API Bluesky (AT Protocol) |
+| requests + requests-oauthlib | Requêtes HTTP avec OAuth1 (Threads, Facebook) |
+| paramiko | Upload SFTP des images (Threads) |
+| SQLAlchemy | ORM base de données |
+| urllib3 | Transport HTTP bas niveau |
+
+**[medpost-app](medpost-app/requirements.txt) :**
+| Bibliothèque | Rôle |
+|---|---|
+| Flask + Flask-Login + Flask-SQLAlchemy | Framework web, sessions, ORM |
+| SQLAlchemy | ORM base de données |
+| Werkzeug | Sécurité (hachage mots de passe), utilitaires HTTP |
+| Pillow | Traitement et compression des images |
+| beautifulsoup4 | Extraction de métadonnées Twitter Card |
+| requests | Requêtes HTTP (import articles) |
+| gunicorn | Serveur WSGI production |
 
 ## Installation et démarrage
 
@@ -240,9 +254,15 @@ BLUESKY_URL_QDM=https://bsky.app/profile/medecin.bsky.social/post/
 THREADS_TOKEN_QDM=your_threads_token
 THREADS_URL_QDM=https://threads.net/...
 
+# Paramètres Facebook
+FACEBOOK_TOKEN_QDM=your_page_access_token
+FACEBOOK_PAGE_ID_QDM=your_page_id
+
 # === QUOTIDIEN DU PHARMACIEN (QPH) ===
 # Configuration similaire pour QPH
 API_KEY_QPH=...
+FACEBOOK_TOKEN_QPH=...
+FACEBOOK_PAGE_ID_QPH=...
 # ... etc
 ```
 
@@ -326,6 +346,8 @@ Le service tourne en arrière-plan et :
 4. **Gère les erreurs** avec retry automatique et backoff exponentiel
 5. **Met à jour le statut** des posts après publication
 6. **Enregistre les activités** dans les logs centralisés
+
+Réseaux supportés : **X (Twitter)**, **Bluesky**, **Threads**, **Facebook**
 
 ### Logs
 

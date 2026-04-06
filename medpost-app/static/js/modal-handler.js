@@ -39,9 +39,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const modifiedImage = modifiedImages[modalId]?.[network];
             const imageSrc = modifiedImage?.url || data.imageUrl;
 
+            const headerColor = network === 'X' ? 'dark' : network === 'Threads' ? 'secondary' : network === 'Facebook' ? 'primary' : 'info';
+            let networkFields;
+            if (network === 'X') {
+                networkFields = generateXFields(network, modalId, data, imageSrc);
+            } else if (network === 'Threads') {
+                networkFields = generateThreadsFields(network, modalId, data, imageSrc);
+            } else if (network === 'Facebook') {
+                networkFields = generateFacebookFields(network, modalId, data, imageSrc);
+            } else {
+                networkFields = generateBlueskyFields(network, modalId, data, imageSrc);
+            }
             return `
                 <div class="card mb-3">
-                    <div class="card-header text-white bg-${network === 'X' ? 'dark' : network === 'Threads' ? 'secondary' : 'info'}">
+                    <div class="card-header text-white bg-${headerColor}">
                         <strong>${network}</strong>
                     </div>
                     <div class="card-body">
@@ -52,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <input type="hidden" name="newspaper" value="${newspaper}">
                             <input type="hidden" name="description" value="${MedpostUtils.escapeHtml(data.description)}">
                             <input type="hidden" name="image_url" value="${data.imageUrl}">
-                            ${network === 'X' ? generateXFields(network, modalId, data, imageSrc) : network === 'Threads' ? generateThreadsFields(network, modalId, data, imageSrc) : generateBlueskyFields(network, modalId, data, imageSrc)}
+                            ${networkFields}
                         </form>
                     </div>
                 </div>
@@ -105,6 +116,24 @@ document.addEventListener('DOMContentLoaded', () => {
                         <label for="modifyImageFormFile_${network}_${modalId}" class="form-label fw-bold">Modifier l'image</label>
                         <input type="file" class="form-control mb-3" id="modifyImageFormFile_${network}_${modalId}" accept="image/*">
                         <button type="button" class="btn btn-primary" id="modifyImageBtn_${network}_${modalId}">Upload</button>
+                    </div>
+                </div>
+            `;
+        };
+
+        // Génération des champs spécifiques à Facebook
+        const generateFacebookFields = (network, modalId, data, imageSrc) => {
+            return `
+                <div class="row">
+                    <div class="col-8 border rounded p-2">
+                        <label for="title_${network}_${modalId}" class="form-label fw-bold">Texte du post</label>
+                        <textarea class="form-control" id="title_${network}_${modalId}" name="title" rows="3" maxlength="63206" required>${MedpostUtils.escapeHtml(data.title)}</textarea>
+                        <img src="${imageSrc}" class="w-100 mt-3 rounded mb-2" alt=""/>
+                        <a href="${data.link}" class="card-link" target="_blank">🔗 ${data.link}</a>
+                    </div>
+                    <div class="col-4">
+                        <label for="date_${network}_${modalId}" class="form-label fw-bold">Date et heure</label>
+                        <input type="datetime-local" class="form-control mb-3" id="date_${network}_${modalId}" name="datetime" value="${data.minDatetime}" min="${data.minDatetime}" style="width: 250px;" required>
                     </div>
                 </div>
             `;
