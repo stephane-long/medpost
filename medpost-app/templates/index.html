@@ -145,14 +145,14 @@
                 <span class="me-2" style="font-size:0.65rem; font-weight:700; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:0.08em;">Filtres</span>
                 <a class="mp-filter-tab {% if selectedfeed == 'tous' %}active{% endif %}"
                     href="{{ url_for('home', selectedfeed='tous', newspaper=newspaper) }}">Tous</a>
+                <a class="mp-filter-tab {% if selectedfeed == 'Facebook' %}active{% endif %}"
+                    href="{{ url_for('home', selectedfeed='Facebook', newspaper=newspaper) }}">Facebook</a>
                 <a class="mp-filter-tab {% if selectedfeed == 'X' %}active{% endif %}"
                     href="{{ url_for('home', selectedfeed='X', newspaper=newspaper) }}">X</a>
                 <a class="mp-filter-tab {% if selectedfeed == 'Bluesky' %}active{% endif %}"
                     href="{{ url_for('home', selectedfeed='Bluesky', newspaper=newspaper) }}">Bluesky</a>
                 <a class="mp-filter-tab {% if selectedfeed == 'Threads' %}active{% endif %}"
                     href="{{ url_for('home', selectedfeed='Threads', newspaper=newspaper) }}">Threads</a>
-                <a class="mp-filter-tab {% if selectedfeed == 'Facebook' %}active{% endif %}"
-                    href="{{ url_for('home', selectedfeed='Facebook', newspaper=newspaper) }}">Facebook</a>
             </div>
         </div>
 
