@@ -362,11 +362,11 @@ def record_new_post(form_data, image_file):
     else:
         image_url = form_data["image_url"]
     title = form_data["title"].rstrip()
-    if network in ("X", "Threads", "Facebook"):
-        tagline = None  # Pas de tagline fourni par le formulaire X/Threads/Facebook
+    if network in ("X", "Threads"):
+        tagline = None  # Pas de tagline fourni par le formulaire X/Threads
         if title[-1] not in [".", "!", "?"]:
             title += "."
-    else:
+    else:  # Bluesky et Facebook utilisent le champ tagline (accroche)
         tagline = form_data["tagline"]
         tagline = tagline.rstrip()
         if tagline[-1] not in [".", "!", "?"]:

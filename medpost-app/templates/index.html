@@ -34,6 +34,11 @@
                                         <form id="networkForm_image">
                                             <div class="mb-3 d-flex align-items-center flex-wrap">
                                                 <label class="form-label me-3 fw-bold">Sélectionnez les réseaux</label>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input network-checkbox_image" type="checkbox" id="facebookCheckboxLink_image" value="Facebook">
+                                                    <label class="form-check-label" for="facebookCheckboxLink_image">Facebook</label>
+                                                </div>
+
                                                 <div class="form-check form-check-inline me-2">
                                                     <input class="form-check-input network-checkbox_image" type="checkbox" id="xCheckboxLink_image" value="X">
                                                     <label class="form-check-label" for="xCheckboxLink_image">X</label>
@@ -45,10 +50,6 @@
                                                 <div class="form-check form-check-inline">
                                                     <input class="form-check-input network-checkbox_image" type="checkbox" id="linkedinCheckboxLink_image" value="Threads">
                                                     <label class="form-check-label" for="linkedinCheckboxLink_image">Threads</label>
-                                                </div>
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input network-checkbox_image" type="checkbox" id="facebookCheckboxLink_image" value="Facebook">
-                                                    <label class="form-check-label" for="facebookCheckboxLink_image">Facebook</label>
                                                 </div>
                                             </div>
                                         </form>
@@ -98,6 +99,11 @@
                                         <form id="networkForm">
                                             <div class="mb-3 d-flex align-items-center flex-wrap">
                                                 <label class="form-label me-3 fw-bold">Sélectionnez les réseaux</label>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input network-checkbox" type="checkbox" id="facebookCheckboxLink" value="Facebook">
+                                                    <label class="form-check-label" for="facebookCheckboxLink">Facebook</label>
+                                                </div>
+
                                                 <div class="form-check form-check-inline me-2">
                                                     <input class="form-check-input network-checkbox" type="checkbox" id="xCheckboxLink" value="X">
                                                     <label class="form-check-label" for="x_checkbox_modal_imported">X</label>
@@ -109,10 +115,6 @@
                                                 <div class="form-check form-check-inline">
                                                     <input class="form-check-input network-checkbox" type="checkbox" id="linkedinCheckboxLink" value="Threads">
                                                     <label class="form-check-label" for="linkedin_checkbox_modal_imported">Threads</label>
-                                                </div>
-                                                <div class="form-check form-check-inline">
-                                                    <input class="form-check-input network-checkbox" type="checkbox" id="facebookCheckboxLink" value="Facebook">
-                                                    <label class="form-check-label" for="facebookCheckboxLink">Facebook</label>
                                                 </div>
                                             </div>
                                         </form>
@@ -145,14 +147,14 @@
                 <span class="me-2" style="font-size:0.65rem; font-weight:700; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:0.08em;">Filtres</span>
                 <a class="mp-filter-tab {% if selectedfeed == 'tous' %}active{% endif %}"
                     href="{{ url_for('home', selectedfeed='tous', newspaper=newspaper) }}">Tous</a>
-                <a class="mp-filter-tab {% if selectedfeed == 'Facebook' %}active{% endif %}"
-                    href="{{ url_for('home', selectedfeed='Facebook', newspaper=newspaper) }}">Facebook</a>
                 <a class="mp-filter-tab {% if selectedfeed == 'X' %}active{% endif %}"
                     href="{{ url_for('home', selectedfeed='X', newspaper=newspaper) }}">X</a>
                 <a class="mp-filter-tab {% if selectedfeed == 'Bluesky' %}active{% endif %}"
                     href="{{ url_for('home', selectedfeed='Bluesky', newspaper=newspaper) }}">Bluesky</a>
                 <a class="mp-filter-tab {% if selectedfeed == 'Threads' %}active{% endif %}"
                     href="{{ url_for('home', selectedfeed='Threads', newspaper=newspaper) }}">Threads</a>
+                <a class="mp-filter-tab {% if selectedfeed == 'Facebook' %}active{% endif %}"
+                    href="{{ url_for('home', selectedfeed='Facebook', newspaper=newspaper) }}">Facebook</a>
             </div>
         </div>
 
@@ -172,6 +174,11 @@
                         <div class="modal-body">
                             <div class="mb-3 d-flex align-items-center flex-wrap">
                                 <label class="form-label me-3 fw-bold">Sélectionnez les réseaux</label>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input network-checkbox" type="checkbox"
+                                        id="facebook_checkbox_modal{{ article.id }}" value="Facebook">
+                                    <label class="form-check-label" for="facebook_checkbox_modal{{ article.id }}">Facebook</label>
+                                </div>
                                 <div class="form-check form-check-inline me-2">
                                     <input class="form-check-input network-checkbox" type="checkbox"
                                         id="x_checkbox_modal{{ article.id }}" value="X">
@@ -186,11 +193,6 @@
                                     <input class="form-check-input network-checkbox" type="checkbox"
                                         id="threads_checkbox_modal{{ article.id }}" value="Threads">
                                     <label class="form-check-label" for="threads_checkbox_modal{{ article.id }}">Threads</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input network-checkbox" type="checkbox"
-                                        id="facebook_checkbox_modal{{ article.id }}" value="Facebook">
-                                    <label class="form-check-label" for="facebook_checkbox_modal{{ article.id }}">Facebook</label>
                                 </div>
                             </div>
                             <div id="dynamic-forms-container{{ article.id }}"></div>
@@ -269,7 +271,7 @@
                 <div class="d-flex align-items-center gap-2">
                     <img src="{% if post.image_url.startswith('http') %}{{ post.image_url }}{% else %}{{ url_for('static', filename=post.image_url) }}{% endif %}"
                         class="rounded" style="width:44px;height:44px;object-fit:cover;flex-shrink:0;" alt="" />
-                    <div class="mp-post-title flex-grow-1">{% if post.name == 'Bluesky' %}{{ post.tagline }}{% else %}{{ post.title }}{% endif %}</div>
+                    <div class="mp-post-title flex-grow-1">{% if post.name == 'Bluesky' or post.name == 'Facebook' %}{{ post.tagline }}{% else %}{{ post.title }}{% endif %}</div>
                 </div>
                 <div class="d-flex gap-2 mt-1">
                     <a class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
@@ -289,7 +291,7 @@
                                     <form action="{{ url_for('edit_post', selectedfeed=selectedfeed, newspaper=newspaper) }}" method='post'>
                                         <input type="hidden" name="post_id" value="{{ post.id }}">
                                         <input type="hidden" name="post_network" value="{{ post.name }}">
-                                        {% if post.name == 'X' or post.name == 'Threads' or post.name == 'Facebook' %}
+                                        {% if post.name == 'X' or post.name == 'Threads' %}
                                         <div class="row">
                                             <div class="col-8 border rounded p-2">
                                                 <label for="title_post{{ post.id }}" class="form-label fw-bold">Titre du post</label>
@@ -364,7 +366,7 @@
                         <span class="mp-post-network">{{ post.name }}</span>
                     </div>
                     <a class="mp-post-title" href="{{ post.network_post_id }}" target="_blank">
-                        {% if post.name == "Bluesky" %}{{ post.tagline }}{% else %}{{ post.title }}{% endif %}
+                        {% if post.name == "Bluesky" or post.name == "Facebook" %}{{ post.tagline }}{% else %}{{ post.title }}{% endif %}
                     </a>
                 </div>
                 <a class="mp-btn-icon mp-btn-icon--muted flex-shrink-0 mt-1" href="{{ post.network_post_id }}" target="_blank" title="Voir le post">

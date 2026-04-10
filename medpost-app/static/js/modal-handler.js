@@ -124,10 +124,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Génération des champs spécifiques à Facebook
         const generateFacebookFields = (network, modalId, data, imageSrc) => {
             return `
+                <input type="hidden" name="title" value="${MedpostUtils.escapeHtml(data.title)}">
                 <div class="row">
                     <div class="col-8 border rounded p-2">
-                        <label for="title_${network}_${modalId}" class="form-label fw-bold">Texte du post</label>
-                        <textarea class="form-control" id="title_${network}_${modalId}" name="title" rows="3" maxlength="63206" required>${MedpostUtils.escapeHtml(data.title)}</textarea>
+                        <label for="tagline_${network}_${modalId}" class="form-label fw-bold">Accroche du post</label>
+                        <textarea class="form-control" id="tagline_${network}_${modalId}" name="tagline" rows="3" maxlength="63206" required></textarea>
                         <img src="${imageSrc}" class="w-100 mt-3 rounded mb-2" alt=""/>
                         <a href="${data.link}" class="card-link" target="_blank">🔗 ${data.link}</a>
                     </div>
