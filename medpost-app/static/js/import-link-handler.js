@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <textarea class="form-control" name="title" rows="2" required>${MedpostUtils.escapeHtml(importedArticle.title)}</textarea>
                                 <div class="position-relative">
                                     <img id="previewImage_${network}_import-link" src="${imageSrc}" class="w-100 mt-3 d-block rounded-3" alt=""/>
-                                    <a href="${importedArticle.link}" class="card-link" target="_blank">De lequotidiendumedecin.fr</a>
+                                    <a href="${importedArticle.link}" class="card-link" target="_blank">De ${newspaper === 'qdm' ? 'lequotidiendumedecin.fr' : 'lequotidiendupharmacien.fr'}</a>
                                 </div>
                             </div>
                             <div class="col-5">
@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <img id="previewImage_${network}_import-link" src="${imageSrc}" class="w-100 mt-3 d-block rounded-3" alt=""/>
                                 <div class="legend-title">${MedpostUtils.escapeHtml(importedArticle.title)}</div>
                                 <div class="legend-chapo">${MedpostUtils.escapeHtml(truncatedSummary)}</div>
-                                <a href="${importedArticle.link}" class="card-link" target="_blank">@ www.lequotidiendupharmacien.fr</a>
+                                <a href="${importedArticle.link}" class="card-link" target="_blank">@ www.${newspaper === 'qdm' ? 'lequotidiendumedecin.fr' : 'lequotidiendupharmacien.fr'}</a>
                             </div>
                             <div class="col-5">
                                 <label class="form-label fw-bold">Date et heure</label>
@@ -171,6 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Champs spécifiques Facebook
                 const generateFacebookFields = (network, imageSrc, currentDatetime) => {
+                    const truncatedSummary = MedpostUtils.truncateText(importedArticle.summary, 165);
                     return `
                         <input type="hidden" name="title" value="${MedpostUtils.escapeHtml(importedArticle.title)}">
                         <div class="row">
@@ -178,7 +179,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <label class="form-label fw-bold">Accroche du post</label>
                                 <textarea class="form-control" name="tagline" rows="3" maxlength="63206" required></textarea>
                                 <img id="previewImage_${network}_import-link" src="${imageSrc}" class="w-100 mt-3 d-block rounded-3" alt=""/>
-                                <a href="${importedArticle.link}" class="card-link" target="_blank">🔗 ${importedArticle.link}</a>
+                                <div class="legend-title">${MedpostUtils.escapeHtml(importedArticle.title)}</div>
+                                <div class="legend-chapo">${MedpostUtils.escapeHtml(truncatedSummary)}</div>
+                                <a href="${importedArticle.link}" class="card-link" target="_blank">@ www.${newspaper === 'qdm' ? 'lequotidiendumedecin.fr' : 'lequotidiendupharmacien.fr'}</a>
                             </div>
                             <div class="col-5">
                                 <label class="form-label fw-bold">Date et heure</label>
@@ -203,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <img id="previewImage_${network}_import-link" src="${imageSrc}" class="w-100 mt-3 d-block rounded-3" alt=""/>
                                 <div class="legend-title">${MedpostUtils.escapeHtml(importedArticle.title)}</div>
                                 <div class="legend-chapo">${MedpostUtils.escapeHtml(truncatedSummary)}</div>
-                                <a href="${importedArticle.link}" class="card-link" target="_blank">@ www.lequotidiendupharmacien.fr</a>
+                                <a href="${importedArticle.link}" class="card-link" target="_blank">@ www.${newspaper === 'qdm' ? 'lequotidiendumedecin.fr' : 'lequotidiendupharmacien.fr'}</a>
                             </div>
                             <div class="col-5">
                                 <label class="form-label fw-bold">Date et heure</label>

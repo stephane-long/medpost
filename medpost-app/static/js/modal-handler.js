@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div id="caption_${network}_${modalId}" class="legend position-absolute start-50 translate-middle-x rounded bg-dark bg-opacity-75 text-white py-1 px-2 text-truncate">
                                 ${MedpostUtils.escapeHtml(data.title)}
                             </div>
-                            <a href="${data.link}" class="card-link" target="_blank">De lequotidiendumedecin.fr</a>
+                            <a href="${data.link}" class="card-link" target="_blank">De ${newspaper === 'qdm' ? 'lequotidiendumedecin.fr' : 'lequotidiendupharmacien.fr'}</a>
                         </div>
                     </div>
                     <div class="col-4">
@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <img id="previewImage_${network}_${modalId}" src="${imageSrc}" class="w-100 mt-3 rounded mb-2" alt=""/>
                         <div class="legend-title">${MedpostUtils.escapeHtml(data.title)}</div>
                         <div class="legend-chapo">${MedpostUtils.escapeHtml(truncatedDesc)}</div>
-                        <a href="${data.link}" class="card-link" target="_blank">@ www.lequotidiendupharmacien.fr</a>
+                        <a href="${data.link}" class="card-link" target="_blank">@ www.${newspaper === 'qdm' ? 'lequotidiendumedecin.fr' : 'lequotidiendupharmacien.fr'}</a>
                     </div>
                     <div class="col-4">
                         <label for="date_${network}_${modalId}" class="form-label fw-bold">Date et heure</label>
@@ -123,6 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Génération des champs spécifiques à Facebook
         const generateFacebookFields = (network, modalId, data, imageSrc) => {
+            const truncatedDesc = MedpostUtils.truncateText(data.description, 165);            
             return `
                 <input type="hidden" name="title" value="${MedpostUtils.escapeHtml(data.title)}">
                 <div class="row">
@@ -130,7 +131,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         <label for="tagline_${network}_${modalId}" class="form-label fw-bold">Accroche du post</label>
                         <textarea class="form-control" id="tagline_${network}_${modalId}" name="tagline" rows="3" maxlength="63206" required></textarea>
                         <img src="${imageSrc}" class="w-100 mt-3 rounded mb-2" alt=""/>
-                        <a href="${data.link}" class="card-link" target="_blank">🔗 ${data.link}</a>
+                        <div class="legend-title">${MedpostUtils.escapeHtml(data.title)}</div>
+                        <div class="legend-chapo">${MedpostUtils.escapeHtml(truncatedDesc)}</div>
+
+                        <a href="${data.link}" class="card-link" target="_blank">@ www.${newspaper === 'qdm' ? 'lequotidiendumedecin.fr' : 'lequotidiendupharmacien.fr'}</a>
                     </div>
                     <div class="col-4">
                         <label for="date_${network}_${modalId}" class="form-label fw-bold">Date et heure</label>
