@@ -110,10 +110,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const generateFacebookFields = (network) => {
             return `
+                <input type="hidden" name="title" value="Non utilisé">
                 <div class="row">
                     <div class="col-7 border rounded p-2">
-                        <label class="form-label fw-bold">Texte du post</label>
-                        <textarea class="form-control" name="title" rows="3" maxlength="63206" required>Titre de l'article</textarea>
+                        <label class="form-label fw-bold">Accroche du post</label>
+                        <textarea class="form-control" name="tagline" rows="3" maxlength="63206" required>Accroche de l'article</textarea>
                         <div class="position-relative">
                             <img src="${previewImageSrc}" class="w-100 mt-3 d-block rounded-3" alt="" />
                         </div>

@@ -75,7 +75,7 @@ python main.py
 
 **Fonctionnalités** :
 - Récupération des posts planifiés depuis la base de données
-- Publication sur X (Twitter), Bluesky et Threads
+- Publication sur X (Twitter), Bluesky, Threads et Facebook
 - Gestion des tokens d'accès (avec renouvellement automatique pour Threads)
 - Upload des images sur les réseaux sociaux
 - Mise à jour du statut des posts après publication
@@ -93,6 +93,8 @@ python main.py
 - `API_KEY_*`, `API_KEY_SECRET_*`, `ACCESS_TOKEN_*`, `ACCESS_TOKEN_SECRET_*` : Credentials X (Twitter)
 - `BLUESKY_LOGIN_*`, `BLUESKY_PASSWORD_*` : Credentials Bluesky
 - `THREADS_TOKEN_*` : Tokens Threads (pour migration initiale)
+- `FACEBOOK_TOKEN_*` : Token d'accès à la page Facebook (Page Access Token)
+- `FACEBOOK_PAGE_ID_*` : Identifiant de la page Facebook
 - `X_URL_*`, `BLUESKY_URL_*` : URLs de base pour les liens vers les posts
 - `HOSTNAME_FTP_BUCKET`, `LOGIN_HOST_BUCKET`, `PWD_HOST_BUCKET`, `PORT_BUCKET` : Configuration SFTP pour Threads
 - `BUCKET_PATH`, `BUCKET_URL` : Configuration du bucket de stockage temporaire
@@ -198,6 +200,9 @@ Pour migrer depuis l'ancienne architecture (service unique) :
 
 **Problème** : Token Threads expiré
 - **Solution** : Le service vérifie automatiquement et renouvelle le token si nécessaire (moins de 7 jours avant expiration)
+
+**Problème** : Les posts Facebook ne sont pas publiés
+- **Solution** : Vérifier que `FACEBOOK_TOKEN_*` et `FACEBOOK_PAGE_ID_*` sont bien définis dans `.env`, que le Page Access Token est valide (non expiré) et que la page a les permissions `pages_manage_posts` et `pages_read_engagement`
 
 ### Vérification de l'état
 

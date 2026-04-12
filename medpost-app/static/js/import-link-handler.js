@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     return `
                         <div class="card mb-3">
-                            <div class="card-header text-white bg-${network === 'X' ? 'dark' : network === 'Threads' ? 'secondary' : 'info' }">
+                            <div class="card-header text-white bg-${network === 'X' ? 'dark' : network === 'Threads' ? 'secondary' : network === 'Facebook' ? 'primary' : 'info' }">
                                 <strong>${network}</strong>
                             </div>
                             <div class="card-body">
@@ -111,8 +111,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <input type="hidden" name="image_url" value="${importedArticle.image_url}">
                                     <input type="hidden" name="article_id" value="${importedArticle.id}">
                                     <input type="hidden" name="description" value="${MedpostUtils.escapeHtml(importedArticle.summary)}">
-                                    ${network === 'X' ? generateXFields(network, imageSrc, currentDatetime) 
-                                        : network === 'Threads' ? generateThreadsFields(network, imageSrc, currentDatetime) 
+                                    ${network === 'X' ? generateXFields(network, imageSrc, currentDatetime)
+                                        : network === 'Threads' ? generateThreadsFields(network, imageSrc, currentDatetime)
+                                        : network === 'Facebook' ? generateFacebookFields(network, imageSrc, currentDatetime)
                                         : generateBlueskyFields(network, imageSrc, currentDatetime)}
                                 </form>
                             </div>
@@ -129,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <textarea class="form-control" name="title" rows="2" required>${MedpostUtils.escapeHtml(importedArticle.title)}</textarea>
                                 <div class="position-relative">
                                     <img id="previewImage_${network}_import-link" src="${imageSrc}" class="w-100 mt-3 d-block rounded-3" alt=""/>
-                                    <a href="${importedArticle.link}" class="card-link" target="_blank">De lequotidiendumedecin.fr</a>
+                                    <a href="${importedArticle.link}" class="card-link" target="_blank">De ${newspaper === 'qdm' ? 'lequotidiendumedecin.fr' : 'lequotidiendupharmacien.fr'}</a>
                                 </div>
                             </div>
                             <div class="col-5">
@@ -155,7 +156,32 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <img id="previewImage_${network}_import-link" src="${imageSrc}" class="w-100 mt-3 d-block rounded-3" alt=""/>
                                 <div class="legend-title">${MedpostUtils.escapeHtml(importedArticle.title)}</div>
                                 <div class="legend-chapo">${MedpostUtils.escapeHtml(truncatedSummary)}</div>
-                                <a href="${importedArticle.link}" class="card-link" target="_blank">@ www.lequotidiendupharmacien.fr</a>
+                                <a href="${importedArticle.link}" class="card-link" target="_blank">@ www.${newspaper === 'qdm' ? 'lequotidiendumedecin.fr' : 'lequotidiendupharmacien.fr'}</a>
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label fw-bold">Date et heure</label>
+                                <input type="datetime-local" class="form-control" name="datetime" value="${currentDatetime}" min="${currentDatetime}" style="width: 250px;" required>
+                                <label for="modifyImageFormFile_${network}_import-link" class="form-label fw-bold">Modifier l'image</label>
+                                <input type="file" class="form-control mb-3" id="modifyImageFormFile_${network}_import-link" accept="image/*">
+                                <button type="button" class="btn btn-primary" id="modifyImageBtn_${network}_import-link">Upload</button>
+                            </div>
+                        </div>
+                    `;
+                };
+
+                // Champs spécifiques Facebook
+                const generateFacebookFields = (network, imageSrc, currentDatetime) => {
+                    const truncatedSummary = MedpostUtils.truncateText(importedArticle.summary, 165);
+                    return `
+                        <input type="hidden" name="title" value="${MedpostUtils.escapeHtml(importedArticle.title)}">
+                        <div class="row">
+                            <div class="col-7 border rounded p-2">
+                                <label class="form-label fw-bold">Accroche du post</label>
+                                <textarea class="form-control" name="tagline" rows="3" maxlength="63206" required></textarea>
+                                <img id="previewImage_${network}_import-link" src="${imageSrc}" class="w-100 mt-3 d-block rounded-3" alt=""/>
+                                <div class="legend-title">${MedpostUtils.escapeHtml(importedArticle.title)}</div>
+                                <div class="legend-chapo">${MedpostUtils.escapeHtml(truncatedSummary)}</div>
+                                <a href="${importedArticle.link}" class="card-link" target="_blank">@ www.${newspaper === 'qdm' ? 'lequotidiendumedecin.fr' : 'lequotidiendupharmacien.fr'}</a>
                             </div>
                             <div class="col-5">
                                 <label class="form-label fw-bold">Date et heure</label>
@@ -180,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <img id="previewImage_${network}_import-link" src="${imageSrc}" class="w-100 mt-3 d-block rounded-3" alt=""/>
                                 <div class="legend-title">${MedpostUtils.escapeHtml(importedArticle.title)}</div>
                                 <div class="legend-chapo">${MedpostUtils.escapeHtml(truncatedSummary)}</div>
-                                <a href="${importedArticle.link}" class="card-link" target="_blank">@ www.lequotidiendupharmacien.fr</a>
+                                <a href="${importedArticle.link}" class="card-link" target="_blank">@ www.${newspaper === 'qdm' ? 'lequotidiendumedecin.fr' : 'lequotidiendupharmacien.fr'}</a>
                             </div>
                             <div class="col-5">
                                 <label class="form-label fw-bold">Date et heure</label>

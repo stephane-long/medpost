@@ -956,7 +956,7 @@ def post_all_facebook(posts, engine, newspaper, http_session):
     for post in posts:
         raw_link = post.get("link") or ""
         link = raw_link + (tag or "") if raw_link else ""
-        message = f"{post['title']}"
+        message = f"{post['tagline']}"
 
         post_image = post["image_url"]
 
