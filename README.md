@@ -128,7 +128,7 @@ Publications programmées/publiées sur les réseaux sociaux.
 |-------|------|-------------|
 | id | Integer | Clé primaire |
 | article_id | Integer | Référence vers Articles_rss |
-| network | Text | Réseau social (x/bluesky/threads) |
+| network | Text | Réseau social (x/bluesky/threads/facebook) |
 | status | String | État (plan/pub) |
 | scheduled_at | DateTime | Date de publication prévue |
 | published_at | DateTime | Date de publication réelle |
