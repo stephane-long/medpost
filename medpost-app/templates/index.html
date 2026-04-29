@@ -147,14 +147,14 @@
                 <span class="me-2" style="font-size:0.65rem; font-weight:700; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:0.08em;">Filtres</span>
                 <a class="mp-filter-tab {% if selectedfeed == 'tous' %}active{% endif %}"
                     href="{{ url_for('home', selectedfeed='tous', newspaper=newspaper) }}">Tous</a>
+                <a class="mp-filter-tab {% if selectedfeed == 'Facebook' %}active{% endif %}"
+                    href="{{ url_for('home', selectedfeed='Facebook', newspaper=newspaper) }}">Facebook</a>
                 <a class="mp-filter-tab {% if selectedfeed == 'X' %}active{% endif %}"
                     href="{{ url_for('home', selectedfeed='X', newspaper=newspaper) }}">X</a>
                 <a class="mp-filter-tab {% if selectedfeed == 'Bluesky' %}active{% endif %}"
                     href="{{ url_for('home', selectedfeed='Bluesky', newspaper=newspaper) }}">Bluesky</a>
                 <a class="mp-filter-tab {% if selectedfeed == 'Threads' %}active{% endif %}"
                     href="{{ url_for('home', selectedfeed='Threads', newspaper=newspaper) }}">Threads</a>
-                <a class="mp-filter-tab {% if selectedfeed == 'Facebook' %}active{% endif %}"
-                    href="{{ url_for('home', selectedfeed='Facebook', newspaper=newspaper) }}">Facebook</a>
             </div>
         </div>
 
@@ -267,7 +267,6 @@
                 <div class="d-flex align-items-center gap-2 mb-1">
                     <span class="mp-post-date-badge mp-post-date-badge--{{ newspaper }}">{{ post.date_pub }}</span>
                     <span class="mp-post-network">{{ post.name }}</span>
-                    <span class="mp-username">{{ current_user.username }}</span>
                 </div>
                 <div class="d-flex align-items-start gap-2">
                     <img src="{% if post.image_url.startswith('http') %}{{ post.image_url }}{% else %}{{ url_for('static', filename=post.image_url) }}{% endif %}"

@@ -6,12 +6,13 @@ import platform
 import re
 import time
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
 import requests
 import tweepy
+from paramiko import AutoAddPolicy, SSHClient
 from atproto import Client, models
 from requests.adapters import HTTPAdapter
 from requests_oauthlib import OAuth1
@@ -146,9 +147,10 @@ def fetch_posts(engine: Engine, selectedfeed: str, newspaper: str) -> Sequence[A
             posts = session.execute(statement).mappings().all()
             logging.info("Lecture de %s posts sur %s", len(posts), selectedfeed)
             logging.debug("POST LUS : %s", posts)
+            return posts
         except Exception as e:
             logging.error("Erreur de lecture des posts : %s", e)
-    return posts
+            return []
 
 
 def update_network_post_id(engine: Engine, post_id: int, network_post_id: str) -> None:
@@ -1055,10 +1057,7 @@ def main() -> None:
         datefmt="%Y-%m-%d %H:%M",
     )
 
-    url_newspapers = {
-        "qdm": os.getenv("QDM_URL_RSS"),
-        "qph": os.getenv("QPH_URL_RSS"),
-    }
+    newspapers = ["qdm", "qph"]
 
     engine = create_db_and_tables(database_path)
 
@@ -1069,7 +1068,7 @@ def main() -> None:
         migrate_tokens_to_db(engine)
 
         logging.info("=== Début du traitement de publication ===")
-        for newspaper, url_newspaper in url_newspapers.items():
+        for newspaper in newspapers:
             logging.info("Traitement du journal: %s", newspaper)
 
             # Vérifier et renouveler le token si nécessaire
@@ -1083,8 +1082,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    from datetime import datetime
-    from datetime import timedelta
-    from paramiko import SSHClient, AutoAddPolicy
-
     main()
